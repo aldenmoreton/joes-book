@@ -28,19 +28,19 @@ if (process.env.NODE_ENV === 'development') {
 	clientPromise = client.connect()
 }
 
+// If DB or collections in DB are not created, add them
+const collectionNames = ["books", "characters", "events", "picks"]
 clientPromise.then(
 	(res) => {
-		console.log('listing collections')
 		const db = res.db("app")
 		db.listCollections({}, {nameOnly: true}).toArray().then(
 			(array) => {
-				let collectionNames = []
+				let currentCollectionNames = []
 				for (let i = 0; i < array.length; i++) {
-					collectionNames.push(array[i].name)
+					currentCollectionNames.push(array[i].name)
 				}
-				let desiredNames = ["books", "characters", "events", "picks"]
-				for (let name of desiredNames) {
-					if (!collectionNames.includes(name)) {
+				for (let name of collectionNames) {
+					if (!currentCollectionNames.includes(name)) {
 						db.createCollection(name)
 					}
 				}

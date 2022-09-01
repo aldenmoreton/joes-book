@@ -1,0 +1,10 @@
+[
+	{
+		"Header": "Database Name",
+		"accessor": "name"
+	},
+	{
+		"Header": "Size on Disk",
+		"accessor": "sizeOnDisk"
+	}
+]
