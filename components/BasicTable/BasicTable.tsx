@@ -1,12 +1,12 @@
 import React, {FC, useState, useMemo} from 'react'
 import { useTable, Column } from 'react-table'
-import columns from '../TableColumns/databases.json'
 
 
 type props = {
+	columns: any,
 	data: readonly {}[]
 }
-export const DatabaseTable: FC<props> = ({ data }) => {
+export const DatabaseTable: FC<props> = ({ columns, data }) => {
 	const COLUMNS = useMemo(() => columns, [])
 	const DATA = useMemo(() => data, [])
 

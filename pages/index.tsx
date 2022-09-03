@@ -1,8 +1,12 @@
 import Head from 'next/head'
 import clientPromise from '../lib/mongodb'
 import { InferGetServerSidePropsType } from 'next'
-import {DatabaseTable} from '../components/DatabaseTable/DatabaseTable'
+import {DatabaseTable} from '../components/BasicTable/BasicTable'
 import React from 'react'
+import { addCharacters } from '../lib/crud'
+import MOCK_DATA from '../lib/MOCK_DATA.json'
+import DatabaseColumns from '../components/TableColumns/databases.json'
+import CharacterColumns from '../components/TableColumns/characters.json'
 
 // export async function getServerSideProps(context) {
 export async function getServerSideProps() {
@@ -10,10 +14,14 @@ export async function getServerSideProps() {
 		const client = await clientPromise
 		const databasesList = await client.db().admin().listDatabases()
 
+		// console.log(await addCharacters(clientx MOCK_DATA))
+		const results = await client.db("app").collection("characters").find({}).project({"_id": 0}).toArray()
+
 		return {
 			props: {
 				isConnected: true,
-				dbList: databasesList
+				dbList: databasesList,
+				chrList: results
 			}
 		}
 	} catch (e) {
@@ -21,13 +29,14 @@ export async function getServerSideProps() {
 		return {
 			props: {
 				isConnected: false,
-				dbList: Object()
+				dbList: Object(),
+				chrList: Object()
 			}
 		}
 	}
 }
 
-export default function Home({ isConnected, dbList }: InferGetServerSidePropsType<typeof getServerSideProps>) {
+export default function Home({ isConnected, dbList, chrList }: InferGetServerSidePropsType<typeof getServerSideProps>) {
   return (
 	<div className="container">
 	  <Head>
@@ -39,7 +48,8 @@ export default function Home({ isConnected, dbList }: InferGetServerSidePropsTyp
 		<h1 className="title">
 		  Welcome to Joe's Book
 		</h1>
-		<DatabaseTable data={dbList.databases}></DatabaseTable>
+		{/* <DatabaseTable columns={DatabaseColumns} data={dbList.databases}></DatabaseTable> */}
+		<DatabaseTable columns={CharacterColumns} data={chrList}></DatabaseTable>
 
 		{isConnected ? (
 		  <h2 className="subtitle">You are connected to MongoDB</h2>
