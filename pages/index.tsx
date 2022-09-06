@@ -10,29 +10,24 @@ export async function getServerSideProps() {
 		const client = await clientPromise
 		const databasesList = await client.db().admin().listDatabases()
 
-		// console.log(await addCharacters(clientx MOCK_DATA))
 		const results = await client.db("app").collection("characters").find({}).project({"_id": 0}).toArray()
 
 		return {
 			props: {
-				isConnected: true,
-				dbList: databasesList,
-				chrList: results
+				isConnected: true
 			}
 		}
 	} catch (e) {
 		console.error(e)
 		return {
 			props: {
-				isConnected: false,
-				dbList: Object(),
-				chrList: Object()
+				isConnected: false
 			}
 		}
 	}
 }
 
-export default function Home({ isConnected, dbList, chrList }: InferGetServerSidePropsType<typeof getServerSideProps>) {
+export default function Home({ isConnected }: InferGetServerSidePropsType<typeof getServerSideProps>) {
   return (
 	<div className="container">
 	  <Head>
