@@ -1,6 +1,6 @@
 import React, {FC, useState, useMemo} from 'react'
 import { useTable, Column } from 'react-table'
-import columns from '../TableColumns/databases.json'
+import columns from './TableColumns/databases.json'
 
 
 type props = {

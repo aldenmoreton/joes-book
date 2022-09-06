@@ -1,12 +1,8 @@
 import Head from 'next/head'
 import clientPromise from '../lib/mongodb'
 import { InferGetServerSidePropsType } from 'next'
-import {DatabaseTable} from '../components/BasicTable/BasicTable'
 import React from 'react'
-import { addCharacters } from '../lib/crud'
-import MOCK_DATA from '../lib/MOCK_DATA.json'
-import DatabaseColumns from '../components/TableColumns/databases.json'
-import CharacterColumns from '../components/TableColumns/characters.json'
+import Button from '@mui/material/Button'
 
 // export async function getServerSideProps(context) {
 export async function getServerSideProps() {
@@ -48,10 +44,11 @@ export default function Home({ isConnected, dbList, chrList }: InferGetServerSid
 		<h1 className="title">
 		  Welcome to Joe's Book
 		</h1>
-		{/* <DatabaseTable columns={DatabaseColumns} data={dbList.databases}></DatabaseTable> */}
-		<DatabaseTable columns={CharacterColumns} data={chrList}></DatabaseTable>
+		<Button variant='outlined' href='/books'>Go to Books!</Button>
+	  </main>
 
-		{isConnected ? (
+	  <footer>
+	  {isConnected ? (
 		  <h2 className="subtitle">You are connected to MongoDB</h2>
 		) : (
 		  <h2 className="subtitle">
@@ -59,17 +56,6 @@ export default function Home({ isConnected, dbList, chrList }: InferGetServerSid
 			for instructions.
 		  </h2>
 		)}
-	  </main>
-
-	  <footer>
-		<a
-		  href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-		  target="_blank"
-		  rel="noopener noreferrer"
-		>
-		  Powered by{' '}
-		  <img src="/vercel.svg" alt="Vercel Logo" className="logo" />
-		</a>
 	  </footer>
 
 	  <style jsx>{`
