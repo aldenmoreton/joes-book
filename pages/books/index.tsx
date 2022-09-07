@@ -17,13 +17,8 @@ export async function getServerSideProps() {
 export default function Home({ }: InferGetServerSidePropsType<typeof getServerSideProps>) {
 	return (
 		<>
-			<Typography align='center' variant='h1'>Your current books!</Typography>
+			<Typography align='center' variant='h4'>Your current books!</Typography>
 			<BookCard></BookCard>
-			{/* <SpeedDial
-				ariaLabel="SpeedDial basic example"
-				sx={{ position: 'absolute', bottom: 16, right: 16 }}
-				icon={<SpeedDialIcon />}
-			> */}
 			<Button variant='contained' sx={{ position: 'absolute', bottom: 16, right: 16, borderRadius:10}} href='books/new'>
 				<SpeedDialIcon></SpeedDialIcon>
 			</Button>
