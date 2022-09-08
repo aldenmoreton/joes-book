@@ -52,14 +52,3 @@ clientPromise.then(
 // Export a module-scoped MongoClient promise. By doing this in a
 // separate module, the client can be shared across functions.
 export default clientPromise
-
-export const addCharacters: any = async function(client: MongoClient, characters: Object[]) {
-	const results = await client.db("app").collection("characters").insertMany(characters)
-
-	return results
-}
-
-export const findCharacters: any = (client: MongoClient, query: string) => {
-	client.db("app").collection("characters").find()
-	return [Object()]
-}

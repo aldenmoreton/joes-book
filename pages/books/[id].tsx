@@ -1,15 +1,21 @@
 import { InferGetServerSidePropsType } from 'next'
-import BookCard from '../../components/BookCard'
-import Typography from '@mui/material/Typography'
-import SpeedDial from '@mui/material/SpeedDial'
-import { SpeedDialIcon } from '@mui/material'
-import { Button } from '@mui/material'
-import SpeedDialAction from '@mui/material/SpeedDialAction'
-import { useRouter } from 'next/router'
+
+import { authOptions } from '../api/auth/[...nextauth]'
+import { unstable_getServerSession } from "next-auth/next"
 
 export async function getServerSideProps(context: any) {
+	const session = await unstable_getServerSession(context.req, context.res, authOptions)
+	if (!session) {
+		return {
+			redirect: {
+				permanent: false,
+        		destination: "/"
+			}
+		}
+	}
+
+
 	const { id } = context.query
-	console.log(id)
 	return {
 		props: {
 			id: id

@@ -9,18 +9,48 @@ import IconButton, { IconButtonProps } from '@mui/material/IconButton'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { styled } from '@mui/material/styles'
 import Collapse from '@mui/material/Collapse'
-import { CardActionArea } from '@mui/material';
+import { Avatar, CardActionArea } from '@mui/material';
+import Chip from '@mui/material/Chip';
+import Stack from '@mui/material/Stack';
+import Badge from '@mui/material/Badge';
+import MailIcon from '@mui/icons-material/Mail'
 
-export default function BookCard() {
+interface CardProps {
+	data: {
+		name: string,
+		owner: string,
+		id: string,
+		img: string
+	}
+}
 
+//TODO: Create dynamic badge
+export default function BookCard({ data }: CardProps) {
+	// let chip = {
+	// 	label: 'Unfinished Picks',
+	// 	color: 'warning'
+	// }
+	// if (!data.currentPicks) {
+	// 	chip.label = 'Up to date'
+	// 	chip.color = 'success'
+	// }
 	return (
 		<Card raised sx={{ maxWidth:'350px' }}>
-			<CardActionArea>
+			<CardActionArea href={`/books/${data.id}`}>
 				<CardContent>
 					<CardHeader
-						title='2022 Pick Six'
-						subheader='Created by Joe Tosney'
+						title={data.name}
+						subheader={`Created by ${data.owner}`}
+						action={
+							<Badge badgeContent={4} color="primary">
+								<MailIcon></MailIcon>
+							</Badge>
+						}
+						avatar={
+							<Avatar src={data.img}/>
+						}
 					/>
+
 				</CardContent>
 			</CardActionArea>
 		</Card>

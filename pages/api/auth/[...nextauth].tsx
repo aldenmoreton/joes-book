@@ -4,11 +4,17 @@ import clientPromise from "../../../lib/mongodb"
 import FacebookProvider from "next-auth/providers/facebook"
 import GithubProvider from "next-auth/providers/github"
 import GoogleProvider from "next-auth/providers/google"
+import { Session } from "inspector"
 
-// For more information on each option (and a full list of options) go to
-// https://next-auth.js.org/configuration/options
+//TODO: Implement Auth with different providers
+//TODO: Add custom sign in page?
+//TODO: Add interface for session
+
+interface SessionProps {
+  session: any,
+  user: any
+}
 export const authOptions: NextAuthOptions = {
-  // https://next-auth.js.org/configuration/providers/oauth
   secret: process.env.NEXTAUTH_SECRET,
   adapter: MongoDBAdapter(clientPromise),
   providers: [
@@ -29,11 +35,19 @@ export const authOptions: NextAuthOptions = {
     colorScheme: "light",
   },
   callbacks: {
+    async session({ session, user }: SessionProps) {
+      if (session?.user) {
+        session.user.id = user.id;
+        session.user.books = user.books;
+      }
+      return session;
+    },
     async jwt({ token }) {
       token.userRole = "admin"
       return token
     },
   },
+  session: { strategy: "database"}
 }
 
 export default NextAuth(authOptions)
