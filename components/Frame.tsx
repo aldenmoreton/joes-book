@@ -1,4 +1,4 @@
-import { useSession } from "next-auth/react"
+import { useSession, signIn } from "next-auth/react"
 
 import Navbar from "./Navbar"
 
@@ -15,6 +15,15 @@ export default function Frame({ children }: props){
 			<>
 				<CircularProgress />
 			</>
+		)
+	}
+
+	if (!session) {
+		return (
+			<>
+				Not signed in <br />
+				<button onClick={() => signIn()}>Sign in</button>
+    		</>
 		)
 	}
 
