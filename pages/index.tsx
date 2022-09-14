@@ -1,21 +1,13 @@
 import Head from 'next/head'
 import React from 'react'
 import Button from '@mui/material/Button'
-import { useSession, signIn, signOut } from 'next-auth/react'
+import { useSession, signOut } from 'next-auth/react'
 
 export default function Home({ }) {
-	const { data: session, status } = useSession()
+	const { data: session } = useSession()
 	// if (status === 'loading') {
 	// 	return <h1>Loading</h1>
 	// }
-	if (!session) {
-		return (
-			<>
-				Not signed in <br />
-				<button onClick={() => signIn()}>Sign in</button>
-    		</>
-		)
-	}
 
 	return (
 		<>

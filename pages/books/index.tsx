@@ -14,14 +14,6 @@ import { getBookCardProps } from '../../lib/books'
 //TODO: context interface
 export async function getServerSideProps(context: any) {
 	const session = await unstable_getServerSession(context.req, context.res, authOptions)
-	if (!session) {
-		return {
-			redirect: {
-				permanent: false,
-        		destination: "/"
-			}
-		}
-	}
 	const client = await clientPromise
 	const bookIds = session!.user!.books!
 	const cards = await getBookCardProps(client, bookIds)
