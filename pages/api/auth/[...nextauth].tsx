@@ -9,7 +9,6 @@ import { Session } from "inspector"
 //TODO: Implement Auth with different providers
 //TODO: Add custom sign in page?
 //TODO: Add interface for session
-
 interface SessionProps {
   session: any,
   user: any

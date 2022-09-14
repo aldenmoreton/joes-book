@@ -14,6 +14,11 @@ export async function getServerSideProps(context: any) {
 		}
 	}
 
+	const books = session!.user!.books!.map(book => {
+		console.log(book)
+	})
+	console.log(session?.user?.books)
+	console.log(books)
 
 	const { id } = context.query
 	return {

@@ -9,9 +9,9 @@ import { authOptions } from '../api/auth/[...nextauth]'
 import { unstable_getServerSession } from "next-auth/next"
 
 import clientPromise from "../../lib/mongodb"
-import { ObjectId } from 'mongodb'
-import { getBookCardProps, getBooksById } from '../../lib/books'
+import { getBookCardProps } from '../../lib/books'
 
+//TODO: context interface
 export async function getServerSideProps(context: any) {
 	const session = await unstable_getServerSession(context.req, context.res, authOptions)
 	if (!session) {

@@ -1,6 +1,4 @@
 import Head from 'next/head'
-import clientPromise from '../lib/mongodb'
-import { InferGetServerSidePropsType } from 'next'
 import React from 'react'
 import Button from '@mui/material/Button'
 import { useSession, signIn, signOut } from 'next-auth/react'
@@ -18,7 +16,9 @@ export default function Home({ }) {
     		</>
 		)
 	}
+
 	return (
+		<>
 		<div className="container">
 		<Head>
 			<title>Create Next App</title>
@@ -36,5 +36,6 @@ export default function Home({ }) {
 		</footer>
 
 		</div>
+		</>
 	)
 }
