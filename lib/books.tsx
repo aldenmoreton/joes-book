@@ -1,8 +1,8 @@
 import { MongoClient } from "mongodb"
 import { ObjectId } from 'mongodb'
 
-export const addBook = async function(client: MongoClient, characters: Object[]) {
-	const results = await client.db("app").collection("books").insertMany(characters)
+export const addBook = async function(client: MongoClient, book: Object[]) {
+	const results = await client.db("app").collection("books").insertOne(book)
 
 	return results
 }

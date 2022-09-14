@@ -13,14 +13,14 @@ import Button from '@mui/material/Button'
 import Tooltip from '@mui/material/Tooltip'
 import Avatar from '@mui/material/Avatar'
 
-import { useSession } from 'next-auth/react'
-
 const pages = ['Products', 'Pricing', 'Blog'];
 const settings = ['Profile', 'Account', 'Dashboard', 'Logout'];
 
 //TODO: Implement everything; pages, logos, etc
-//TODO: Interface for props
-export default function Navbar( ) {
+interface props {
+	img: string | undefined
+}
+export default function Navbar({ img }: props) {
 
 	const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null);
   	const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(null);
@@ -39,11 +39,11 @@ export default function Navbar( ) {
   const handleCloseUserMenu = () => {
 	setAnchorElUser(null);
   };
-  const { data: session } = useSession()
-  let img = (session?.user?.image) ? session.user.image : undefined
+
+
   return (
 	<>
-		<AppBar position="static">
+		<AppBar position="static" sx={{mb: 3}}>
 		<Container maxWidth="xl">
 			<Toolbar disableGutters>
 			<AdbIcon sx={{ display: { xs: 'none', md: 'flex' }, mr: 1 }} />
