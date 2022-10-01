@@ -5,7 +5,7 @@ import { MongoClient } from 'mongodb'
 // 	throw new Error('Invalid environment variable: "MONGODB_URI"')
 // }
 
-const uri = process.env.MONGODB_URI
+const uri = process.env.MONGODB_URI || ''
 const options = {}
 
 let client: MongoClient
