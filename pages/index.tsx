@@ -5,15 +5,12 @@ import { useSession, signOut } from 'next-auth/react'
 
 export default function Home({ }) {
 	const { data: session } = useSession()
-	// if (status === 'loading') {
-	// 	return <h1>Loading</h1>
-	// }
 
 	return (
 		<>
-		<div className="container">
+		{/* <div className="container"> */}
 		<Head>
-			<title>Create Next App</title>
+			{/* <title>Create Next App</title> */}
 			<link rel="icon" href="/favicon.ico"/>
 		</Head>
 		<main>
@@ -23,11 +20,7 @@ export default function Home({ }) {
 			<Button variant='outlined' href='/books'>Go to Books!</Button>
 			<button onClick={() => signOut()}></button>
 		</main>
-
-		<footer>
-		</footer>
-
-		</div>
+		{/* </div> */}
 		</>
 	)
 }

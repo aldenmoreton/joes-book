@@ -1,14 +1,14 @@
-import { MongoClient } from "mongodb"
 import { ObjectId } from 'mongodb'
+import { MongoClient } from "mongodb"
 
-export const addBook = async function(client: MongoClient, book: Object[]) {
-	const results = await client.db("app").collection("books").insertOne(book)
+export const createBook = async function(client: MongoClient, book: Object[]) {
+	let results = await client.db().collection("books").insertOne(book)
 
 	return results
 }
 
 export const getBooksById = async (client: MongoClient, bookIds: ObjectId[]) => {
-	const books = await client.db("app").collection("books")
+	const books = await client.db().collection("books")
 	.find({_id: {$in: bookIds}})
 
 	return await books.toArray()

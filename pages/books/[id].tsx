@@ -5,22 +5,21 @@ import { unstable_getServerSession } from "next-auth/next"
 
 export async function getServerSideProps(context: any) {
 	const session = await unstable_getServerSession(context.req, context.res, authOptions)
-	if (!session) {
+
+	const books = session!.user!.books!.map(book => {
+		return book.toString()
+	})
+
+	const { id } = context.query
+	if (!books.includes(id)) {
 		return {
 			redirect: {
 				permanent: false,
-        		destination: "/"
+				destination: "/"
 			}
 		}
 	}
 
-	const books = session!.user!.books!.map(book => {
-		console.log(book)
-	})
-	console.log(session?.user?.books)
-	console.log(books)
-
-	const { id } = context.query
 	return {
 		props: {
 			id: id
