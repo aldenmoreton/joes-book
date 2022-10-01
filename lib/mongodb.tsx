@@ -1,16 +1,17 @@
 import { MongoClient } from 'mongodb'
 
 //TODO: Is it safe to remove this check? Github requires it to build the image
-// if (!process.env.MONGODB_URI) {
-// 	throw new Error('Invalid environment variable: "MONGODB_URI"')
-// }
+if (!process.env.MONGODB_URI) {
+	throw new Error('Invalid environment variable: "MONGODB_URI"')
+}
 
-const uri = process.env.MONGODB_URI || ''
+const uri = process.env.MONGODB_URI
 const options = {}
 
 let client: MongoClient
 let clientPromise: Promise<MongoClient>
 
+//TODO:
 if (!process.env.MONGODB_URI) {
 	throw new Error('Please add your Mongo URI to .env.local')
 }
