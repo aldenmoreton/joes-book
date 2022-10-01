@@ -75,8 +75,9 @@ jobs:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
           tags: |
-            latest
             ${{ steps.meta.outputs.tags }}
+            type=semver,pattern={{version}}
+            type=raw,value=latest
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
