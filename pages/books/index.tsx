@@ -12,8 +12,9 @@ import clientPromise from "../../lib/mongodb"
 import { getBookCardProps } from '../../lib/books'
 
 //TODO: context interface
+//TODO: Type definitions
 export async function getServerSideProps(context: any) {
-	const session = await unstable_getServerSession(context.req, context.res, authOptions)
+	const session: any = await unstable_getServerSession(context.req, context.res, authOptions)
 	const client = await clientPromise
 	const bookIds = session!.user!.books!
 	const cards = await getBookCardProps(client, bookIds)

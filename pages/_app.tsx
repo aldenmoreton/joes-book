@@ -8,7 +8,8 @@ import '../styles/globals.css'
 import { ThemeProvider } from "@emotion/react"
 import theme from '../lib/theme'
 
-export default function App({ Component, pageProps }: AppProps) {
+//TODO: Type definitions
+export default function App({ Component, pageProps }: any) {
   return (
     <SessionProvider session={pageProps.session} refetchInterval={0}>
         <ThemeProvider theme={theme}>

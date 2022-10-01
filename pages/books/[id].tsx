@@ -3,10 +3,11 @@ import { InferGetServerSidePropsType } from 'next'
 import { authOptions } from '../api/auth/[...nextauth]'
 import { unstable_getServerSession } from "next-auth/next"
 
+//TODO: Type definitions
 export async function getServerSideProps(context: any) {
-	const session = await unstable_getServerSession(context.req, context.res, authOptions)
+	const session: any = await unstable_getServerSession(context.req, context.res, authOptions)
 
-	const books = session!.user!.books!.map(book => {
+	const books = session!.user!.books!.map((book: any) => {
 		return book.toString()
 	})
 
