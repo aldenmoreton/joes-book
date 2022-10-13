@@ -16,17 +16,35 @@ import { getBookCardProps } from '../../lib/books'
 export async function getServerSideProps(context: any) {
 	const session: any = await unstable_getServerSession(context.req, context.res, authOptions)
 	const client = await clientPromise
-	const bookIds = session!.user!.books!
-	const cards = await getBookCardProps(client, bookIds)
+	const bookIds = session.user.books
+
+	if (bookIds.length > 0) {
+		const cards = await getBookCardProps(client, bookIds)
+
+		return {
+			props: {
+				cards: cards
+			}
+		}
+	}
 
 	return {
 		props: {
-			cards: cards
+			cards: null
 		}
 	}
+
 }
 
 export default function Home({ cards }: InferGetServerSidePropsType<typeof getServerSideProps>) {
+	if (!cards) {
+		return (
+			<>
+				<h1>You don't have any books</h1>
+			</>
+		)
+	}
+
 	return (
 		<>
 			<Typography align='center' variant='h4'>Your current books!</Typography>

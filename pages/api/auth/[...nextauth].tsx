@@ -35,16 +35,16 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async session({ session, user }: SessionProps) {
-      if (session?.user) {
+      if (session.user) {
         session.user.id = user.id;
-        session.user.books = user.books;
+        session.user.books = user.books ? user.books : [];
       }
       return session;
     },
     async jwt({ token }) {
       token.userRole = "admin"
       return token
-    },
+    }
   },
   session: { strategy: "database"}
 }
