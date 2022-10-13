@@ -18,22 +18,12 @@ export async function getServerSideProps(context: any) {
 	const client = await clientPromise
 	const bookIds = session.user.books
 
-	if (bookIds.length > 0) {
-		const cards = await getBookCardProps(client, bookIds)
-
-		return {
-			props: {
-				cards: cards
-			}
-		}
-	}
-
+	const cards = await getBookCardProps(client, bookIds)
 	return {
 		props: {
-			cards: null
+			cards: cards.length > 0 ? cards : null
 		}
 	}
-
 }
 
 export default function Home({ cards }: InferGetServerSidePropsType<typeof getServerSideProps>) {
