@@ -39,3 +39,4 @@ public/sw.js
 public/sw.js
 
 db_data/
+public/workbox*
