@@ -30,14 +30,15 @@ export default function Home({ cards }: InferGetServerSidePropsType<typeof getSe
 	if (!cards) {
 		return (
 			<>
-				<h1>You don't have any books</h1>
+				<Typography variant='h4'>You don't have any books</Typography>
+				<Button variant="outlined" href='books/new'>Create Your First One</Button>
 			</>
 		)
 	}
 
 	return (
 		<>
-			<Typography align='center' variant='h4'>Your current books!</Typography>
+			<Typography variant='h4'>Your current books!</Typography>
 			<BookGrid cards={cards}></BookGrid>
 			<Button variant='contained' sx={{ position: 'fixed', bottom: 16, right: 16, borderRadius:10}} href='books/new'>
 				<SpeedDialIcon></SpeedDialIcon>
