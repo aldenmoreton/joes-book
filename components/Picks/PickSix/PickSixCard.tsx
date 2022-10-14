@@ -9,6 +9,8 @@ import IconButton, { IconButtonProps } from '@mui/material/IconButton'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { styled } from '@mui/material/styles'
 import Collapse from '@mui/material/Collapse'
+import Container from '@mui/material/Container'
+import PickSixForm from './PickSixForm'
 
 interface ExpandMoreProps extends IconButtonProps {
 	expand: boolean;
@@ -25,7 +27,14 @@ const ExpandMore = styled((props: ExpandMoreProps) => {
 	}),
 }));
 
-export default function PickCard() {
+//TODO: point tracker type
+type props = {
+	home: string,
+	visitor: string,
+	homeSpread: string,
+	pointTracker: any
+}
+export default function PickSixCard({home, visitor, homeSpread, pointTracker}: props) {
 	const [expanded, setExpanded] = React.useState(false);
 
   const handleExpandClick = () => {
@@ -35,7 +44,7 @@ export default function PickCard() {
 		<Card raised sx={{ maxWidth:'350px' }}>
 			<CardContent>
 				<CardHeader
-					title='Alabama at Texas'
+					title={`${visitor} at ${home}`.slice(0, 20)}
 					subheader='SPRED'
 					action={
 						<ExpandMore
@@ -47,16 +56,18 @@ export default function PickCard() {
           					<ExpandMoreIcon />
         				</ExpandMore>
 					}
-				/>
+					/>
+					<></>
 			</CardContent>
 			<CardActions style={{ justifyContent: 'center' }} disableSpacing>
-				<Button>Alabama -7</Button>
-				<Button>Texas +7</Button>
+				<PickSixForm home={home} visitor={visitor} homeSpread={homeSpread} pointTracker={pointTracker}/>
 			</CardActions>
 			<Collapse in={expanded} timeout="auto" unmountOnExit>
-				<Typography variant='h5'>Broadcast Information:</Typography>
-				<Typography variant='subtitle1'>September 10, 2:00PM CT</Typography>
-				<Typography variant='subtitle1'>ESPN</Typography>
+				<Container>
+					<Typography variant='h5'>Broadcast Information:</Typography>
+					<Typography variant='subtitle1'>September 10, 2:00PM CT</Typography>
+					<Typography variant='subtitle1'>ESPN</Typography>
+				</Container>
 			</Collapse>
 		</Card>
 	)
