@@ -2,6 +2,7 @@ import { useSession, signIn } from "next-auth/react"
 
 import Navbar from "./Navbar"
 
+import Grid from '@mui/material/Grid'
 import CircularProgress from "@mui/material/CircularProgress"
 
 interface props {
@@ -32,7 +33,9 @@ export default function Frame({ children }: props){
 	return (
 		<>
 			<Navbar img={img}/>
-			{children}
+			<Grid container direction="column" justifyContent="center" alignItems="center">
+				{children}
+			</Grid>
 		</>
 	)
 }

@@ -12,6 +12,7 @@ import MenuItem from '@mui/material/MenuItem'
 import Button from '@mui/material/Button'
 import Tooltip from '@mui/material/Tooltip'
 import Avatar from '@mui/material/Avatar'
+import { useSession, signOut } from 'next-auth/react'
 
 const pages = ['Products', 'Pricing', 'Blog'];
 const settings = ['Profile', 'Account', 'Dashboard', 'Logout'];
@@ -155,7 +156,7 @@ export default function Navbar({ img }: props) {
 				onClose={handleCloseUserMenu}
 				>
 				{settings.map((setting) => (
-					<MenuItem key={setting} onClick={handleCloseUserMenu}>
+					<MenuItem key={setting} onClick={() => signOut()}>
 					<Typography textAlign="center">{setting}</Typography>
 					</MenuItem>
 				))}
