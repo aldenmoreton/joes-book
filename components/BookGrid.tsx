@@ -6,7 +6,8 @@ type CardInfo = {
 	name: string,
     owner: string,
     id: string,
-    img: string
+    img: string,
+	notificationCount: number
 }
 type props = {
 	cards: Array<CardInfo>

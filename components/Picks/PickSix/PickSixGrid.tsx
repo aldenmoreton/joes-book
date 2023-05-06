@@ -3,14 +3,8 @@ import React from 'react';
 import Grid from "@mui/material/Grid"
 import PickSixCard from './PickSixCard';
 
-type CardInfo = {
-	home: string,
-	visitor: string,
-	homeSpread: string
-}
-
 type props = {
-	cards: Array<CardInfo>
+	cards: Array<PickSixCardInfo>
 }
 export default function PickSixGrid({cards}: props) {
 	const defaultPoints = {
@@ -21,12 +15,13 @@ export default function PickSixGrid({cards}: props) {
 		five: false,
 		six: false
 	}
-	const [test1, test2] = React.useState(defaultPoints);
+
 	return (
 		<Grid container spacing={1} justifyContent='center'>
-			{cards.map((card: CardInfo, idx: number) => {
+			{cards.map((card: PickSixCardInfo, idx: number) => {
 				return (
-					<Grid item key={idx.toString()}>
+					//TODO: Make cards fixed width
+					<Grid item key={idx.toString()} sx={{maxWidth: 345, minWidth: 345}}>
 						<PickSixCard home={card.home} visitor={card.visitor} homeSpread={card.homeSpread} pointTracker={React.useState(defaultPoints)}></PickSixCard>
 					</Grid>
 				)

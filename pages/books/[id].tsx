@@ -2,12 +2,20 @@ import { InferGetServerSidePropsType } from 'next'
 
 import { authOptions } from '../api/auth/[...nextauth]'
 import { unstable_getServerSession } from "next-auth/next"
+import { IncomingMessage, ServerResponse } from 'http'
 
-//TODO: Type definitions
-export async function getServerSideProps(context: any) {
+interface Context {
+	req: IncomingMessage & { cookies: Partial<{ [key: string]: string; }>; },
+	res: ServerResponse,
+	query: {
+		id: string
+	}
+}
+//TODO: Session type
+export async function getServerSideProps(context: Context) {
 	const session: any = await unstable_getServerSession(context.req, context.res, authOptions)
 
-	const books = session!.user!.books!.map((book: any) => {
+	const books = session.user.books.map((book: any) => {
 		return book.toString()
 	})
 
@@ -21,6 +29,8 @@ export async function getServerSideProps(context: any) {
 		}
 	}
 
+
+
 	return {
 		props: {
 			id: id
@@ -33,6 +43,7 @@ export default function Home({ id }: InferGetServerSidePropsType<typeof getServe
 		<>
 			<p>You are on the book page</p>
 			{id}
+			{/* <PickSixGrid cards={[{home: 'Texas', visitor: 'Alabama', homeSpread: '+7'}, {home: 'Geogia', visitor: 'Miss State', homeSpread: '-7'}]}/> */}
 		</>
 	)
 }

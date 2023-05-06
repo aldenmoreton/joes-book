@@ -80,22 +80,22 @@ export default function PickSixForm( {home, visitor, homeSpread, pointTracker}: 
 				aria-label="points pick"
 				>
 					<ToggleButton value="one" aria-label="one" sx={{"&.MuiToggleButtonGroup-grouped": {border: "none"}}}>
-						<LooksOneIcon fontSize="inherit" />
+						<LooksOneIcon/>
 					</ToggleButton>
 					<ToggleButton value="two" aria-label="two" sx={{"&.MuiToggleButtonGroup-grouped": {border: "none"}}}>
-						<LooksTwoIcon fontSize="inherit" />
+						<LooksTwoIcon/>
 					</ToggleButton>
 					<ToggleButton value="three" aria-label="three" sx={{"&.MuiToggleButtonGroup-grouped": {border: "none"}}}>
-						<Looks3Icon fontSize="inherit" />
+						<Looks3Icon/>
 					</ToggleButton>
 					<ToggleButton value="four" aria-label="four" sx={{"&.MuiToggleButtonGroup-grouped": {border: "none"}}}>
-						<Looks4Icon fontSize="inherit" />
+						<Looks4Icon/>
 					</ToggleButton>
 					<ToggleButton value="five" aria-label="five" sx={{"&.MuiToggleButtonGroup-grouped": {border: "none"}}}>
-						<Looks5Icon fontSize="inherit" />
+						<Looks5Icon/>
 					</ToggleButton>
 					<ToggleButton value="six" aria-label="six" sx={{"&.MuiToggleButtonGroup-grouped": {border: "none"}}}>
-						<Looks6Icon fontSize="inherit" />
+						<Looks6Icon/>
 					</ToggleButton>
 				</ToggleButtonGroup>
 			</Grid>
@@ -109,10 +109,10 @@ export default function PickSixForm( {home, visitor, homeSpread, pointTracker}: 
 				aria-label="team pick"
 				>
 					<ToggleButton value="visitor" aria-label="visitor" sx={{"&.MuiToggleButtonGroup-grouped": {border: "none"}}}>
-						<Button>{visitor + ' ' + reverseSpread(homeSpread)}</Button>
+						<Button>{`${visitor} ${reverseSpread(homeSpread)}`}</Button>
 					</ToggleButton>
 					<ToggleButton value="home" aria-label="home" sx={{"&.MuiToggleButtonGroup-grouped": {border: "none"}}}>
-						<Button>{home + ' ' + homeSpread}</Button>
+						<Button>{`${home} ${homeSpread}`}</Button>
 					</ToggleButton>
 				</ToggleButtonGroup>
 			</Grid>

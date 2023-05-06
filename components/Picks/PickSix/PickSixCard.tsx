@@ -4,7 +4,6 @@ import CardHeader from '@mui/material/CardHeader';
 import CardContent from '@mui/material/CardContent'
 import Typography from '@mui/material/Typography'
 import CardActions from '@mui/material/CardActions'
-import Button from '@mui/material/Button'
 import IconButton, { IconButtonProps } from '@mui/material/IconButton'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { styled } from '@mui/material/styles'
@@ -27,12 +26,14 @@ const ExpandMore = styled((props: ExpandMoreProps) => {
 	}),
 }));
 
-//TODO: point tracker type
 type props = {
 	home: string,
 	visitor: string,
 	homeSpread: string,
-	pointTracker: any
+	pointTracker: [
+		{ one: boolean; two: boolean; three: boolean; four: boolean; five: boolean; six: boolean; },
+		React.Dispatch<React.SetStateAction<{ one: boolean; two: boolean; three: boolean; four: boolean; five: boolean; six: boolean; }>>
+	]
 }
 export default function PickSixCard({home, visitor, homeSpread, pointTracker}: props) {
 	const [expanded, setExpanded] = React.useState(false);
@@ -44,7 +45,8 @@ export default function PickSixCard({home, visitor, homeSpread, pointTracker}: p
 		<Card raised sx={{ maxWidth:'350px' }}>
 			<CardContent>
 				<CardHeader
-					title={`${visitor} at ${home}`.slice(0, 20)}
+					title={`${visitor} at ${home}`}
+					// titleTypographyProps={{variant: 'subtitle1'}}
 					subheader='SPRED'
 					action={
 						<ExpandMore

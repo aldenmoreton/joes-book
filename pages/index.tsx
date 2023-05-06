@@ -3,6 +3,7 @@ import React from 'react'
 import Button from '@mui/material/Button'
 import Typography from '@mui/material/Typography'
 import { useSession, signOut } from 'next-auth/react'
+import PickSixGrid from '../components/Picks/PickSix/PickSixGrid'
 
 export default function Home({ }) {
 	const { data: session } = useSession()
@@ -16,6 +17,7 @@ export default function Home({ }) {
 		<Typography variant='h4'>Welcome to Joe's Book {session!.user!.name}</Typography>
 		<Button variant='outlined' href='/books'>Go to Books!</Button>
 		<Button variant='outlined' onClick={() => signOut()}>Sign out</Button>
+		<PickSixGrid cards={[{'home': 'Alabama', 'visitor': 'Auburn', 'homeSpread': '-7'}, {'home': 'Alabama', 'visitor': 'Auburn', 'homeSpread': '-7'}, {'home': 'Alabama', 'visitor': 'Auburn', 'homeSpread': '-7'}, {'home': 'Alabama', 'visitor': 'Auburn', 'homeSpread': '-7'}, {'home': 'Alabama', 'visitor': 'Auburn', 'homeSpread': '-7'}, {'home': 'Alabama', 'visitor': 'Auburn', 'homeSpread': '-7'}]}></PickSixGrid>
 		</>
 	)
 }

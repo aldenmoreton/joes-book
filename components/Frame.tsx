@@ -13,9 +13,9 @@ export default function Frame({ children }: props){
 
 	if (status === 'loading') {
 		return (
-			<>
+			<div style={{margin: 0, position: 'absolute', top: '50%'}}>
 				<CircularProgress />
-			</>
+			</div>
 		)
 	}
 

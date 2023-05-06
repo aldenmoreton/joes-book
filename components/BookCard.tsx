@@ -15,12 +15,13 @@ import Stack from '@mui/material/Stack';
 import Badge from '@mui/material/Badge';
 import MailIcon from '@mui/icons-material/Mail'
 
-interface CardProps {
+type CardProps = {
 	data: {
 		name: string,
 		owner: string,
 		id: string,
-		img: string
+		img: string,
+		notificationCount: number
 	}
 }
 
@@ -42,7 +43,7 @@ export default function BookCard({ data }: CardProps) {
 						title={data.name}
 						subheader={`Created by ${data.owner}`}
 						action={
-							<Badge badgeContent={4} color="primary">
+							<Badge badgeContent={data.notificationCount} color="primary">
 								<MailIcon></MailIcon>
 							</Badge>
 						}

@@ -31,7 +31,7 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // If DB or collections in DB are not created, add them
-const collectionNames = ["books", "characters", "events", "picks"]
+const collectionNames = ["books", "events", "picks"]
 clientPromise.then(
 	(res) => {
 		const db = res.db("app")

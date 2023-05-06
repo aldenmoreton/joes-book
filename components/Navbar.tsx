@@ -12,10 +12,8 @@ import MenuItem from '@mui/material/MenuItem'
 import Button from '@mui/material/Button'
 import Tooltip from '@mui/material/Tooltip'
 import Avatar from '@mui/material/Avatar'
-import { useSession, signOut } from 'next-auth/react'
-
-const pages = ['Products', 'Pricing', 'Blog'];
-const settings = ['Profile', 'Account', 'Dashboard', 'Logout'];
+import { signOut } from 'next-auth/react'
+import Link from '@mui/material/Link'
 
 //TODO: Implement everything; pages, logos, etc
 interface props {
@@ -95,11 +93,9 @@ export default function Navbar({ img }: props) {
 					display: { xs: 'block', md: 'none' },
 				}}
 				>
-				{pages.map((page) => (
-					<MenuItem key={page} onClick={handleCloseNavMenu}>
-					<Typography textAlign="center">{page}</Typography>
-					</MenuItem>
-				))}
+				<MenuItem key={'books'}>
+					<Link href='/books' textAlign="center" underline='none' color='black'>books</Link>
+				</MenuItem>
 				</Menu>
 			</Box>
 			<AdbIcon sx={{ display: { xs: 'flex', md: 'none' }, mr: 1 }} />
@@ -122,15 +118,13 @@ export default function Navbar({ img }: props) {
 				JOE'S BOOK
 			</Typography>
 			<Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
-				{pages.map((page) => (
 				<Button
-					key={page}
-					onClick={handleCloseNavMenu}
+					key={'books'}
+					href='/books'
 					sx={{ my: 2, color: 'white', display: 'block' }}
 				>
-					{page}
+				Books
 				</Button>
-				))}
 			</Box>
 
 			<Box sx={{ flexGrow: 0 }}>
@@ -155,11 +149,9 @@ export default function Navbar({ img }: props) {
 				open={Boolean(anchorElUser)}
 				onClose={handleCloseUserMenu}
 				>
-				{settings.map((setting) => (
-					<MenuItem key={setting} onClick={() => signOut()}>
-					<Typography textAlign="center">{setting}</Typography>
-					</MenuItem>
-				))}
+				<MenuItem key={'books'} onClick={() => signOut()}>
+					<Typography textAlign="center">books</Typography>
+				</MenuItem>
 				</Menu>
 			</Box>
 			</Toolbar>

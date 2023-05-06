@@ -5,6 +5,7 @@ import Frame from "../components/Frame"
 import '../styles/globals.css'
 import { ThemeProvider } from "@emotion/react"
 import theme from '../lib/theme'
+import { Session } from "inspector"
 
 //TODO: Type definitions
 export default function App({ Component, pageProps }: any) {
