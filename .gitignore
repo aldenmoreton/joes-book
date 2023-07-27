@@ -12,3 +12,11 @@ Cargo.lock
 
 # MSVC Windows builds of rustc generate these, which store debugging information
 *.pdb
+
+
+# Tailwind
+node_modules/
+package-lock.json
+output.css
+
+Joe.db

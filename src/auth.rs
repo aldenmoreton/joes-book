@@ -8,7 +8,7 @@ if #[cfg(feature = "ssr")] {
     use sqlx::SqlitePool;
     use axum_session_auth::{SessionSqlitePool, Authentication, HasPermission};
     use bcrypt::{hash, verify, DEFAULT_COST};
-    use crate::todo::{pool, auth};
+    use crate::app::{pool, auth};
     pub type AuthSession = axum_session_auth::AuthSession<User, i64, SessionSqlitePool, SqlitePool>;
 }}
 

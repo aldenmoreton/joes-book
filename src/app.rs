@@ -1,4 +1,4 @@
-use crate::{auth::*, error_template::ErrorTemplate};
+use crate::{auth::*, error_template::ErrorTemplate, components::pick_six::PickSix};
 use cfg_if::cfg_if;
 use leptos::*;
 use leptos_meta::*;
@@ -126,7 +126,7 @@ pub async fn delete_todo(cx: Scope, id: u16) -> Result<(), ServerFnError> {
 }
 
 #[component]
-pub fn TodoApp(cx: Scope) -> impl IntoView {
+pub fn App(cx: Scope) -> impl IntoView {
     let login = create_server_action::<Login>(cx);
     let logout = create_server_action::<Logout>(cx);
     let signup = create_server_action::<Signup>(cx);
@@ -147,7 +147,8 @@ pub fn TodoApp(cx: Scope) -> impl IntoView {
     view! {
         cx,
         <Link rel="shortcut icon" type_="image/ico" href="/favicon.ico"/>
-        <Stylesheet id="leptos" href="/pkg/session_auth_axum.css"/>
+        <Stylesheet id="leptos" href="/pkg/joes_book.css"/>
+        <PickSix/>
         <Router>
             <header>
                 <A href="/"><h1>"My Tasks"</h1></A>
