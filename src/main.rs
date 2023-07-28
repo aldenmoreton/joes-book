@@ -1,10 +1,9 @@
 use cfg_if::cfg_if;
 
-// boilerplate to run in different modes
 cfg_if! {
 if #[cfg(feature = "ssr")] {
     use axum::{
-        response::{Response, IntoResponse},
+        response::{Response, IntoResponse, Redirect},
         routing::get,
         extract::{Path, State, RawQuery},
         http::{Request, header::HeaderMap},
@@ -33,14 +32,23 @@ if #[cfg(feature = "ssr")] {
     }
 
     async fn leptos_routes_handler(auth_session: AuthSession, State(app_state): State<AppState>, req: Request<AxumBody>) -> Response{
-            let handler = leptos_axum::render_app_to_stream_with_context(app_state.leptos_options.clone(),
+        let authenticated = auth_session.is_authenticated();
+        let uncontrolled_route = req.uri() == "/login" || req.uri() == "/signup";
+
+        let handler = leptos_axum::render_app_to_stream_with_context(
+            app_state.leptos_options.clone(),
             move |cx| {
                 provide_context(cx, auth_session.clone());
                 provide_context(cx, app_state.pool.clone());
             },
             |cx| view! { cx, <App/> }
         );
-        handler(req).await.into_response()
+
+        match (authenticated, uncontrolled_route) {
+            (true, true) => Redirect::to("/").into_response(),
+            (false, false) => Redirect::to("/login").into_response(),
+            (true, false) | (false, true) => handler(req).await.into_response(),
+        }
     }
 
     #[tokio::main]
@@ -63,19 +71,6 @@ if #[cfg(feature = "ssr")] {
             .await
             .expect("could not run SQLx migrations");
 
-        // Explicit server function registration is no longer required
-        // on the main branch. On 0.3.0 and earlier, uncomment the lines
-        // below to register the server functions.
-        // _ = GetTodos::register();
-        // _ = AddTodo::register();
-        // _ = DeleteTodo::register();
-        // _ = Login::register();
-        // _ = Logout::register();
-        // _ = Signup::register();
-        // _ = GetUser::register();
-        // _ = Foo::register();
-
-        // Setting this to None means we'll be using cargo-leptos and its env vars
         let conf = get_configuration(None).await.unwrap();
         let leptos_options = conf.leptos_options;
         let addr = leptos_options.site_addr;
@@ -88,16 +83,15 @@ if #[cfg(feature = "ssr")] {
 
         // build our application with a route
         let app = Router::new()
-        .route("/api/*fn_name", get(server_fn_handler).post(server_fn_handler))
-        .leptos_routes_with_handler(routes, get(leptos_routes_handler) )
-        .fallback(file_and_error_handler)
-        .layer(AuthSessionLayer::<User, i64, SessionSqlitePool, SqlitePool>::new(Some(pool.clone()))
-        .with_config(auth_config))
-        .layer(SessionLayer::new(session_store))
-        .with_state(app_state);
+            .route("/api/*fn_name", get(server_fn_handler).post(server_fn_handler))
+            .leptos_routes_with_handler(routes, get(leptos_routes_handler) )
+            .fallback(file_and_error_handler)
+            .layer(AuthSessionLayer::<User, i64, SessionSqlitePool, SqlitePool>::new(Some(pool.clone()))
+            .with_config(auth_config))
+            .layer(SessionLayer::new(session_store))
+            .with_state(app_state);
 
-        // run our app with hyper
-        // `axum::Server` is a re-export of `hyper::Server`
+        // Run App
         log!("listening on http://{}", &addr);
         axum::Server::bind(&addr)
             .serve(app.into_make_service())
