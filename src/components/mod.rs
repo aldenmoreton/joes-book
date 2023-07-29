@@ -1,6 +1,7 @@
 pub mod signup;
 pub mod login;
 pub mod logout;
+pub mod header;
 
 pub mod pick_six;
 pub mod todo;
