@@ -6,7 +6,7 @@ if #[cfg(feature = "ssr")] {
         response::{Response, IntoResponse, Redirect},
         routing::get,
         extract::{Path, State, RawQuery},
-        http::{Request, header::HeaderMap},
+        http::{Request, header::HeaderMap, StatusCode},
         body::Body as AxumBody,
         Router,
     };
@@ -29,6 +29,21 @@ if #[cfg(feature = "ssr")] {
             provide_context(cx, auth_session.clone());
             provide_context(cx, app_state.pool.clone());
         }, request).await
+    }
+
+    async fn secure_server_fn_handler(State(app_state): State<AppState>, auth_session: AuthSession, path: Path<String>, headers: HeaderMap, raw_query: RawQuery,
+    request: Request<AxumBody>) -> impl IntoResponse {
+
+        log!("--------------Secure API {:?}", path);
+
+        if !auth_session.is_authenticated() {
+            return StatusCode::BAD_REQUEST.into_response()
+        }
+
+        handle_server_fns_with_context(path, headers, raw_query, move |cx| {
+            provide_context(cx, auth_session.clone());
+            provide_context(cx, app_state.pool.clone());
+        }, request).await.into_response()
     }
 
     async fn leptos_routes_handler(auth_session: AuthSession, State(app_state): State<AppState>, req: Request<AxumBody>) -> Response{
@@ -84,7 +99,8 @@ if #[cfg(feature = "ssr")] {
         // build our application with a route
         let app = Router::new()
             .route("/api/*fn_name", get(server_fn_handler).post(server_fn_handler))
-            .leptos_routes_with_handler(routes, get(leptos_routes_handler) )
+            .route("/secure/*fn_name", get(secure_server_fn_handler).post(secure_server_fn_handler))
+            .leptos_routes_with_handler(routes, get(leptos_routes_handler))
             .fallback(file_and_error_handler)
             .layer(AuthSessionLayer::<User, i64, SessionSqlitePool, SqlitePool>::new(Some(pool.clone()))
             .with_config(auth_config))

@@ -9,7 +9,7 @@ cfg_if! {
 	}
 }
 
-#[server(Logout, "/api")]
+#[server(Logout, "/secure")]
 pub async fn logout(cx: Scope) -> Result<(), ServerFnError> {
     let auth = auth(cx)?;
 

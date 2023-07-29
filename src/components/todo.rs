@@ -47,7 +47,7 @@ cfg_if! {
 	}
 }
 
-#[server(GetTodos, "/api")]
+#[server(GetTodos, "/secure")]
 pub async fn get_todos(cx: Scope) -> Result<Vec<Todo>, ServerFnError> {
     use futures::TryStreamExt;
 
@@ -80,7 +80,7 @@ pub async fn get_todos(cx: Scope) -> Result<Vec<Todo>, ServerFnError> {
     Ok(todos)
 }
 
-#[server(AddTodo, "/api")]
+#[server(AddTodo, "/secure")]
 pub async fn add_todo(cx: Scope, title: String) -> Result<(), ServerFnError> {
     let user = get_user(cx).await?;
     let pool = pool(cx)?;
@@ -106,7 +106,7 @@ pub async fn add_todo(cx: Scope, title: String) -> Result<(), ServerFnError> {
     }
 }
 
-#[server(DeleteTodo, "/api")]
+#[server(DeleteTodo, "/secure")]
 pub async fn delete_todo(cx: Scope, id: u16) -> Result<(), ServerFnError> {
     let pool = pool(cx)?;
 

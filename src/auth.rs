@@ -134,12 +134,7 @@ cfg_if! {
     }
 }
 
-#[server(Foo, "/api")]
-pub async fn foo() -> Result<String, ServerFnError> {
-    Ok(String::from("Bar!"))
-}
-
-#[server(GetUser, "/api")]
+#[server(GetUser, "/secure")]
 pub async fn get_user(cx: Scope) -> Result<Option<User>, ServerFnError> {
     let auth = auth(cx)?;
 
