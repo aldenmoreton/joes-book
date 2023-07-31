@@ -83,5 +83,6 @@ pub fn Signup(
             <br/>
             <button type="submit" class="button">"Sign Up"</button>
         </ActionForm>
+        <p>"Have an account? "<a href="login">"Login"</a></p>
     }
 }

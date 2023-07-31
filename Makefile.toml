@@ -1,4 +1,4 @@
-extend = { path = "../cargo-make/main.toml" }
+# extend = { path = "../cargo-make/main.toml" }
 
 [tasks.build]
 command = "cargo"
