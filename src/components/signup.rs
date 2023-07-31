@@ -1,3 +1,4 @@
+// use anyhow::Ok;
 use leptos::*;
 use cfg_if::cfg_if;
 
@@ -30,17 +31,21 @@ pub async fn signup(
 
     let password_hashed = hash(password, DEFAULT_COST).unwrap();
 
-    sqlx::query("INSERT INTO users (username, password) VALUES (?,?)")
+    sqlx::query("INSERT INTO users (username, password) VALUES ($1, $2)")
         .bind(username.clone())
         .bind(password_hashed)
         .execute(&pool)
         .await
         .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
 
+    log!("Signing up");
+
     let user = User::get_from_username(username, &pool)
         .await
         .ok_or("Signup failed: User does not exist.")
         .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
+
+    log!("Signing up");
 
     auth.login_user(user.id);
     auth.remember_user(remember.is_some());

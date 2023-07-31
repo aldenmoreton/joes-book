@@ -16,19 +16,22 @@ if #[cfg(feature = "ssr")] {
     use joes_book::fallback::file_and_error_handler;
     use leptos_axum::{generate_route_list, LeptosRoutes, handle_server_fns_with_context};
     use leptos::{log, view, provide_context, get_configuration};
-    use sqlx::{SqlitePool, sqlite::SqlitePoolOptions};
+    use sqlx::{PgPool, postgres::PgPoolOptions};
     use axum_session::{SessionConfig, SessionLayer, SessionStore};
-    use axum_session_auth::{AuthSessionLayer, AuthConfig, SessionSqlitePool};
+    use axum_session_auth::{AuthSessionLayer, AuthConfig, SessionPgPool};
 
     async fn server_fn_handler(State(app_state): State<AppState>, auth_session: AuthSession, path: Path<String>, headers: HeaderMap, raw_query: RawQuery,
     request: Request<AxumBody>) -> impl IntoResponse {
-
         log!("{:?}", path);
 
-        handle_server_fns_with_context(path, headers, raw_query, move |cx| {
+        let response = handle_server_fns_with_context(path, headers, raw_query, move |cx| {
             provide_context(cx, auth_session.clone());
             provide_context(cx, app_state.pool.clone());
-        }, request).await
+        }, request).await.into_response();
+
+        log!("Done");
+        log!("{:?}", response);
+        response
     }
 
     async fn secure_server_fn_handler(State(app_state): State<AppState>, auth_session: AuthSession, path: Path<String>, headers: HeaderMap, raw_query: RawQuery,
@@ -68,23 +71,43 @@ if #[cfg(feature = "ssr")] {
 
     #[tokio::main]
     async fn main() {
+        let _ = dotenvy::dotenv();
+
         simple_logger::init_with_level(log::Level::Info).expect("couldn't initialize logging");
 
-        let pool = SqlitePoolOptions::new()
-            .connect("sqlite:Joe.db")
+        let database_url = std::env::var("DATABASE_URL").expect("Unable to read DATABASE_URL env var");
+
+        let pool = PgPoolOptions::new()
+            .connect(&database_url)
             .await
             .expect("Could not make pool.");
 
         // Auth section
         let session_config = SessionConfig::default().with_table_name("axum_sessions");
         let auth_config = AuthConfig::<i64>::default();
-        let session_store = SessionStore::<SessionSqlitePool>::new(Some(pool.clone().into()), session_config);
+        let session_store = SessionStore::<SessionPgPool>::new(Some(pool.clone().into()), session_config);
         session_store.initiate().await.unwrap();
 
-        sqlx::migrate!()
-            .run(&pool)
-            .await
-            .expect("could not run SQLx migrations");
+        println!("Attempting Migration");
+        let _ = sqlx::query!("CREATE TABLE IF NOT EXISTS users (
+            id         SERIAL NOT NULL PRIMARY KEY,
+            username   TEXT NOT NULL UNIQUE,
+            password   TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );").execute(&pool).await;
+
+        let _ = sqlx::query!("CREATE TABLE IF NOT EXISTS user_permissions (
+            user_id     INT NOT NULL,
+            token       TEXT NOT NULL
+            );").execute(&pool).await;
+
+        let _ = sqlx::query!("CREATE TABLE IF NOT EXISTS todos (
+            id     SERIAL NOT NULL PRIMARY KEY,
+            user_id       INT8 NOT NULL,
+            title       TEXT NOT NULL,
+            completed BOOL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );").execute(&pool).await;
 
         let conf = get_configuration(None).await.unwrap();
         let leptos_options = conf.leptos_options;
@@ -102,7 +125,7 @@ if #[cfg(feature = "ssr")] {
             .route("/secure/*fn_name", get(secure_server_fn_handler).post(secure_server_fn_handler))
             .leptos_routes_with_handler(routes, get(leptos_routes_handler))
             .fallback(file_and_error_handler)
-            .layer(AuthSessionLayer::<User, i64, SessionSqlitePool, SqlitePool>::new(Some(pool.clone()))
+            .layer(AuthSessionLayer::<User, i64, SessionPgPool, PgPool>::new(Some(pool.clone()))
             .with_config(auth_config))
             .layer(SessionLayer::new(session_store))
             .with_state(app_state);

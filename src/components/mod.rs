@@ -2,6 +2,7 @@ pub mod signup;
 pub mod login;
 pub mod logout;
 pub mod header;
+pub mod team_search;
 
 pub mod pick_six;
 pub mod todo;
@@ -12,14 +13,14 @@ cfg_if! {
 	if #[cfg(feature = "ssr")] {
 
 		use leptos::{ Scope, ServerFnError, use_context };
-		pub type AuthSession = axum_session_auth::AuthSession<User, i64, SessionSqlitePool, SqlitePool>;
-		use axum_session_auth::SessionSqlitePool;
-		use sqlx::SqlitePool;
+		pub type AuthSession = axum_session_auth::AuthSession<User, i64, SessionPgPool, PgPool>;
+		use axum_session_auth::SessionPgPool;
+		use sqlx::PgPool;
 
 		use crate::auth::User;
 
-		pub fn pool(cx: Scope) -> Result<SqlitePool, ServerFnError> {
-		   use_context::<SqlitePool>(cx)
+		pub fn pool(cx: Scope) -> Result<PgPool, ServerFnError> {
+		   use_context::<PgPool>(cx)
 				.ok_or("Pool missing.")
 				.map_err(|e| ServerFnError::ServerError(e.to_string()))
 		}

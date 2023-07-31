@@ -5,17 +5,9 @@ use cfg_if::cfg_if;
 
 use crate::auth::User;
 
-cfg_if!{
-	if #[cfg(feature = "ssr")] {
-		use sqlx::SqlitePool;
-		use crate::components::pool;
-		use crate::auth::get_user;
-	}
-}
-
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Todo {
-    id: u32,
+    id: i64,
     user: Option<User>,
     title: String,
     created_at: String,
@@ -24,22 +16,27 @@ pub struct Todo {
 
 cfg_if! {
 	if #[cfg(feature = "ssr")] {
+        use sqlx::PgPool;
+		use crate::components::pool;
+		use crate::auth::get_user;
+        use sqlx::types::chrono::NaiveDateTime;
+
 		#[derive(sqlx::FromRow, Clone)]
 		pub struct SqlTodo {
-			id: u32,
+			id: i64,
 			user_id: i64,
 			title: String,
-			created_at: String,
+			created_at: NaiveDateTime,
 			completed: bool,
 		}
 
 		impl SqlTodo {
-			pub async fn into_todo(self, pool: &SqlitePool) -> Todo {
+			pub async fn into_todo(self, pool: &PgPool) -> Todo {
 				Todo {
 					id: self.id,
 					user: User::get(self.user_id, pool).await,
 					title: self.title,
-					created_at: self.created_at,
+					created_at: self.created_at.to_string(),
 					completed: self.completed,
 				}
 			}
@@ -94,7 +91,7 @@ pub async fn add_todo(cx: Scope, title: String) -> Result<(), ServerFnError> {
     std::thread::sleep(std::time::Duration::from_millis(1250));
 
     match sqlx::query(
-        "INSERT INTO todos (title, user_id, completed) VALUES (?, ?, false)",
+        "INSERT INTO todos (title, user_id, completed) VALUES ($1, $2, false)",
     )
     .bind(title)
     .bind(id)
@@ -107,7 +104,7 @@ pub async fn add_todo(cx: Scope, title: String) -> Result<(), ServerFnError> {
 }
 
 #[server(DeleteTodo, "/secure")]
-pub async fn delete_todo(cx: Scope, id: u16) -> Result<(), ServerFnError> {
+pub async fn delete_todo(cx: Scope, id: i32) -> Result<(), ServerFnError> {
     let pool = pool(cx)?;
 
     sqlx::query("DELETE FROM todos WHERE id = $1")
