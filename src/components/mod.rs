@@ -1,11 +1,10 @@
-pub mod signup;
-pub mod login;
-pub mod logout;
-pub mod header;
-pub mod team_search;
-
+pub mod signup; pub use signup::Signup;
+pub mod login; pub use login::Login;
+pub mod logout; pub use logout::Logout;
+pub mod header; pub use header::Header;
+pub mod team_search; pub use team_search::TeamSelect;
+pub mod todo; pub use todo::Todos;
 pub mod pick_six;
-pub mod todo;
 
 use cfg_if::cfg_if;
 

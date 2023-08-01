@@ -1,17 +1,14 @@
-use crate::{
-    // error_template::ErrorTemplate,
-    components::{
-        todo::Todos,
-        signup::Signup,
-        login::Login,
-        logout::Logout,
-        header::Header
-    }
-};
-
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
+
+use crate::components::{
+    Todos,
+    Signup,
+    Login,
+    Logout,
+    Header
+};
 
 #[component]
 pub fn App(cx: Scope) -> impl IntoView {
