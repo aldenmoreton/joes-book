@@ -20,3 +20,5 @@ package-lock.json
 output.css
 
 Joe.db
+migration.ipynb
+.env
