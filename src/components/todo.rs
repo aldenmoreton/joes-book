@@ -4,6 +4,8 @@ use serde::{Serialize, Deserialize};
 use cfg_if::cfg_if;
 
 use crate::auth::User;
+use crate::components::TeamSelect;
+use crate::components::team_search::Team;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Todo {
@@ -128,8 +130,15 @@ pub fn Todos(cx: Scope) -> impl IntoView {
         move |_| get_todos(cx),
     );
 
+    let (selected_team, team_selector) = create_signal::<Option<Team>>(cx, None);
+
     view! {
         cx,
+        <TeamSelect team_selector/>
+        {move || match selected_team.get() {
+            Some(team) => format!("Selected team is {}", team.name),
+            None => "".into()
+        }}
         <div>
             <MultiActionForm action=add_todo>
                 <label>
