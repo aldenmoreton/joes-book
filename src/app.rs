@@ -7,7 +7,9 @@ use crate::components::{
     Signup,
     Login,
     Logout,
-    Header
+    Header,
+    Books,
+    Book
 };
 
 #[component]
@@ -23,6 +25,8 @@ pub fn App(cx: Scope) -> impl IntoView {
                 <Route path="" view=Header>
                     <Route path="" view=Todos/>
                     <Route path="logout" view=Logout/>
+                    <Route path="books" view=Books/>
+                    <Route path="books/:id" view=Book/>
                 </Route>
                 <Route path="signup" view=Signup/>
                 <Route path="login" view=Login/>
