@@ -89,25 +89,11 @@ if #[cfg(feature = "ssr")] {
         session_store.initiate().await.unwrap();
 
         println!("Attempting Migration");
-        let _ = sqlx::query!("CREATE TABLE IF NOT EXISTS users (
-            id         SERIAL NOT NULL PRIMARY KEY,
-            username   TEXT NOT NULL UNIQUE,
-            password   TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );").execute(&pool).await;
-
-        let _ = sqlx::query!("CREATE TABLE IF NOT EXISTS user_permissions (
-            user_id     INT NOT NULL,
-            token       TEXT NOT NULL
-            );").execute(&pool).await;
-
-        let _ = sqlx::query!("CREATE TABLE IF NOT EXISTS todos (
-            id     SERIAL NOT NULL PRIMARY KEY,
-            user_id       INT8 NOT NULL,
-            title       TEXT NOT NULL,
-            completed BOOL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );").execute(&pool).await;
+        sqlx::query_file!("queries/users.sql").execute(&pool).await.ok();
+        sqlx::query_file!("queries/user_permissions.sql").execute(&pool).await.ok();
+        sqlx::query_file!("queries/todos.sql").execute(&pool).await.ok();
+        sqlx::query_file!("queries/books.sql").execute(&pool).await.ok();
+        sqlx::query_file!("queries/subscriptions.sql").execute(&pool).await.ok();
 
         let conf = get_configuration(None).await.unwrap();
         let leptos_options = conf.leptos_options;
