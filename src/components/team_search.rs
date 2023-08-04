@@ -53,10 +53,9 @@ pub fn TeamSelect(
 					set_query.set("-1".into());
 				}
 			}/>
-			{move || log!("{}", query.get())}
 			<Transition fallback=move || view! {cx, <p>"Loading..."</p> }>
                 {move || {
-                    let teams_li = {
+                    let teams_list_items = {
                         move || {
                             teams.read(cx)
                                 .map(move |teams| match teams {
@@ -82,15 +81,15 @@ pub fn TeamSelect(
                                                 .collect_view(cx)
                                         }
                                     }
-                                })
-                                .unwrap_or_default()
+                                }
+                            ).unwrap_or_default()
                         }
                     };
 
                     view! {
                         cx,
                         <ul>
-                            {teams_li}
+                            {teams_list_items}
                         </ul>
                     }
                 }

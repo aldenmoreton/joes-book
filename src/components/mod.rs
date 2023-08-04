@@ -4,7 +4,10 @@ pub mod logout; pub use logout::Logout;
 pub mod header; pub use header::Header;
 pub mod team_search; pub use team_search::TeamSelect;
 pub mod todo; pub use todo::Todos;
+pub mod book; pub use book::Book;
+
 pub mod pick_six;
+pub mod books; pub use books::Books;
 
 use cfg_if::cfg_if;
 
