@@ -20,7 +20,7 @@ cfg_if! {
 	if #[cfg(feature = "ssr")] {
         use sqlx::PgPool;
 		use crate::components::pool;
-		use crate::auth::get_user;
+        use crate::auth::get_user;
         use sqlx::types::chrono::NaiveDateTime;
 
 		#[derive(sqlx::FromRow, Clone)]
@@ -90,7 +90,7 @@ pub async fn add_todo(cx: Scope, title: String) -> Result<(), ServerFnError> {
     };
 
     // fake API delay
-    std::thread::sleep(std::time::Duration::from_millis(1250));
+    // std::thread::sleep(std::time::Duration::from_millis(1250));
 
     match sqlx::query(
         "INSERT INTO todos (title, user_id, completed) VALUES ($1, $2, false)",
@@ -106,7 +106,7 @@ pub async fn add_todo(cx: Scope, title: String) -> Result<(), ServerFnError> {
 }
 
 #[server(DeleteTodo, "/secure")]
-pub async fn delete_todo(cx: Scope, id: i32) -> Result<(), ServerFnError> {
+pub async fn delete_todo(cx: Scope, id: i64) -> Result<(), ServerFnError> {
     let pool = pool(cx)?;
 
     sqlx::query("DELETE FROM todos WHERE id = $1")
