@@ -1,7 +1,7 @@
 use leptos::*;
-use leptos_router::{A, Outlet};
+use leptos_router::{Outlet, ActionForm};
 
-use crate::auth::get_user;
+use crate::{auth::get_user, components::Logout};
 
 #[component]
 pub fn Header(
@@ -13,6 +13,8 @@ pub fn Header(
 		move |_| { get_user(cx) }
 	);
 
+	let logout = create_server_action::<Logout>(cx);
+
     view! {
         cx,
         <div>
@@ -20,15 +22,20 @@ pub fn Header(
 				{move || {
 					user.read(cx).map(
 						|user| view! {cx,
-							<A href="/"><h3>"Home"</h3></A>
 							<p>{format!("Username: {}", user.unwrap().unwrap().username)}</p>
-							<A href="logout"><p>"Logout"</p></A>
-							<hr/>
-							<Outlet/>
 						}
 					)
 				}}
 			</Transition>
+			<nav>
+				<a href="/">"Home"</a> |
+				<a href="/books">"Books"</a>
+				<ActionForm action=logout>
+					<button type="submit" class="button">"Log Out"</button>
+				</ActionForm>
+			</nav>
+			<hr/>
+			<Outlet/>
         </div>
     }
 }
