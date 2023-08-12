@@ -11,72 +11,121 @@ pub struct User {
     pub permissions: HashSet<String>,
 }
 
-impl Default for User {
-    fn default() -> Self {
-        let permissions = HashSet::new();
-
-        Self {
-            id: -1,
-            username: "Guest".into(),
-            password: "".into(),
-            permissions,
-        }
-    }
-}
-
 cfg_if! {
     if #[cfg(feature = "ssr")] {
         use async_trait::async_trait;
         use sqlx::PgPool;
-        use axum_session_auth::{SessionPgPool, Authentication, HasPermission};
+        use axum_session_auth::{SessionPgPool, Authentication, HasPermission as HasPerm};
         use crate::components::auth;
         pub type AuthSession = axum_session_auth::AuthSession<User, i64, SessionPgPool, PgPool>;
 
         impl User {
+            pub async fn add_to_db(username: String, password: String, permissions: Vec<String>, pool: PgPool) -> anyhow::Result<Self> {
+                let password_hashed = bcrypt::hash(password.clone(), bcrypt::DEFAULT_COST)?;
+
+                sqlx::query!(
+                    r#" INSERT INTO users (username, password)
+                        VALUES ($1, $2)
+                        ON CONFLICT (username) DO NOTHING"#,
+                    username,
+                    password_hashed
+                )
+                    .execute(&pool)
+                    .await?;
+
+                let new_user = sqlx::query!(
+                    r#" SELECT id
+                        FROM users
+                        WHERE username=$1"#,
+                        username
+                )
+                    .fetch_one(&pool)
+                    .await?;
+
+                for permission in permissions.iter() {
+                    sqlx::query("INSERT INTO user_permissions (user_id, token) VALUES ($1, $2)")
+                        .bind(new_user.id)
+                        .bind(permission)
+                        .execute(&pool)
+                        .await?;
+                }
+
+                Ok(User{
+                    id: new_user.id,
+                    username,
+                    password,
+                    permissions: permissions.into_iter().collect()
+                })
+            }
+
             pub async fn get(id: i64, pool: &PgPool) -> Option<Self> {
-                let sqluser = sqlx::query_as::<_, SqlUser>("SELECT * FROM users WHERE id = $1")
-                    .bind(id)
+                let user_fields = sqlx::query!(
+                    r#"SELECT id, username, password
+                    FROM users
+                    WHERE id = $1"#,
+                    id
+                )
                     .fetch_one(pool)
                     .await
                     .ok()?;
 
-                //lets just get all the tokens the user can use, we will only use the full permissions if modifing them.
-                let sql_user_perms = sqlx::query_as::<_, SqlPermissionTokens>(
-                    "SELECT token FROM user_permissions WHERE user_id = $1;",
-                )
-                .bind(id)
-                .fetch_all(pool)
-                .await
-                .ok()?;
+                let mut user = User{
+                    id: user_fields.id,
+                    username: user_fields.username,
+                    password: user_fields.password,
+                    permissions: HashSet::new()
+                };
 
-                Some(sqluser.into_user(Some(sql_user_perms)))
+                //lets just get all the tokens the user can use, we will only use the full permissions if modifing them.
+                let user_perms = sqlx::query!(
+                    "SELECT token FROM user_permissions WHERE user_id = $1;",
+                    id
+                )
+                    .fetch_all(pool)
+                    .await;
+
+                user.permissions.extend(
+                    user_perms
+                        .unwrap_or_default()
+                        .into_iter()
+                        .map(|p| p.token)
+                );
+
+                Some(user)
             }
 
-            pub async fn get_from_username(name: String, pool: &PgPool) -> Option<Self> {
-                let sqluser = sqlx::query_as::<_, SqlUser>("SELECT * FROM users WHERE username = $1")
-                    .bind(name)
+            pub async fn get_from_username(username: String, pool: &PgPool) -> Option<Self> {
+                let user_fields = sqlx::query!("SELECT id, username, password FROM users WHERE username = $1", username)
                     .fetch_one(pool)
                     .await
-                    .unwrap();
+                    .ok()?;
 
-                log!("GET FROM USERNAME {:?}", sqluser);
+                let mut user = User{
+                    id: user_fields.id,
+                    username: user_fields.username,
+                    password: user_fields.password,
+                    permissions: HashSet::new()
+                };
+
+                log!("GET FROM USERNAME {:?}", user);
 
                 //lets just get all the tokens the user can use, we will only use the full permissions if modifing them.
-                let sql_user_perms = sqlx::query_as::<_, SqlPermissionTokens>(
+                let user_perms = sqlx::query!(
                     "SELECT token FROM user_permissions WHERE user_id = $1;",
+                    user.id
                 )
-                .bind(sqluser.id)
-                .fetch_all(pool)
-                .await
-                .ok()?;
+                    .fetch_all(pool)
+                    .await;
 
-                Some(sqluser.into_user(Some(sql_user_perms)))
+                user.permissions.extend(
+                    user_perms
+                        .unwrap_or_default()
+                        .into_iter()
+                        .map(|p| p.token)
+                );
+
+                Some(user)
             }
-        }
-
-        #[derive(sqlx::FromRow, Clone)]
-        pub struct SqlPermissionTokens {
-            pub token: String,
         }
 
         #[async_trait]
@@ -103,34 +152,9 @@ cfg_if! {
         }
 
         #[async_trait]
-        impl HasPermission<PgPool> for User {
+        impl HasPerm<PgPool> for User {
             async fn has(&self, perm: &str, _pool: &Option<&PgPool>) -> bool {
                 self.permissions.contains(perm)
-            }
-        }
-
-        #[derive(sqlx::FromRow, Clone, Debug)]
-        pub struct SqlUser {
-            pub id: i64,
-            pub username: String,
-            pub password: String,
-        }
-
-        impl SqlUser {
-            pub fn into_user(self, sql_user_perms: Option<Vec<SqlPermissionTokens>>) -> User {
-                User {
-                    id: self.id,
-                    username: self.username,
-                    password: self.password,
-                    permissions: if let Some(user_perms) = sql_user_perms {
-                        user_perms
-                            .into_iter()
-                            .map(|x| x.token)
-                            .collect::<HashSet<String>>()
-                    } else {
-                        HashSet::<String>::new()
-                    },
-                }
             }
         }
     }
@@ -141,4 +165,15 @@ pub async fn get_user(cx: Scope) -> Result<Option<User>, ServerFnError> {
     let auth = auth(cx)?;
 
     Ok(auth.current_user)
+}
+
+#[server(HasPermission, "/secure")]
+pub async fn has_permission(cx: Scope, permission: String) -> Result<bool, ServerFnError> {
+    match get_user(cx).await {
+        Ok(Some(user)) => {
+            Ok(user.permissions.contains(&permission))
+        }
+        Err(e) => Err(e),
+        _ => Ok(false)
+    }
 }

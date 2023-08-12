@@ -95,6 +95,13 @@ if #[cfg(feature = "ssr")] {
         sqlx::query_file!("queries/books.sql").execute(&pool).await.ok();
         sqlx::query_file!("queries/subscriptions.sql").execute(&pool).await.ok();
 
+        User::add_to_db(
+            std::env::var("OWNER_USERNAME").expect("Unable to read OWNER_USERNAME env var"),
+            std::env::var("OWNER_PASSWORD").expect("Unable to read OWNER_PASSWORD env var"),
+            vec!["owner".into()],
+            pool.clone()
+        ).await.expect("Unable to create owner");
+
         let conf = get_configuration(None).await.unwrap();
         let leptos_options = conf.leptos_options;
         let addr = leptos_options.site_addr;
