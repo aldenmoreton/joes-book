@@ -2,15 +2,7 @@ use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
 
-use crate::components::{
-    Todos,
-    Signup,
-    Login,
-    Logout,
-    Header,
-    Books,
-    Book
-};
+use crate::components::*;
 
 #[component]
 pub fn App(cx: Scope) -> impl IntoView {
@@ -27,6 +19,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                     <Route path="logout" view=Logout/>
                     <Route path="books" view=Books/>
                     <Route path="books/:id" view=Book/>
+                    <Route path="admin" view=Admin/>
                 </Route>
                 <Route path="signup" view=Signup/>
                 <Route path="login" view=Login/>
