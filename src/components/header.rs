@@ -1,16 +1,18 @@
 use leptos::*;
 use leptos_router::{Outlet, ActionForm};
 
-use crate::{auth::get_user, components::Logout};
+use crate::{auth::get_username, components::Logout};
 
 #[component]
 pub fn Header(
     cx: Scope
 ) -> impl IntoView {
-	let user = create_resource(
+
+
+	let username = create_resource(
 		cx,
 		|| (),
-		move |_| { get_user(cx) }
+		move |_| { get_username(cx) }
 	);
 
 	let logout = create_server_action::<Logout>(cx);
@@ -18,15 +20,18 @@ pub fn Header(
     view! {
         cx,
         <div>
-			<Transition fallback=move || view! { cx, <p>"Loading..."</p> }>
+			<Suspense fallback=move || view! { cx, <p>"Loading..."</p> }>
 				{move || {
-					user.read(cx).map(
-						|user| view! {cx,
-							<p>{format!("Username: {}", user.unwrap().unwrap().username)}</p>
-						}
-					)
+					match username.read(cx) {
+						Some(Ok(username)) => view!{cx,
+							<p>
+								{format!("Username: {}", username)}
+							</p>
+						}.into_view(cx),
+						_ => ().into_view(cx)
+					}
 				}}
-			</Transition>
+			</Suspense>
 			<nav>
 				<a href="/">"Home"</a> |
 				<a href="/books">"Books"</a>
