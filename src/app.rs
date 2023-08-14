@@ -15,7 +15,7 @@ pub fn App(cx: Scope) -> impl IntoView {
         <Router>
             <Routes>
                 <Route path="" view=Header>
-                    <Route path="" view=Todos/>
+                    <Route path="" view=move |_| view! {cx, <h1>"Go somewhere cool"</h1>}/>
                     <Route path="logout" view=Logout/>
                     <Route path="books" view=Books/>
                     <Route path="books/:id" view=Book/>
