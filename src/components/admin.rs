@@ -27,12 +27,19 @@ pub fn Admin(cx: Scope) -> impl IntoView {
 #[server(MakeAdmin, "/secure")]
 pub async fn make_admin(cx:Scope, id: i64) -> Result<bool, ServerFnError> {
 	use crate::components::pool;
-	let pool = pool(cx)?;
+	use crate::auth::{auth, BackendUser};
 
+	let auth = auth(cx)?;
+	match auth.current_user {
+		Some(BackendUser { permissions, ..}) if permissions.contains("owner") => (),
+		_ => return Err(ServerFnError::Request("You can't go in there!".into()))
+	}
+
+	let pool = pool(cx)?;
 	let result = sqlx::query(
 		r#"	SELECT user_id
-			FROM user_permissions
-			WHERE user_id=$1 AND token=$2"#,
+					FROM user_permissions
+					WHERE user_id=$1 AND token=$2"#,
 	)
 		.bind(id)
 		.bind("admin")
