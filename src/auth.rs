@@ -207,3 +207,13 @@ pub async fn has_permission(cx: Scope, permission: String) -> Result<bool, Serve
         _ => Ok(false)
     }
 }
+
+#[server(GetPermissions, "/secure")]
+pub async fn get_permissions(cx: Scope) -> Result<Vec<String>, ServerFnError> {
+    match auth(cx)? {
+        AuthSession{current_user: Some(user), ..} => {
+            Ok(user.permissions.into_iter().collect())
+        },
+        _ => Ok(Vec::new())
+    }
+}
