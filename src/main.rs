@@ -20,36 +20,53 @@ if #[cfg(feature = "ssr")] {
     use axum_session::{SessionConfig, SessionLayer, SessionStore};
     use axum_session_auth::{AuthSessionLayer, AuthConfig, SessionPgPool};
 
-    async fn server_fn_handler(State(app_state): State<AppState>, auth_session: AuthSession, path: Path<String>, headers: HeaderMap, raw_query: RawQuery,
-    request: Request<AxumBody>) -> impl IntoResponse {
-        log!("{:?}", path);
+    async fn server_fn_handler(
+        State(app_state): State<AppState>,
+        auth_session: AuthSession,
+        path: Path<String>,
+        headers: HeaderMap,
+        raw_query: RawQuery,
+        request: Request<AxumBody>
+    ) -> impl IntoResponse {
 
         let response = handle_server_fns_with_context(path, headers, raw_query, move |cx| {
             provide_context(cx, auth_session.clone());
             provide_context(cx, app_state.pool.clone());
         }, request).await.into_response();
 
-        log!("Done");
-        log!("{:?}", response);
         response
     }
 
-    async fn secure_server_fn_handler(State(app_state): State<AppState>, auth_session: AuthSession, path: Path<String>, headers: HeaderMap, raw_query: RawQuery,
-    request: Request<AxumBody>) -> impl IntoResponse {
-
-        log!("--------------Secure API {:?}", path);
+    async fn secure_server_fn_handler(
+        State(app_state): State<AppState>,
+        auth_session: AuthSession,
+        path: Path<String>,
+        headers: HeaderMap,
+        raw_query: RawQuery,
+        request: Request<AxumBody>
+    ) -> impl IntoResponse {
 
         if !auth_session.is_authenticated() {
             return StatusCode::BAD_REQUEST.into_response()
         }
 
-        handle_server_fns_with_context(path, headers, raw_query, move |cx| {
-            provide_context(cx, auth_session.clone());
-            provide_context(cx, app_state.pool.clone());
-        }, request).await.into_response()
+        handle_server_fns_with_context(
+            path,
+            headers,
+            raw_query,
+            move |cx| {
+                provide_context(cx, auth_session.clone());
+                provide_context(cx, app_state.pool.clone());
+            },
+            request
+        ).await.into_response()
     }
 
-    async fn leptos_routes_handler(auth_session: AuthSession, State(app_state): State<AppState>, req: Request<AxumBody>) -> Response{
+    async fn leptos_routes_handler(
+        auth_session: AuthSession,
+        State(app_state): State<AppState>,
+        req: Request<AxumBody>
+    ) -> Response{
         let authenticated = auth_session.is_authenticated();
         let uncontrolled_route = req.uri() == "/login" || req.uri() == "/signup";
 
@@ -84,18 +101,19 @@ if #[cfg(feature = "ssr")] {
 
         // Auth section
         let session_config = SessionConfig::default().with_table_name("axum_sessions");
+
+        println!("Attempting Migration");
+        sqlx::query_file!("migrations/users.sql").execute(&pool).await.ok();
+        sqlx::query_file!("migrations/user_permissions.sql").execute(&pool).await.ok();
+        sqlx::query_file!("migrations/todos.sql").execute(&pool).await.ok();
+        sqlx::query_file!("migrations/books.sql").execute(&pool).await.ok();
+        sqlx::query_file!("migrations/subscriptions.sql").execute(&pool).await.ok();
+
         let auth_config = AuthConfig::<i64>::default();
         let session_store = SessionStore::<SessionPgPool>::new(Some(pool.clone().into()), session_config);
         session_store.initiate().await.unwrap();
 
-        println!("Attempting Migration");
-        sqlx::query_file!("queries/users.sql").execute(&pool).await.ok();
-        sqlx::query_file!("queries/user_permissions.sql").execute(&pool).await.ok();
-        sqlx::query_file!("queries/todos.sql").execute(&pool).await.ok();
-        sqlx::query_file!("queries/books.sql").execute(&pool).await.ok();
-        sqlx::query_file!("queries/subscriptions.sql").execute(&pool).await.ok();
-
-        User::add_to_db(
+        BackendUser::add_to_db(
             std::env::var("OWNER_USERNAME").expect("Unable to read OWNER_USERNAME env var"),
             std::env::var("OWNER_PASSWORD").expect("Unable to read OWNER_PASSWORD env var"),
             vec!["owner".into()],
@@ -118,7 +136,7 @@ if #[cfg(feature = "ssr")] {
             .route("/secure/*fn_name", get(secure_server_fn_handler).post(secure_server_fn_handler))
             .leptos_routes_with_handler(routes, get(leptos_routes_handler))
             .fallback(file_and_error_handler)
-            .layer(AuthSessionLayer::<User, i64, SessionPgPool, PgPool>::new(Some(pool.clone()))
+            .layer(AuthSessionLayer::<BackendUser, i64, SessionPgPool, PgPool>::new(Some(pool.clone()))
             .with_config(auth_config))
             .layer(SessionLayer::new(session_store))
             .with_state(app_state);
