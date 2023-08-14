@@ -6,8 +6,9 @@ use cfg_if::cfg_if;
 cfg_if! {
 	if #[cfg(feature = "ssr")] {
 		use bcrypt::verify;
-		use crate::components::{ pool, auth };
-		use crate::auth::User;
+		use crate::components::pool;
+        use crate::auth::auth;
+		use crate::auth::BackendUser;
 	}
 }
 
@@ -21,7 +22,7 @@ pub async fn login(
     let pool = pool(cx)?;
     let auth = auth(cx)?;
 
-    let user: User = User::get_from_username(username, &pool)
+    let user: BackendUser = BackendUser::get_from_username(username, &pool)
         .await
         .ok_or("User does not exist.")
         .map_err(|e| ServerFnError::ServerError(e.to_string()))?;

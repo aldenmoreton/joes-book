@@ -5,7 +5,7 @@ use cfg_if::cfg_if;
 
 cfg_if! {
 	if #[cfg(feature = "ssr")] {
-		use crate::components::auth;
+		use crate::auth::auth;
 	}
 }
 

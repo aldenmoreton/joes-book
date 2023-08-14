@@ -6,9 +6,10 @@ use leptos_router::ActionForm;
 
 cfg_if! {
 	if #[cfg(feature = "ssr")] {
-		use crate::components::{ pool, auth };
+		use crate::components::pool;
+        use crate::auth::auth;
 		use bcrypt::{ hash, DEFAULT_COST };
-		use crate::auth::User;
+		use crate::auth::BackendUser;
 	}
 }
 
@@ -40,7 +41,7 @@ pub async fn signup(
 
     log!("Signing up");
 
-    let user = User::get_from_username(username, &pool)
+    let user = BackendUser::get_from_username(username, &pool)
         .await
         .ok_or("Signup failed: User does not exist.")
         .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
