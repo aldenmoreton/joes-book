@@ -3,7 +3,7 @@ use leptos_router::{ActionForm, Redirect};
 use serde::{ Serialize, Deserialize };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum BookRoles {
+pub enum BookRole {
 	Owner,
 	Admin,
 	Participant,
@@ -16,10 +16,10 @@ pub struct Book {
 	pub id: i64,
 	pub name: String,
 	#[cfg_attr(feature = "ssr", sqlx(try_from = "String"))]
-	pub role: BookRoles
+	pub role: BookRole
 }
 
-impl From<String> for BookRoles {
+impl From<String> for BookRole {
 	fn from(value: String) -> Self {
 		match value.as_str() {
 			"owner" => Self::Owner,
@@ -30,7 +30,7 @@ impl From<String> for BookRoles {
 	}
 }
 
-impl Into<String> for BookRoles {
+impl Into<String> for BookRole {
 	fn into(self) -> String {
 		match self {
 			Self::Owner => "owner",
@@ -84,7 +84,7 @@ pub async fn add_book(cx: Scope, name: String) -> Result<i64, ServerFnError> {
 			RETURNING book_id"#,
 			name,
 			user.id,
-			Into::<String>::into(BookRoles::Owner)
+			Into::<String>::into(BookRole::Owner)
 	)
 		.fetch_one(&pool)
 		.await?;
