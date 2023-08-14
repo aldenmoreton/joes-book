@@ -1,5 +1,5 @@
 use leptos::*;
-use leptos_router::MultiActionForm;
+use leptos_router::{ActionForm, Redirect};
 use serde::{ Serialize, Deserialize };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -43,7 +43,8 @@ impl Into<String> for BookRoles {
 
 #[server(GetBooks, "/secure")]
 pub async fn get_books(cx: Scope) -> Result<Vec<Book>, ServerFnError> {
-	use crate::components::{auth, pool};
+	use crate::components::pool;
+	use crate::auth::auth;
 
 	let user = auth(cx)?.current_user.unwrap();
 	let pool = pool(cx)?;
@@ -64,26 +65,31 @@ pub async fn get_books(cx: Scope) -> Result<Vec<Book>, ServerFnError> {
 }
 
 #[server(AddBook, "/secure")]
-pub async fn add_book(cx: Scope, name: String) -> Result<(), ServerFnError> {
-	use crate::components::{auth, pool};
+pub async fn add_book(cx: Scope, name: String) -> Result<i64, ServerFnError> {
+	use crate::components::pool;
+	use crate::auth::auth;
+	use crate::auth::has_permission;
+
+	if !has_permission(cx, "admin".into()).await? { return Err(ServerFnError::Request("Not permitted to create books".into())) }
 
 	let user = auth(cx)?.current_user.unwrap();
 	let pool = pool(cx)?;
 
-	sqlx::query(
+	let result = sqlx::query!(
 		r#"	WITH inserted_book AS (
 				INSERT INTO books (name) VALUES ($1) RETURNING id
 			)
 			INSERT INTO subscriptions (book_id, user_id, role)
-			SELECT id, $2, $3 FROM inserted_book"#
+			SELECT id, $2, $3 FROM inserted_book
+			RETURNING book_id"#,
+			name,
+			user.id,
+			Into::<String>::into(BookRoles::Owner)
 	)
-		.bind(name)
-		.bind(user.id)
-		.bind(Into::<String>::into(BookRoles::Owner))
-		.execute(&pool)
+		.fetch_one(&pool)
 		.await?;
 
-	Ok(())
+	Ok(result.book_id)
 }
 
 #[component]
@@ -91,7 +97,7 @@ pub fn Books(
     cx: Scope
 ) -> impl IntoView {
 
-	let add_book = create_server_multi_action::<AddBook>(cx);
+	let add_book = create_server_action::<AddBook>(cx);
 
 	let books = create_resource(cx,
 		move || { add_book.version().get() },
@@ -101,13 +107,26 @@ pub fn Books(
 	view! {
         cx,
         <div>
-			<MultiActionForm action=add_book>
+			<ActionForm action=add_book>
 				<label>
 					"Add Book"
 					<input type="text" name="name"/>
 				</label>
 				<input type="submit" value="Create"/>
-			</MultiActionForm>
+			</ActionForm>
+			{
+				move ||
+				if add_book.pending().get() {
+					view!{cx, <p>"Loading"</p>}.into_view(cx)
+				} else {().into_view(cx)}
+			}
+			{
+				move || if let Some(Ok(new_id)) = add_book.value().get() {
+					view!{cx, <Redirect path=new_id.to_string()/>}
+				} else {
+					().into_view(cx)
+				}
+			}
 			<Transition fallback=move || view! {cx, <p>"Loading..."</p> }>
 				{move || {
 						let user_books = {
