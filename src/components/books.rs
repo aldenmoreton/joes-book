@@ -12,8 +12,10 @@ pub enum BookRole {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
-pub struct Book {
-	pub id: i64,
+pub struct BookSubscription {
+	#[cfg_attr(feature = "ssr", sqlx(rename = "id"))]
+	pub book_id: i64,
+	pub user_id: i64,
 	pub name: String,
 	#[cfg_attr(feature = "ssr", sqlx(try_from = "String"))]
 	pub role: BookRole
@@ -42,15 +44,15 @@ impl Into<String> for BookRole {
 }
 
 #[server(GetBooks, "/secure")]
-pub async fn get_books(cx: Scope) -> Result<Vec<Book>, ServerFnError> {
+pub async fn get_books(cx: Scope) -> Result<Vec<BookSubscription>, ServerFnError> {
 	use crate::components::pool;
 	use crate::auth::auth;
 
 	let user = auth(cx)?.current_user.unwrap();
 	let pool = pool(cx)?;
 
-    let result = sqlx::query_as::<_, Book>(
-		r#"	SELECT b.id, b.name, s.role
+    let result = sqlx::query_as::<_, BookSubscription>(
+		r#"	SELECT b.id, b.name, s.role, s.user_id
 			FROM books AS b
 			INNER JOIN subscriptions AS s ON s.book_id=b.id
 			WHERE s.user_id = $1
@@ -99,7 +101,7 @@ pub fn Books(
 
 	let add_book = create_server_action::<AddBook>(cx);
 
-	let books = create_resource(cx,
+	let book_subscriptions = create_resource(cx,
 		move || { add_book.version().get() },
 		move |_| { get_books(cx) }
 	);
@@ -131,20 +133,20 @@ pub fn Books(
 				{move || {
 						let user_books = {
 							move || {
-								books.read(cx).map(move |books| match books {
+								book_subscriptions.read(cx).map(move |book_subscriptions| match book_subscriptions {
 									Err(e) => {
 										view! { cx, <pre class="error">"Server Error: " {e.to_string()}</pre>}.into_view(cx)
 									},
-									Ok(books) => {
-										if books.is_empty() {
+									Ok(book_subscriptions) => {
+										if book_subscriptions.is_empty() {
 											view! {cx, <p>"No books yet"</p>}.into_view(cx)
 										} else {
-											books
+											book_subscriptions
 												.into_iter()
-												.map(move |book| view! {cx,
+												.map(move |book_subscription| view! {cx,
 													<li>
-														<a href={format!("/books/{}", book.id)}>{book.name}</a>
-														<p>{Into::<String>::into(book.role)}</p>
+														<a href={format!("/books/{}", book_subscription.book_id)}>{book_subscription.name}</a>
+														<p>{Into::<String>::into(book_subscription.role)}</p>
 													</li>
 												}).collect_view(cx)
 										}
