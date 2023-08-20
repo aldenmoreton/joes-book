@@ -1,7 +1,14 @@
 use leptos::*;
 use leptos_router::{Redirect, ActionForm};
 
-use crate::auth::{has_permission, FrontendUser};
+use crate::{
+	server::{
+		has_permission,
+		search_user,
+		MakeAdmin
+	},
+	objects::FrontendUser
+};
 
 #[component]
 pub fn Admin(cx: Scope) -> impl IntoView {
@@ -22,42 +29,6 @@ pub fn Admin(cx: Scope) -> impl IntoView {
 			}}
 		</Suspense>
 	}
-}
-
-#[server(MakeAdmin, "/secure")]
-pub async fn make_admin(cx:Scope, id: i64) -> Result<bool, ServerFnError> {
-	use crate::components::pool;
-	use crate::auth::{auth, BackendUser};
-
-	let auth = auth(cx)?;
-	match auth.current_user {
-		Some(BackendUser { permissions, ..}) if permissions.contains("owner") => (),
-		_ => return Err(ServerFnError::Request("You can't go in there!".into()))
-	}
-
-	let pool = pool(cx)?;
-	let result = sqlx::query(
-		r#"	SELECT user_id
-					FROM user_permissions
-					WHERE user_id=$1 AND token=$2"#,
-	)
-		.bind(id)
-		.bind("admin")
-		.fetch_optional(&pool)
-		.await?;
-
-	if result.is_some() { return Ok(false) }
-
-	sqlx::query(
-		r#"	INSERT INTO user_permissions (user_id, token)
-			VALUES ($1, $2)"#
-	)
-		.bind(id)
-		.bind("admin")
-		.execute(&pool)
-		.await?;
-
-	Ok(true)
 }
 
 #[component]
@@ -85,36 +56,23 @@ pub fn AdminVerified(cx: Scope) -> impl IntoView {
 	}
 }
 
-#[server(SearchUser, "/secure")]
-pub async fn search_user(cx: Scope, username: String) -> Result<Vec<FrontendUser>, ServerFnError> {
-	use crate::components::pool;
-	let pool = pool(cx)?;
-
-	let result = sqlx::query_as::<_, FrontendUser>(
-		r#"	SELECT id, username
-			FROM users
-			WHERE LOWER(username) LIKE '%' || LOWER($1) || '%'
-			ORDER BY username LIMIT 5"#
-	)
-        .bind(username)
-        .fetch_all(&pool)
-        .await
-        .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
-
-	Ok(result)
-}
-
 #[component]
 pub fn UserSelect(
     cx: Scope,
 	user_selector: WriteSignal<Option<FrontendUser>>
 ) -> impl IntoView {
-	let (query, set_query) = create_signal(cx, "".to_string());
+	let (query, set_query) = create_signal::<Option<String>>(cx, None);
 
 	let users = create_resource(
 		cx,
 		move || query.get(),
-		move |_| { search_user(cx, query.get()) }
+		move |_| async move {
+			if let Some(query) = query.get() {
+				search_user(cx, query).await
+			} else {
+				Ok(Vec::new())
+			}
+		}
 	);
 
     view! {
@@ -123,9 +81,9 @@ pub fn UserSelect(
 			<input type="text" on:input=move |ev|{
 				let new_query = event_target_value(&ev);
 				 if new_query.len() == 0 {
-					set_query.set("".into());
+					set_query.set(None);
 				} else {
-					set_query.set(new_query);
+					set_query.set(Some(new_query));
 				}
 			}/>
 			<Transition fallback=move || view! {cx, <p>"Loading..."</p> }>
@@ -139,7 +97,7 @@ pub fn UserSelect(
                                     }
                                     Ok(users) => {
                                         if users.is_empty() {
-                                            view! { cx, <p></p> }.into_view(cx)
+                                            ().into_view(cx)
                                         } else {
                                             users
                                                 .into_iter()
@@ -150,7 +108,7 @@ pub fn UserSelect(
                                                         <li>
 															<button
 																on:click=move |_| {
-																	set_query.set("-1".into());
+																	set_query.set(None);
 																	user_selector.set(Some(user_select.clone()))
 																}>
 																{user.username}

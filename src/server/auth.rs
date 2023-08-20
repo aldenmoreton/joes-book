@@ -1,19 +1,10 @@
 use cfg_if::cfg_if;
-use leptos::*;
-
 
 cfg_if! {
     if #[cfg(feature = "ssr")] {
+        use leptos::*;
         use std::collections::HashSet;
-
-        #[derive(Clone, Debug, PartialEq, Eq)]
-        pub struct BackendUser {
-            pub id: i64,
-            pub username: String,
-            pub password: String,
-            pub permissions: HashSet<String>,
-        }
-
+        use crate::objects::BackendUser;
         use async_trait::async_trait;
         use sqlx::PgPool;
         use axum_session_auth::{SessionPgPool, Authentication, HasPermission as HasPerm};
@@ -167,53 +158,5 @@ cfg_if! {
 				.ok_or("Auth session missing.")
 				.map_err(|e| ServerFnError::ServerError(e.to_string()))
 		}
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
-pub struct FrontendUser {
-    pub id: i64,
-    pub username: String
-}
-
-#[server(GetUser, "/secure")]
-pub async fn get_user(cx: Scope) -> Result<FrontendUser, ServerFnError> {
-    let auth = auth(cx)?;
-    let BackendUser{ id, username, .. } = auth.current_user.unwrap();
-    Ok(FrontendUser{ id, username })
-}
-
-#[server(GetUsername, "/secure")]
-pub async fn get_username(cx: Scope) -> Result<String, ServerFnError> {
-    let auth = auth(cx)?;
-
-    Ok(auth.current_user.unwrap().username)
-}
-
-#[server(GetUserID, "/secure")]
-pub async fn get_user_id(cx: Scope) -> Result<i64, ServerFnError> {
-    let auth = auth(cx)?;
-
-    Ok(auth.current_user.unwrap().id)
-}
-
-#[server(HasPermission, "/secure")]
-pub async fn has_permission(cx: Scope, permission: String) -> Result<bool, ServerFnError> {
-    match auth(cx)? {
-        AuthSession{current_user: Some(user), ..} => {
-            Ok(user.permissions.contains(&permission))
-        },
-        _ => Ok(false)
-    }
-}
-
-#[server(GetPermissions, "/secure")]
-pub async fn get_permissions(cx: Scope) -> Result<Vec<String>, ServerFnError> {
-    match auth(cx)? {
-        AuthSession{current_user: Some(user), ..} => {
-            Ok(user.permissions.into_iter().collect())
-        },
-        _ => Ok(Vec::new())
     }
 }

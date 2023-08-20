@@ -11,7 +11,8 @@ if #[cfg(feature = "ssr")] {
         Router,
     };
     use joes_book::app::*;
-    use joes_book::auth::*;
+    use joes_book::server::*;
+    use joes_book::objects::*;
     use joes_book::state::AppState;
     use joes_book::fallback::file_and_error_handler;
     use leptos_axum::{generate_route_list, LeptosRoutes, handle_server_fns_with_context};

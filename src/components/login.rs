@@ -1,46 +1,7 @@
 use leptos::*;
 use leptos_router::ActionForm;
 
-use cfg_if::cfg_if;
-
-cfg_if! {
-	if #[cfg(feature = "ssr")] {
-		use bcrypt::verify;
-		use crate::components::pool;
-        use crate::auth::auth;
-		use crate::auth::BackendUser;
-	}
-}
-
-#[server(Login, "/api")]
-pub async fn login(
-    cx: Scope,
-    username: String,
-    password: String,
-    remember: Option<String>,
-) -> Result<(), ServerFnError> {
-    let pool = pool(cx)?;
-    let auth = auth(cx)?;
-
-    let user: BackendUser = BackendUser::get_from_username(username, &pool)
-        .await
-        .ok_or("User does not exist.")
-        .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
-
-    match verify(password, &user.password)
-        .map_err(|e| ServerFnError::ServerError(e.to_string()))?
-    {
-        true => {
-            auth.login_user(user.id);
-            auth.remember_user(remember.is_some());
-            leptos_axum::redirect(cx, "/");
-            Ok(())
-        }
-        false => Err(ServerFnError::ServerError(
-            "Password does not match.".to_string(),
-        )),
-    }
-}
+use crate::server::Login;
 
 #[component]
 pub fn Login(

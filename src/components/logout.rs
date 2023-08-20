@@ -1,23 +1,7 @@
 use leptos::*;
 use leptos_router::ActionForm;
 
-use cfg_if::cfg_if;
-
-cfg_if! {
-	if #[cfg(feature = "ssr")] {
-		use crate::auth::auth;
-	}
-}
-
-#[server(Logout, "/secure")]
-pub async fn logout(cx: Scope) -> Result<(), ServerFnError> {
-    let auth = auth(cx)?;
-
-    auth.logout_user();
-    leptos_axum::redirect(cx, "/");
-
-    Ok(())
-}
+use crate::server::Logout;
 
 #[component]
 pub fn Logout(

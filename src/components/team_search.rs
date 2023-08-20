@@ -1,33 +1,9 @@
 use leptos::*;
-use cfg_if::cfg_if;
-use serde::{Serialize, Deserialize};
 
-cfg_if! {
-	if #[cfg(feature = "ssr")] {
-		use crate::components::pool;
-	}
-}
-
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
-pub struct Team {
-	pub id: i64,
-	pub name: String,
-	logo: String
-}
-
-#[server(SearchTeam, "/secure")]
-pub async fn search_team(cx: Scope, name: String) -> Result<Vec<Team>, ServerFnError> {
-    let pool = pool(cx)?;
-
-    let result = sqlx::query_as::<_, Team>("SELECT * FROM teams WHERE LOWER(name) LIKE '%' || LOWER($1) || '%' ORDER BY name LIMIT 5")
-        .bind(name)
-        .fetch_all(&pool)
-        .await
-        .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
-
-	Ok(result)
-}
+use crate::{
+    server::search_team,
+    objects::Team
+};
 
 #[component]
 pub fn TeamSelect(

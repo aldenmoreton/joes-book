@@ -1,7 +1,7 @@
 use leptos::*;
 use leptos_router::{Outlet, ActionForm};
 
-use crate::{auth::get_username, components::Logout};
+use crate::server::{Logout, get_username};
 
 #[component]
 pub fn Header(

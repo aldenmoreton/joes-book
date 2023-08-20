@@ -1,60 +1,8 @@
 // use anyhow::Ok;
 use leptos::*;
-use cfg_if::cfg_if;
-
 use leptos_router::ActionForm;
 
-cfg_if! {
-	if #[cfg(feature = "ssr")] {
-		use crate::components::pool;
-        use crate::auth::auth;
-		use bcrypt::{ hash, DEFAULT_COST };
-		use crate::auth::BackendUser;
-	}
-}
-
-#[server(Signup, "/api")]
-pub async fn signup(
-    cx: Scope,
-    username: String,
-    password: String,
-    password_confirmation: String,
-    remember: Option<String>,
-) -> Result<(), ServerFnError> {
-    let pool = pool(cx)?;
-    let auth = auth(cx)?;
-
-    if password != password_confirmation {
-        return Err(ServerFnError::ServerError(
-            "Passwords did not match.".to_string(),
-        ));
-    }
-
-    let password_hashed = hash(password, DEFAULT_COST).unwrap();
-
-    sqlx::query("INSERT INTO users (username, password) VALUES ($1, $2)")
-        .bind(username.clone())
-        .bind(password_hashed)
-        .execute(&pool)
-        .await
-        .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
-
-    log!("Signing up");
-
-    let user = BackendUser::get_from_username(username, &pool)
-        .await
-        .ok_or("Signup failed: User does not exist.")
-        .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
-
-    log!("Signing up");
-
-    auth.login_user(user.id);
-    auth.remember_user(remember.is_some());
-
-    leptos_axum::redirect(cx, "/");
-
-    Ok(())
-}
+use crate::server::Signup;
 
 #[component]
 pub fn Signup(
