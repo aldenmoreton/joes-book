@@ -5,6 +5,8 @@ mod header; pub use header::Header;
 mod team_search; pub use team_search::TeamSelect;
 mod book; pub use book::Book;
 mod admin; pub use admin::Admin;
+mod home; pub use home::Home;
+
 
 // pub mod event; pub use event::BookEvents;
 

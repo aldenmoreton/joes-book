@@ -2,6 +2,10 @@ mod books; pub use books::*;
 mod team; pub use team::*;
 mod events; pub use events::*;
 
+mod text; pub use text::*;
+mod spread; pub use spread::*;
+
+
 use cfg_if::cfg_if;
 cfg_if! {
     if #[cfg(feature = "ssr")] {
