@@ -10,7 +10,8 @@ pub fn App(cx: Scope) -> impl IntoView {
 
     view! {
         cx,
-        <Link rel="shortcut icon" type_="image/ico" href="/favicon.ico"/>
+        <Link rel="icon" type_="image/ico" href="/favicon.ico"/>
+        <Link rel="manifest" href="/manifest.json"/>
         <Stylesheet id="leptos" href="/pkg/joes_book.css"/>
         <Router>
             <Routes>
