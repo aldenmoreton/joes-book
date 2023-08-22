@@ -75,7 +75,7 @@ pub fn AdminView(cx: Scope, book_id: i64) -> impl IntoView {
 			{move ||
 				{
 					match user_subscription.read(cx){
-						Some(Ok(user_account)) => view!{cx, <UserOptions user=user.get().unwrap() user_subscription=user_account user_selector/> }.into_view(cx),
+						Some(Ok(user_account)) => view!{cx, <UserOptions user=user.get().unwrap() user_subscription=user_account _user_selector=user_selector/> }.into_view(cx),
 						_ => { ().into_view(cx) },
 					}
 				}
@@ -85,7 +85,7 @@ pub fn AdminView(cx: Scope, book_id: i64) -> impl IntoView {
 }
 
 #[component]
-pub fn UserOptions(cx: Scope, user: FrontendUser, user_subscription: BookSubscription, user_selector: WriteSignal<Option<FrontendUser>>) -> impl IntoView {
+pub fn UserOptions(cx: Scope, user: FrontendUser, user_subscription: BookSubscription, _user_selector: WriteSignal<Option<FrontendUser>>) -> impl IntoView {
 	let add_user = create_server_action::<AddUser>(cx);
 	let remove_user = create_server_action::<RemoveUser>(cx);
 

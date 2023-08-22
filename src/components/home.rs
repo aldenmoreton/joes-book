@@ -1,5 +1,7 @@
 use leptos::*;
 
+use crate::components::TimezoneDropdown;
+
 #[component]
 pub fn Home(
     cx: Scope,
@@ -15,6 +17,9 @@ pub fn Home(
 				<option value="Pacific/Marquesas">Taiohae</option>
 			</select>
 			<input type="datetime-local" id="meeting-time" name="meeting-time"/>
+		</form>
+		<form>
+			<TimezoneDropdown/>
 		</form>
     }
 }

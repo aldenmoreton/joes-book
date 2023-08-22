@@ -19,6 +19,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                     <Route path="logout" view=Logout/>
                     <Route path="books" view=Books/>
                     <Route path="books/:id" view=Book/>
+                    <Route path="books/:id/new" view=NewChapter/>
                     <Route path="admin" view=Admin/>
                 </Route>
                 <Route path="signup" view=Signup/>
