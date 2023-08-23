@@ -1,3 +1,4 @@
+use leptos::RwSignal;
 use serde::{Serialize, Deserialize};
 
 use crate::objects::*;
@@ -10,15 +11,14 @@ pub struct Chapter {
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Event {
-	pub event_id: i64,
-	pub event: EventType,
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
-pub enum EventType {
+pub enum Event {
 	SpreadGroup(SpreadGroup),
 	UserInput(TextBet)
+}
+
+#[derive(Clone)]
+pub enum EventBuilder {
+	SpreadGroup(RwSignal<Vec<(i64, RwSignal<SpreadBuilder>)>>)
 }
 
 trait Validate {}

@@ -1,7 +1,10 @@
+use leptos::{create_rw_signal, RwSignal, Scope};
 use serde::{Serialize, Deserialize};
+use derive_builder::Builder;
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Builder)]
 pub struct Spread {
+	#[builder(field(public))]
 	pub home_id: i64,
 	pub away_id: i64,
 	pub home_spread: i64,

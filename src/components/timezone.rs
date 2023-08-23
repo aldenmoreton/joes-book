@@ -5,10 +5,10 @@ use leptos::*;
 pub fn TimezoneDropdown(cx: Scope) -> impl IntoView {
 	view! {cx,
 		<select>
-			<option selected="selected" data-time-zone-id="11" data-gmt-adjustment="GMT-06:00" data-use-daylight="1" value="-6">"Central Time (US & Canada)"</option>
-			<option data-time-zone-id="15" data-gmt-adjustment="GMT-05:00" data-use-daylight="1" value="-5">"Eastern Time (US & Canada)"</option>
-			<option data-time-zone-id="5" data-gmt-adjustment="GMT-08:00" data-use-daylight="1" value="-8">"Pacific Time (US & Canada)"</option>
-			<option data-time-zone-id="9" data-gmt-adjustment="GMT-07:00" data-use-daylight="1" value="-7">"Mountain Time (US & Canada)"</option>
+			<option selected="selected" data-time-zone-id="11" data-gmt-adjustment="GMT-06:00" data-use-daylight="1" value="-6">"Central"</option>
+			<option data-time-zone-id="15" data-gmt-adjustment="GMT-05:00" data-use-daylight="1" value="-5">"Eastern"</option>
+			<option data-time-zone-id="5" data-gmt-adjustment="GMT-08:00" data-use-daylight="1" value="-8">"Pacific"</option>
+			<option data-time-zone-id="9" data-gmt-adjustment="GMT-07:00" data-use-daylight="1" value="-7">"Mountain"</option>
 			// <option data-time-zone-id="1" data-gmt-adjustment="GMT-12:00" data-use-daylight="0" value="-12">"(GMT-12:00) International Date Line West"</option>
 			// <option data-time-zone-id="2" data-gmt-adjustment="GMT-11:00" data-use-daylight="0" value="-11">"(GMT-11:00) Midway Island, Samoa"</option>
 			// <option data-time-zone-id="3" data-gmt-adjustment="GMT-10:00" data-use-daylight="0" value="-10">"(GMT-10:00) Hawaii"</option>

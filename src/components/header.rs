@@ -19,7 +19,8 @@ pub fn Header(
 
     view! {
         cx,
-        <div>
+        <div class="bg-green-700 text-center">
+			<a href="/" class="justify-center text-center"><h1>Home</h1></a>
 			<Suspense fallback=move || view! { cx, <p>"Loading..."</p> }>
 				{move || {
 					match username.read(cx) {
@@ -39,8 +40,7 @@ pub fn Header(
 					<button type="submit" class="button">"Log Out"</button>
 				</ActionForm>
 			</nav>
-			<hr/>
-			<Outlet/>
-        </div>
+		</div>
+		<Outlet/>
     }
 }

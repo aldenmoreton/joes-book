@@ -13,6 +13,7 @@ pub fn App(cx: Scope) -> impl IntoView {
         <Link rel="icon" type_="image/ico" href="/favicon.ico"/>
         <Link rel="manifest" href="/manifest.json"/>
         <Stylesheet id="leptos" href="/pkg/joes_book.css"/>
+        <body class="bg-green-600 justify-center text-center">
         <Router>
             <Routes>
                 <Route path="" view=Header>
@@ -27,5 +28,6 @@ pub fn App(cx: Scope) -> impl IntoView {
                 <Route path="login" view=Login/>
             </Routes>
         </Router>
+        </body>
     }
 }

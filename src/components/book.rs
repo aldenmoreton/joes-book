@@ -36,6 +36,7 @@ pub fn Book(
 	);
 
 	view!{cx,
+		<p>"Common knowlege"</p>
 		<Suspense fallback=|| "Loading">
 			{move || match book.read(cx) {
 				Some(BookSubscription{role: BookRole::Admin, ..}) |
@@ -43,8 +44,6 @@ pub fn Book(
 				_ => ().into_view(cx)
 			}}
 		</Suspense>
-
-		<p>"Common knowlege"</p>
 	}
 }
 
@@ -66,21 +65,25 @@ pub fn AdminView(cx: Scope, book_id: i64) -> impl IntoView {
 	);
 
 	view! {cx,
-		<ActionForm action=delete_book>
-			<input type="hidden" name="id" value={book_id}/>
-			<input type="submit" value="Delete Book"/>
-		</ActionForm>
-		<UserSelect user_selector/>
-		<Suspense fallback=move || view! {cx, <p>"Loading..."</p> }>
-			{move ||
-				{
-					match user_subscription.read(cx){
-						Some(Ok(user_account)) => view!{cx, <UserOptions user=user.get().unwrap() user_subscription=user_account _user_selector=user_selector/> }.into_view(cx),
-						_ => { ().into_view(cx) },
+		<div class="border">
+			<h2>"Book owner options"</h2>
+			<A href="new"><button>"Add Pick Event"</button></A>
+			<ActionForm action=delete_book>
+				<input type="hidden" name="id" value={book_id}/>
+				<input type="submit" value="Delete Book"/>
+			</ActionForm>
+			<UserSelect user_selector/>
+			<Suspense fallback=move || view! {cx, <p>"Loading..."</p> }>
+				{move ||
+					{
+						match user_subscription.read(cx){
+							Some(Ok(user_account)) => view!{cx, <UserOptions user=user.get().unwrap() user_subscription=user_account _user_selector=user_selector/> }.into_view(cx),
+							_ => { ().into_view(cx) },
+						}
 					}
 				}
-			}
-		</Suspense>
+			</Suspense>
+		</div>
 	}
 }
 
