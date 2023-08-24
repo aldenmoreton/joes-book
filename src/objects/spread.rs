@@ -1,4 +1,4 @@
-use leptos::{create_rw_signal, RwSignal, Scope};
+// use leptos::{create_rw_signal, RwSignal, Scope};
 use serde::{Serialize, Deserialize};
 use derive_builder::Builder;
 
@@ -6,9 +6,10 @@ use derive_builder::Builder;
 pub struct Spread {
 	#[builder(field(public))]
 	pub home_id: i64,
+	#[builder(field(public))]
 	pub away_id: i64,
 	pub home_spread: i64,
-	pub notes: String
+	pub notes: Option<String>
 }
 
 pub enum SpreadTeam {
