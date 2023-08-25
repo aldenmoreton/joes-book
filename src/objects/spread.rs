@@ -2,13 +2,15 @@
 use serde::{Serialize, Deserialize};
 use derive_builder::Builder;
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Builder)]
+#[derive(Debug, Serialize, Deserialize, Builder)]
 pub struct Spread {
 	#[builder(field(public))]
 	pub home_id: i64,
 	#[builder(field(public))]
 	pub away_id: i64,
-	pub home_spread: i64,
+	#[builder(field(public))]
+	pub home_spread: f64,
+	#[builder(field(public), setter(strip_option))]
 	pub notes: Option<String>
 }
 
@@ -22,7 +24,7 @@ pub struct SpreadPick {
 	pub wager: i64
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SpreadGroup {
 	pub spreads: Vec<Spread>
 }

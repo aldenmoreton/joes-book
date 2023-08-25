@@ -10,7 +10,7 @@ pub struct Chapter {
 	pub events: Vec<Event>
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum Event {
 	SpreadGroup(SpreadGroup),
 	UserInput(TextBet)
