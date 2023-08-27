@@ -1,13 +1,13 @@
 use leptos::*;
 use cfg_if::cfg_if;
 
-use crate::objects::Event;
+use crate::objects::{ Event, Chapter };
 
 cfg_if! {
 	if #[cfg(feature = "ssr")] {
 		use crate::{
 			server::{pool, get_book},
-			objects::BookRole
+			objects::{ BookRole }
 		};
 	}
 }
@@ -63,3 +63,30 @@ pub async fn add_chapter(cx: Scope, book_id: i64, title: String, closing_time: S
 
 	Ok(chapter_id)
 }
+
+#[server(GetChapters, "/secure")]
+pub async fn get_chapters(cx: Scope, book_id: i64) -> Result<Vec<Chapter>, ServerFnError> {
+	let book_subscription = get_book(cx, book_id).await?;
+	match book_subscription.role {
+		BookRole::Unauthorized => return Err(ServerFnError::Request("You aren't in this book".into())),
+		_ => ()
+	}
+
+	let pool = pool(cx)?;
+
+	let chapters = sqlx::query_as_unchecked!(
+		Chapter,
+		r#"	SELECT id AS chapter_id, book_id, title, is_open, TO_CHAR(closing_time, 'YYYY-MM-DD"T"HH24:MI:SS.MSZ') as closing_time
+			FROM chapters
+			WHERE book_id = $1
+		"#,
+		book_id
+	)
+		.fetch_all(&pool)
+		.await.unwrap_or(Vec::new());
+
+
+	Ok(chapters)
+}
+
+

@@ -3,13 +3,16 @@ use serde::{Serialize, Deserialize};
 
 use crate::objects::*;
 
-// #[derive(Debug, Clone, Serialize, Deserialize)]
-// pub struct Chapter {
-// 	pub book_id: i64,
-// 	pub chapter_id: i64,
-// 	pub closing_time: chrono::DateTime<chrono::Utc>,
-// 	pub events: Vec<Event>
-// }
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
+pub struct Chapter {
+	#[cfg_attr(feature = "ssr", sqlx(rename = "id"))]
+	pub chapter_id: i64,
+	pub book_id: i64,
+	pub is_open: bool,
+	pub title: String,
+	pub closing_time: String
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Event {

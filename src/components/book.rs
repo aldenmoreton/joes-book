@@ -10,7 +10,8 @@ use crate::{
 		RemoveUser,
 		PromoteAdmin,
 		DemoteAdmin,
-		DeleteBook
+		DeleteBook,
+		get_chapters
 	},
 	objects::{
 		BookRole,
@@ -24,8 +25,7 @@ pub fn Book(
     cx: Scope
 ) -> impl IntoView {
 	let params = use_params_map(cx);
-
-	let book_id:i64 = params.with(|params| params.get("id").cloned()).unwrap().parse::<i64>().unwrap();
+	let book_id:i64 = params.with_untracked(|params| params.get("id").cloned()).unwrap().parse::<i64>().unwrap();
 
 	let book = create_resource(
 		cx,
@@ -36,14 +36,72 @@ pub fn Book(
 	);
 
 	view!{cx,
-		<p>"Common knowlege"</p>
 		<Suspense fallback=|| "Loading">
 			{move || match book.read(cx) {
 				Some(BookSubscription{role: BookRole::Admin, ..}) |
-				Some(BookSubscription{role: BookRole::Owner, ..}) => AdminView(cx, AdminViewProps{book_id}).into_view(cx),
-				_ => ().into_view(cx)
+				Some(BookSubscription{role: BookRole::Owner, ..}) => view!{cx,
+					<VerifiedView/>
+					<AdminView book_id/>
+				}.into_view(cx),
+				Some(BookSubscription{role: BookRole::Participant, ..}) => view!{cx,
+					<VerifiedView/>
+				}.into_view(cx),
+				None => ().into_view(cx),
+				_ => Redirect(cx, RedirectProps{path: "/books", options: None}).into_view(cx)
 			}}
 		</Suspense>
+	}
+}
+
+#[component]
+pub fn VerifiedView(cx: Scope) -> impl IntoView {
+	let params = use_params_map(cx);
+	let book_id:i64 = params.with_untracked(|params| params.get("id").cloned()).unwrap().parse::<i64>().unwrap();
+
+	let chapters = create_resource(cx, || (),
+		move |_| get_chapters(cx, book_id)
+	);
+
+	view!{cx,
+		<p>"Common knowlege"</p>
+		<Transition fallback=|| "Loading...">
+			<ul class="border border-black">
+			{move ||
+				{
+					move || {
+						chapters.read(cx).map(move |chapters| match chapters {
+							Err(e) => {
+								view! { cx, <pre class="error">"Server Error: " {e.to_string()}</pre>}.into_view(cx)
+							},
+							Ok(chapters) => {
+								if chapters.is_empty() {
+									view! {cx, <p>"No chapters yet"</p>}.into_view(cx)
+								} else {
+									chapters
+										.into_iter()
+										.map(move |chapter| {
+											let gods_time: String = {
+												let utc = chrono::DateTime::parse_from_rfc3339(&chapter.closing_time).unwrap();
+												let local = utc + chrono::Duration::hours(-6);
+												format!("{}", local.format("%B %d, %Y %H:%M%p"))
+											};
+											view!{cx,
+												<li>
+													<p>{format!("{:?}", chapter)}</p>
+													<p>{chapter.title}</p>
+													<p>{gods_time}</p>
+												</li>
+											}
+										})
+										.collect_view(cx)
+								}
+							}
+						})
+					}
+				}
+			}
+			</ul>
+		</Transition>
 	}
 }
 

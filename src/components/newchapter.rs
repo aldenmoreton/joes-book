@@ -34,7 +34,8 @@ pub fn VerifiedNewChapter(cx: Scope) -> impl IntoView {
 	let params = use_params_map(cx);
 	let book_id: i64 = params.with_untracked(|params| params.get("id").cloned()).unwrap().parse::<i64>().unwrap();
 
-	let (events, set_events) = create_signal::<Vec<(i64, EventBuilder)>>(cx, Vec::new());
+	let title = create_rw_signal(cx, String::new());
+	let events = create_rw_signal::<Vec<(i64, EventBuilder)>>(cx, Vec::new());
 
 	let initial_datetime = {
 		let current = chrono::Utc::now();
@@ -47,7 +48,7 @@ pub fn VerifiedNewChapter(cx: Scope) -> impl IntoView {
 
 	let date_time_rfc3339 = create_rw_signal(cx, format!("{initial_datetime}:00-06:00"));
 
-	let untracked_changes = create_rw_signal(cx, 0);
+	let untracked_changes = create_rw_signal(cx, 1);
 	provide_context(cx, untracked_changes.write_only());
 
 	let add_event = move |event: &str| {
@@ -61,7 +62,7 @@ pub fn VerifiedNewChapter(cx: Scope) -> impl IntoView {
 			_ => panic!()
 		};
 
-		set_events.update(move |events| {
+		events.update(move |events| {
 			let next_id = if let Some(last_event) = events.last() {
 				last_event.0 + 1
 			} else { 0 };
@@ -85,13 +86,32 @@ pub fn VerifiedNewChapter(cx: Scope) -> impl IntoView {
 				Err(e) => return async {Err(ServerFnError::Serialization(e))}.await
 			};
 
-			add_chapter(cx, book_id, "title".into(), date_time_rfc3339.get(), built_events).await
+			add_chapter(cx, book_id, title.get(), date_time_rfc3339.get(), built_events).await
 		}
 	);
+
+	let change_title = move |ev: leptos::ev::Event| {
+		title.update(|t| {
+			let new_title = event_target_value(&ev);
+
+			let old_empty = t.len() == 0;
+			let new_empty = new_title.len() == 0;
+
+			if old_empty && !new_empty {
+				untracked_changes.update(|changes| *changes -= 1)
+			} else if new_empty && !old_empty {
+				untracked_changes.update(|changes| *changes += 1)
+			}
+
+			*t = new_title
+		})
+	};
 
 	view! {cx,
 		<div class="flex flex-col items-center justify-center border border-green-500">
 		// <h1>"Untracked Changes: "{move || format!("{:?}", untracked_changes.get())}</h1>
+			<h1>{move || untracked_changes.get()}</h1>
+			<input type="text" class="border border-black" placeholder="Chapter Name" on:input=change_title/>
 			<DateTimePickerTZ picker=date_time_rfc3339.write_only() initial_datetime/>
 			<For each={move || events.get()} key={|event| event.0}
 				view=move |cx, (_, event)| {
