@@ -11,6 +11,6 @@ mod newchapter; pub use newchapter::NewChapter;
 // Components
 mod header; pub use header::Header;
 mod team_search; pub use team_search::TeamSelect;
-mod timezone; pub use timezone::TimezoneDropdown;
+mod datetime_tz; pub use datetime_tz::DateTimePickerTZ;
 
 pub mod pick_six;

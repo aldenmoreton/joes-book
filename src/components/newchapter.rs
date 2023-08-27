@@ -2,8 +2,8 @@ use leptos::*;
 use leptos_router::{use_params_map, Redirect};
 
 use crate::{
-	server::get_book,
-	objects::{BookSubscription, BookRole, EventBuilder, Team, SpreadBuilder}, components::TeamSelect
+	server::{get_book, add_chapter},
+	objects::{BookSubscription, BookRole, EventBuilder, Team, SpreadBuilder, Event}, components::{TeamSelect, DateTimePickerTZ}
 };
 
 #[component]
@@ -31,10 +31,21 @@ pub fn NewChapter(cx: Scope) -> impl IntoView {
 
 #[component]
 pub fn VerifiedNewChapter(cx: Scope) -> impl IntoView {
-	// let params = use_params_map(cx);
-	// let book_id:i64 = params.with(|params| params.get("id").cloned()).unwrap().parse::<i64>().unwrap();
+	let params = use_params_map(cx);
+	let book_id: i64 = params.with_untracked(|params| params.get("id").cloned()).unwrap().parse::<i64>().unwrap();
 
 	let (events, set_events) = create_signal::<Vec<(i64, EventBuilder)>>(cx, Vec::new());
+
+	let initial_datetime = {
+		let current = chrono::Utc::now();
+		let naive = (current + chrono::Duration::days(1)).date_naive();
+		let date = naive.format("%Y-%m-%d").to_string();
+		let datetime = format!("{date}T11:00");
+		log!("{datetime}");
+		datetime
+	};
+
+	let date_time_rfc3339 = create_rw_signal(cx, format!("{initial_datetime}:00-06:00"));
 
 	let untracked_changes = create_rw_signal(cx, 0);
 	provide_context(cx, untracked_changes.write_only());
@@ -57,11 +68,31 @@ pub fn VerifiedNewChapter(cx: Scope) -> impl IntoView {
 			events.push((next_id, new_event))
 		});
 	};
-
 	add_event("SpreadGroup");
+
+	let submit = create_action(cx,
+		move |_| async move {
+			log!("Submit");
+			let built_events: Result<Vec<Event>, String> = events
+				.get()
+				.into_iter()
+				.map(|(_, event)| { log!("{:?}", event); event})
+				.map(|event| event.build())
+				.collect();
+
+			let built_events = match built_events {
+				Ok(events) => events,
+				Err(e) => return async {Err(ServerFnError::Serialization(e))}.await
+			};
+
+			add_chapter(cx, book_id, "title".into(), date_time_rfc3339.get(), built_events).await
+		}
+	);
+
 	view! {cx,
 		<div class="flex flex-col items-center justify-center border border-green-500">
 		// <h1>"Untracked Changes: "{move || format!("{:?}", untracked_changes.get())}</h1>
+			<DateTimePickerTZ picker=date_time_rfc3339.write_only() initial_datetime/>
 			<For each={move || events.get()} key={|event| event.0}
 				view=move |cx, (_, event)| {
 					let event_view = move || match event {
@@ -77,6 +108,33 @@ pub fn VerifiedNewChapter(cx: Scope) -> impl IntoView {
 					}
 				}/>
 				// <button on:click=move |_| add_event("SpreadGroup") class="bg-transparent hover:bg-blue-500 text-blue-700 font-semibold hover:text-white py-2 px-4 border border-blue-500 hover:border-transparent rounded">"Add Spread Group"</button>
+		</div>
+		<div class="p-3">
+			{move ||
+				if untracked_changes.get() > 0 {
+					view!{cx,
+						<button class="bg-transparen text-black font-semibold py-2 px-4 border border-black rounded cursor-not-allowed w-30">"Incomplete"</button>
+					}.into_view(cx)
+				} else {
+					if submit.pending().get() {
+						view!{cx,
+							<button class="bg-transparen text-black font-semibold py-2 px-4 border border-black rounded cursor-not-allowed w-30">"Creating..."</button>
+						}.into_view(cx)
+					} else if let Some(Ok(_new_chapter_id)) = submit.value().get() {
+						view! {cx,
+							<Redirect path="/books/"{book_id}/>
+						}.into_view(cx)
+					} else if let Some(Err(e)) = submit.value().get() {
+						log!("{e:?}");
+						().into_view(cx)
+					}
+					else {
+						view!{cx,
+							<button on:click=move |ev|{ submit.dispatch(ev) } class="bg-transparent hover:bg-black text-black font-semibold hover:text-white py-2 px-4 border border-black hover:border-transparent rounded w-30">"Submit"</button>
+						}.into_view(cx)
+					}
+				}
+			}
 		</div>
 	}
 }
@@ -233,7 +291,7 @@ pub fn NewSpread(cx: Scope, spread: RwSignal<SpreadBuilder>) -> impl IntoView {
 			if new_notes.is_empty() {
 				s.notes = None
 			} else {
-				s.notes(new_notes);
+				s.notes(Some(new_notes));
 			}
 		})
 	};
@@ -245,8 +303,8 @@ pub fn NewSpread(cx: Scope, spread: RwSignal<SpreadBuilder>) -> impl IntoView {
 				{home_view}
 				{away_view}
 			</div>
-			<div class="w-72 justify-center p-2">
-				<div class="relative h-10 w-full min-w-[200px]">
+			<div class="justify-center p-2">
+				<div class="relative h-10 w-full">
 					<input
 					class="peer h-full w-full rounded-[7px] border border-green-200 border-t-transparent bg-transparent px-3 py-2.5 font-sans text-sm font-normal text-green-700 outline outline-0 transition-all placeholder-shown:border placeholder-shown:border-green-200 placeholder-shown:border-t-green-200 focus:border-2 focus:border-t-transparent focus:outline-0 disabled:border-0 disabled:bg-green-50"
 					placeholder=""
@@ -256,10 +314,10 @@ pub fn NewSpread(cx: Scope, spread: RwSignal<SpreadBuilder>) -> impl IntoView {
 					</label>
 				</div>
 			</div>
-			<div class="w-72 justify-center p-2">
-				<div class="relative h-10 w-full min-w-[200px]">
-					<input
-					class="peer h-full w-full rounded-[7px] border border-green-200 border-t-transparent bg-transparent px-3 py-2.5 font-sans text-sm font-normal text-green-700 outline outline-0 transition-all placeholder-shown:border placeholder-shown:border-green-200 placeholder-shown:border-t-green-200 focus:border-2 focus:border-t-transparent focus:outline-0 disabled:border-0 disabled:bg-green-50"
+			<div class="justify-center p-2">
+				<div class="relative h-30">
+					<textarea
+					class="peer resize-none h-full w-full rounded-[7px] border border-green-200 border-t-transparent bg-transparent px-3 py-2.5 font-sans text-sm font-normal text-green-700 outline outline-0 transition-all placeholder-shown:border placeholder-shown:border-green-200 placeholder-shown:border-t-green-200 focus:border-2 focus:border-t-transparent focus:outline-0 disabled:border-0 disabled:bg-green-50"
 					placeholder=""
 					on:input=change_notes/>
 					<label class="before:content[' '] after:content[' '] pointer-events-none absolute left-0 -top-1.5 flex h-full w-full select-none text-[11px] font-normal leading-tight text-green-400 transition-all before:pointer-events-none before:mt-[6.5px] before:mr-1 before:box-border before:block before:h-1.5 before:w-2.5 before:rounded-tl-md before:border-t before:border-l before:border-green-200 before:transition-all after:pointer-events-none after:mt-[6.5px] after:ml-1 after:box-border after:block after:h-1.5 after:w-2.5 after:flex-grow after:rounded-tr-md after:border-t after:border-r after:border-green-200 after:transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:leading-[3.75] peer-placeholder-shown:text-green-500 peer-placeholder-shown:before:border-transparent peer-placeholder-shown:after:border-transparent peer-focus:text-[11px] peer-focus:leading-tight peer-focus:text-gree-500 peer-focus:before:border-t-2 peer-focus:before:border-l-2 peer-focus:after:border-t-2 peer-focus:after:border-r-2 peer-disabled:text-transparent peer-disabled:before:border-transparent peer-disabled:after:border-transparent peer-disabled:peer-placeholder-shown:text-green-500">

@@ -6,6 +6,7 @@ mod book; pub use book::*;
 mod admin_book; pub use admin_book::*;
 
 mod team; pub use team::*;
+mod chapter; pub use chapter::*;
 
 use cfg_if::cfg_if;
 

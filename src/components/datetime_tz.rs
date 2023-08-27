@@ -1,14 +1,48 @@
 use leptos::*;
 
+#[component]
+pub fn DateTimePickerTZ(cx: Scope, picker: WriteSignal<String>, initial_datetime: String) -> impl IntoView {
+
+	let change_datetime = move |ev| {
+		picker.update(|datetime| {
+			let new_datetime = event_target_value(&ev);
+			log!("Update datetime {datetime} {new_datetime}");
+			let (_, second) = datetime.split_at(datetime.len() - 6);
+
+			*datetime = format!("{new_datetime}:00{second}")
+		})
+	};
+
+	let change_timezone = move |ev| {
+		picker.update(|datetime| {
+			let new_timezone = event_target_value(&ev);
+			let (first, _) = datetime.split_at(datetime.len() - 6);
+
+			*datetime = format!("{first}{new_timezone}");
+			log!("{datetime}")
+		})
+	};
+
+	view!{cx,
+		<div class="grid grid-cols-2">
+			<div class="grid-cols-1">
+				<input type="datetime-local" id="timepicker" name="timepicker" value=initial_datetime on:input=change_datetime/>
+			</div>
+			<div class="grid-cols-2">
+				<TimezoneDropdown on:input=change_timezone/>
+			</div>
+		</div>
+	}
+}
 
 #[component]
 pub fn TimezoneDropdown(cx: Scope) -> impl IntoView {
 	view! {cx,
 		<select>
-			<option selected="selected" data-time-zone-id="11" data-gmt-adjustment="GMT-06:00" data-use-daylight="1" value="-6">"Central"</option>
-			<option data-time-zone-id="15" data-gmt-adjustment="GMT-05:00" data-use-daylight="1" value="-5">"Eastern"</option>
-			<option data-time-zone-id="5" data-gmt-adjustment="GMT-08:00" data-use-daylight="1" value="-8">"Pacific"</option>
-			<option data-time-zone-id="9" data-gmt-adjustment="GMT-07:00" data-use-daylight="1" value="-7">"Mountain"</option>
+			<option selected="selected" data-time-zone-id="11" data-gmt-adjustment="GMT-06:00" data-use-daylight="1" value="-06:00">"Central"</option>
+			<option data-time-zone-id="15" data-gmt-adjustment="GMT-05:00" data-use-daylight="1" value="-05:00">"Eastern"</option>
+			<option data-time-zone-id="5" data-gmt-adjustment="GMT-08:00" data-use-daylight="1" value="-08:00">"Pacific"</option>
+			<option data-time-zone-id="9" data-gmt-adjustment="GMT-07:00" data-use-daylight="1" value="-07:00">"Mountain"</option>
 			// <option data-time-zone-id="1" data-gmt-adjustment="GMT-12:00" data-use-daylight="0" value="-12">"(GMT-12:00) International Date Line West"</option>
 			// <option data-time-zone-id="2" data-gmt-adjustment="GMT-11:00" data-use-daylight="0" value="-11">"(GMT-11:00) Midway Island, Samoa"</option>
 			// <option data-time-zone-id="3" data-gmt-adjustment="GMT-10:00" data-use-daylight="0" value="-10">"(GMT-10:00) Hawaii"</option>

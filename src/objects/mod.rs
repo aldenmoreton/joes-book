@@ -1,6 +1,6 @@
 mod books; pub use books::*;
 mod team; pub use team::*;
-mod chapters; pub use chapters::*;
+mod chapter; pub use chapter::*;
 
 mod text; pub use text::*;
 mod spread; pub use spread::*;
