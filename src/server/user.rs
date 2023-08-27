@@ -43,14 +43,10 @@ pub async fn signup(
         .await
         .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
 
-    log!("Signing up");
-
     let user = BackendUser::get_from_username(username, &pool)
         .await
         .ok_or("Signup failed: User does not exist.")
         .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
-
-    log!("Signing up");
 
     auth.login_user(user.id);
     auth.remember_user(remember.is_some());

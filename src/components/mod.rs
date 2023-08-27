@@ -7,6 +7,7 @@ mod books; pub use books::Books;
 mod book; pub use book::Book;
 mod admin; pub use admin::Admin;
 mod newchapter; pub use newchapter::NewChapter;
+mod chapter; pub use chapter::Chapter;
 
 // Components
 mod header; pub use header::Header;

@@ -9,7 +9,7 @@ use crate::{
 #[component]
 pub fn NewChapter(cx: Scope) -> impl IntoView {
 	let params = use_params_map(cx);
-	let book_id:i64 = params.with_untracked(|params| params.get("id").cloned()).unwrap().parse::<i64>().unwrap();
+	let book_id:i64 = params.with_untracked(|params| params.get("book_id").cloned()).unwrap().parse::<i64>().unwrap();
 	let user_subscription = create_resource(
 		cx,
 		|| (),
@@ -23,7 +23,7 @@ pub fn NewChapter(cx: Scope) -> impl IntoView {
 			{move || match user_subscription.read(cx) {
 				Some(Ok(BookSubscription{role: BookRole::Owner, ..})) => VerifiedNewChapter(cx).into_view(cx),
 				None => ().into_view(cx),
-				_ => view! { cx, <Redirect path={format!("/books/{book_id}")}/> }.into_view(cx),
+				_ => view! { cx, <Redirect path="/books/"/> }.into_view(cx),
 			}}
 		</Suspense>
 	}
@@ -32,7 +32,7 @@ pub fn NewChapter(cx: Scope) -> impl IntoView {
 #[component]
 pub fn VerifiedNewChapter(cx: Scope) -> impl IntoView {
 	let params = use_params_map(cx);
-	let book_id: i64 = params.with_untracked(|params| params.get("id").cloned()).unwrap().parse::<i64>().unwrap();
+	let book_id: i64 = params.with_untracked(|params| params.get("book_id").cloned()).unwrap().parse::<i64>().unwrap();
 
 	let title = create_rw_signal(cx, String::new());
 	let events = create_rw_signal::<Vec<(i64, EventBuilder)>>(cx, Vec::new());
@@ -42,7 +42,6 @@ pub fn VerifiedNewChapter(cx: Scope) -> impl IntoView {
 		let naive = (current + chrono::Duration::days(1)).date_naive();
 		let date = naive.format("%Y-%m-%d").to_string();
 		let datetime = format!("{date}T11:00");
-		log!("{datetime}");
 		datetime
 	};
 
@@ -73,12 +72,10 @@ pub fn VerifiedNewChapter(cx: Scope) -> impl IntoView {
 
 	let submit = create_action(cx,
 		move |_| async move {
-			log!("Submit");
 			let built_events: Result<Vec<Event>, String> = events
 				.get()
 				.into_iter()
-				.map(|(_, event)| { log!("{:?}", event); event})
-				.map(|event| event.build())
+				.map(|(_, event)| event.build())
 				.collect();
 
 			let built_events = match built_events {
@@ -141,8 +138,9 @@ pub fn VerifiedNewChapter(cx: Scope) -> impl IntoView {
 							<button class="bg-transparen text-black font-semibold py-2 px-4 border border-black rounded cursor-not-allowed w-30">"Creating..."</button>
 						}.into_view(cx)
 					} else if let Some(Ok(_new_chapter_id)) = submit.value().get() {
+						log!("/books/{}", book_id);
 						view! {cx,
-							<Redirect path="/books/"{book_id}/>
+							<Redirect path={format!("/books/{}", book_id)}/>
 						}.into_view(cx)
 					} else if let Some(Err(e)) = submit.value().get() {
 						log!("{e:?}");
@@ -150,7 +148,7 @@ pub fn VerifiedNewChapter(cx: Scope) -> impl IntoView {
 					}
 					else {
 						view!{cx,
-							<button on:click=move |ev|{ submit.dispatch(ev) } class="bg-transparent hover:bg-black text-black font-semibold hover:text-white py-2 px-4 border border-black hover:border-transparent rounded w-30">"Submit"</button>
+							<button on:click=move |ev|{ submit.dispatch(ev) } class="bg-black text-white font-semibold py-2 px-4 border border-black rounded w-30">"Submit"</button>
 						}.into_view(cx)
 					}
 				}

@@ -24,7 +24,7 @@ pub async fn delete_book(cx: Scope, id: i64) -> Result<(), ServerFnError> {
 		_ => return Err(ServerFnError::Request("You can't just delete someone else's book! Rude!!!".into()))
 	}
 
-	let deleted_book = sqlx::query!(
+	let _deleted_book = sqlx::query!(
 		r#"	DELETE FROM books
 			WHERE id IN (
 				SELECT s.book_id
@@ -39,8 +39,6 @@ pub async fn delete_book(cx: Scope, id: i64) -> Result<(), ServerFnError> {
 		.fetch_one(&pool)
 		.await
 		.map_err(|e| ServerFnError::ServerError(e.to_string()))?;
-
-	log!("{:?}", deleted_book.id);
 
 	sqlx::query!(
 		r#"	DELETE FROM subscriptions

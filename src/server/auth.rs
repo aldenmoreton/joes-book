@@ -103,8 +103,6 @@ cfg_if! {
                     permissions: HashSet::new()
                 };
 
-                log!("GET FROM USERNAME {:?}", user);
-
                 //lets just get all the tokens the user can use, we will only use the full permissions if modifing them.
                 let user_perms = sqlx::query!(
                     "SELECT token FROM user_permissions WHERE user_id = $1;",

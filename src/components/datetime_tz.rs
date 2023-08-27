@@ -6,7 +6,6 @@ pub fn DateTimePickerTZ(cx: Scope, picker: WriteSignal<String>, initial_datetime
 	let change_datetime = move |ev| {
 		picker.update(|datetime| {
 			let new_datetime = event_target_value(&ev);
-			log!("Update datetime {datetime} {new_datetime}");
 			let (_, second) = datetime.split_at(datetime.len() - 6);
 
 			*datetime = format!("{new_datetime}:00{second}")
@@ -19,7 +18,6 @@ pub fn DateTimePickerTZ(cx: Scope, picker: WriteSignal<String>, initial_datetime
 			let (first, _) = datetime.split_at(datetime.len() - 6);
 
 			*datetime = format!("{first}{new_timezone}");
-			log!("{datetime}")
 		})
 	};
 

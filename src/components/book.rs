@@ -25,7 +25,7 @@ pub fn Book(
     cx: Scope
 ) -> impl IntoView {
 	let params = use_params_map(cx);
-	let book_id:i64 = params.with_untracked(|params| params.get("id").cloned()).unwrap().parse::<i64>().unwrap();
+	let book_id:i64 = params.with_untracked(|params| params.get("book_id").cloned()).unwrap().parse::<i64>().unwrap();
 
 	let book = create_resource(
 		cx,
@@ -46,8 +46,11 @@ pub fn Book(
 				Some(BookSubscription{role: BookRole::Participant, ..}) => view!{cx,
 					<VerifiedView/>
 				}.into_view(cx),
-				None => ().into_view(cx),
-				_ => Redirect(cx, RedirectProps{path: "/books", options: None}).into_view(cx)
+				Some(BookSubscription{role: BookRole::Unauthorized, ..}) => view!{cx,
+					<Redirect path="/books"/>
+				}.into_view(cx),
+				None => ().into_view(cx)
+				// _ => Redirect(cx, RedirectProps{path: "/books", options: None}).into_view(cx)
 			}}
 		</Suspense>
 	}
@@ -56,7 +59,7 @@ pub fn Book(
 #[component]
 pub fn VerifiedView(cx: Scope) -> impl IntoView {
 	let params = use_params_map(cx);
-	let book_id:i64 = params.with_untracked(|params| params.get("id").cloned()).unwrap().parse::<i64>().unwrap();
+	let book_id:i64 = params.with_untracked(|params| params.get("book_id").cloned()).unwrap().parse::<i64>().unwrap();
 
 	let chapters = create_resource(cx, || (),
 		move |_| get_chapters(cx, book_id)
@@ -65,7 +68,7 @@ pub fn VerifiedView(cx: Scope) -> impl IntoView {
 	view!{cx,
 		<p>"Common knowlege"</p>
 		<Transition fallback=|| "Loading...">
-			<ul class="border border-black">
+			<ul class="border border-black items-center self-center justify-center">
 			{move ||
 				{
 					move || {
@@ -86,10 +89,14 @@ pub fn VerifiedView(cx: Scope) -> impl IntoView {
 												format!("{}", local.format("%B %d, %Y %H:%M%p"))
 											};
 											view!{cx,
-												<li>
-													<p>{format!("{:?}", chapter)}</p>
-													<p>{chapter.title}</p>
-													<p>{gods_time}</p>
+												<li class="p-3 h-30 w-60">
+													<a href=format!("/books/{book_id}/chapters/{}", chapter.chapter_id)>
+														<div class="max-w-sm rounded-lg overflow-hidden shadow-lg justify-center content-center bg-white">
+														// <p>{format!("{:?}", chapter)}</p>
+															<p>{chapter.title}</p>
+															<p>{gods_time}</p>
+														</div>
+													</a>
 												</li>
 											}
 										})
