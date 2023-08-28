@@ -1,5 +1,6 @@
 use leptos::{RwSignal, SignalGet};
 use serde::{Serialize, Deserialize};
+use cfg_if;
 
 use crate::objects::*;
 
@@ -15,9 +16,58 @@ pub struct Chapter {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum Event {
-	SpreadGroup(SpreadGroup),
+pub struct Event {
+	pub id: i64,
+	pub book_id: i64,
+	pub chapter_id: i64,
+	pub is_open: bool,
+	pub event_type: String,
+	pub contents: EventContent,
+	pub closing_time: String
+}
+
+cfg_if! {
+	if #[cfg(feature = "ssr")] {
+		use sqlx::{FromRow, postgres::PgRow, Row};
+
+		impl FromRow<'_, PgRow> for Event {
+			fn from_row(row: &PgRow) -> Result<Self, sqlx::Error> {
+				let contents: EventContent = {
+					let content_str: String = row.try_get("contents")?;
+					serde_json::from_str(&content_str)
+						.map_err(|err| sqlx::Error::Decode(Box::new(err)))?
+				};
+
+				Ok(Event {
+					id: row.try_get("id")?,
+					book_id: row.try_get("book_id")?,
+					chapter_id: row.try_get("chapter_id")?,
+					is_open: row.try_get("is_open")?,
+					event_type: row.try_get("event_type")?,
+					closing_time: row.try_get("closing_time")?,
+					contents
+				})
+			}
+		}
+	}
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum EventContent {
+	SpreadGroup{spread: Spread},
 	UserInput(TextBet)
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
+pub struct Pick {
+	pub id: Option<i64>,
+	pub book_id: i64,
+	pub chapter_id: i64,
+	pub event_id: i64,
+	pub wager: Option<i64>,
+	pub choice: Option<String>,
+	pub correct: Option<bool>
 }
 
 #[derive(Clone, Debug)]
@@ -26,17 +76,17 @@ pub enum EventBuilder {
 }
 
 impl EventBuilder {
-	pub fn build(self) -> Result<Event, String> {
+	pub fn build(self) -> Result<Vec<EventContent>, String> {
 		match self {
 			EventBuilder::SpreadGroup(spreads) => {
-				let mut new_spreads = Vec::new();
+				let mut spread_groups = Vec::new();
 				for (_, spread) in spreads.get() {
 					match spread.get().build() {
-						Ok(spread) => new_spreads.push(spread),
+						Ok(spread) => spread_groups.push(EventContent::SpreadGroup { spread }),
 						Err(e) => return Err(format!("Could not build Spread: {:?}", e).into())
 					}
 				}
-				Ok(Event::SpreadGroup(SpreadGroup { spreads: new_spreads }))
+				Ok(spread_groups)
 			}
 		}
 	}

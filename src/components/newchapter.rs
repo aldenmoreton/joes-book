@@ -3,7 +3,7 @@ use leptos_router::{use_params_map, Redirect};
 
 use crate::{
 	server::{get_book, add_chapter},
-	objects::{BookSubscription, BookRole, EventBuilder, Team, SpreadBuilder, Event}, components::{TeamSelect, DateTimePickerTZ}
+	objects::{BookSubscription, BookRole, EventBuilder, Team, SpreadBuilder, EventContent}, components::{TeamSelect, DateTimePickerTZ}
 };
 
 #[component]
@@ -72,7 +72,7 @@ pub fn VerifiedNewChapter(cx: Scope) -> impl IntoView {
 
 	let submit = create_action(cx,
 		move |_| async move {
-			let built_events: Result<Vec<Event>, String> = events
+			let built_events: Result<Vec<Vec<EventContent>>, String> = events
 				.get()
 				.into_iter()
 				.map(|(_, event)| event.build())
@@ -83,7 +83,7 @@ pub fn VerifiedNewChapter(cx: Scope) -> impl IntoView {
 				Err(e) => return async {Err(ServerFnError::Serialization(e))}.await
 			};
 
-			add_chapter(cx, book_id, title.get(), date_time_rfc3339.get(), built_events).await
+			add_chapter(cx, book_id, title.get(), date_time_rfc3339.get(), built_events.into_iter().flatten().collect()).await
 		}
 	);
 

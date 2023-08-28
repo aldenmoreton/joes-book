@@ -31,22 +31,23 @@ pub fn Book(
 		cx,
 		|| (),
 		move |_| async move {
-			get_book(cx, book_id).await.unwrap()
+			get_book(cx, book_id).await
 		}
 	);
 
 	view!{cx,
 		<Suspense fallback=|| "Loading">
 			{move || match book.read(cx) {
-				Some(BookSubscription{role: BookRole::Admin, ..}) |
-				Some(BookSubscription{role: BookRole::Owner, ..}) => view!{cx,
+				Some(Ok(BookSubscription{role: BookRole::Admin, ..})) |
+				Some(Ok(BookSubscription{role: BookRole::Owner, ..})) => view!{cx,
 					<VerifiedView/>
 					<AdminView book_id/>
 				}.into_view(cx),
-				Some(BookSubscription{role: BookRole::Participant, ..}) => view!{cx,
+				Some(Ok(BookSubscription{role: BookRole::Participant, ..})) => view!{cx,
 					<VerifiedView/>
 				}.into_view(cx),
-				Some(BookSubscription{role: BookRole::Unauthorized, ..}) => view!{cx,
+				Some(Ok(BookSubscription{role: BookRole::Unauthorized, ..})) |
+				Some(Err(_)) => view!{cx,
 					<Redirect path="/books"/>
 				}.into_view(cx),
 				None => ().into_view(cx)
@@ -66,7 +67,18 @@ pub fn VerifiedView(cx: Scope) -> impl IntoView {
 	);
 
 	view!{cx,
-		<p>"Common knowlege"</p>
+		<Await future=move |cx| get_book(cx, book_id) bind:book_data>
+			{
+				match book_data {
+					Ok(book) => {
+						let book_name = book.name.clone();
+						view!{cx, <h1>{book_name}</h1>}.into_view(cx)
+					},
+					_ => ().into_view(cx)
+				}
+			}
+		</Await>
+		<div class="flex flex-col items-center justify-center border border-green-500">
 		<Transition fallback=|| "Loading...">
 			<ul class="border border-black items-center self-center justify-center">
 			{move ||
@@ -94,7 +106,7 @@ pub fn VerifiedView(cx: Scope) -> impl IntoView {
 														<div class="max-w-sm rounded-lg overflow-hidden shadow-lg justify-center content-center bg-white">
 														// <p>{format!("{:?}", chapter)}</p>
 															<p>{chapter.title}</p>
-															<p>{gods_time}</p>
+															<p>"Deadline:"<br/>{gods_time}</p>
 														</div>
 													</a>
 												</li>
@@ -109,6 +121,7 @@ pub fn VerifiedView(cx: Scope) -> impl IntoView {
 			}
 			</ul>
 		</Transition>
+		</div>
 	}
 }
 
@@ -121,7 +134,7 @@ pub fn AdminView(cx: Scope, book_id: i64) -> impl IntoView {
 		cx,
 		move || user.get(),
 		move |_| async move {
-			let user: Option<FrontendUser> = user.get();
+			let user: Option<FrontendUser> = user.get_untracked();
 			match user {
 				Some(user) => get_subsciption(cx, user.id, book_id).await,
 				_ => Err(ServerFnError::Request("No user".into()))

@@ -111,6 +111,7 @@ if #[cfg(feature = "ssr")] {
         sqlx::query_file!("migrations/subscriptions.sql").execute(&pool).await.ok();
         sqlx::query_file!("migrations/chapters.sql").execute(&pool).await.ok();
         sqlx::query_file!("migrations/events.sql").execute(&pool).await.ok();
+        sqlx::query_file!("migrations/picks.sql").execute(&pool).await.ok();
 
         let auth_config = AuthConfig::<i64>::default();
         let session_store = SessionStore::<SessionPgPool>::new(Some(pool.clone().into()), session_config);

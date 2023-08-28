@@ -2,6 +2,8 @@
 use serde::{Serialize, Deserialize};
 use derive_builder::Builder;
 
+use super::Pick;
+
 #[derive(Debug, Clone, Serialize, Deserialize, Builder)]
 pub struct Spread {
 	#[builder(field(public))]
@@ -14,21 +16,11 @@ pub struct Spread {
 	pub notes: Option<String>
 }
 
-pub enum SpreadTeam {
-	Home,
-	Away
-}
-
-pub struct SpreadPick {
-	pub pick: SpreadTeam,
-	pub wager: i64
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SpreadGroup {
 	pub spreads: Vec<Spread>
 }
 
 pub struct SpreadGroupPick {
-	pub picks: Vec<SpreadPick>
+	pub picks: Vec<Pick>
 }

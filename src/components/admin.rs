@@ -67,7 +67,7 @@ pub fn UserSelect(
 		cx,
 		move || query.get(),
 		move |_| async move {
-			if let Some(query) = query.get() {
+			if let Some(query) = query.get_untracked() {
 				search_user(cx, query).await
 			} else {
 				Ok(Vec::new())

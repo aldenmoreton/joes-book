@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS events (
 	is_open			BOOLEAN NOT NULL,
 	event_type		TEXT NOT NULL,
 	contents		TEXT NOT NULL,
+	result			TEXT DEFAULT NULL,
 	closing_time	TIMESTAMPTZ NOT NULL,
 	created_at 		TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
