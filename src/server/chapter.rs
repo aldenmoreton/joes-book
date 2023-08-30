@@ -5,6 +5,7 @@ use crate::objects::{ Event, Chapter, EventContent, Pick };
 
 cfg_if! {
 	if #[cfg(feature = "ssr")] {
+		use itertools::Itertools;
 		use crate::{
 			server::{pool, get_book, auth},
 			objects::{ BookRole }
@@ -126,6 +127,7 @@ pub async fn get_events(cx: Scope, chapter_id: i64) -> Result<Vec<Event>, Server
 		r#"	SELECT id, book_id, chapter_id, contents, event_type, is_open, TO_CHAR(closing_time, 'YYYY-MM-DD"T"HH24:MI:SS.MSZ') AS closing_time
 			FROM events
 			WHERE chapter_id = $1
+			ORDER BY event_type
 		"#
 	)
 		.bind(chapter_id)
@@ -187,7 +189,7 @@ pub async fn get_pick(cx: Scope, event_id: i64) -> Result<Pick, ServerFnError> {
 }
 
 #[server(GetPicks, "/secure")]
-pub async fn get_picks(cx: Scope, chapter_id: i64) -> Result<Vec<(Event, Pick)>, ServerFnError> {
+pub async fn get_picks(cx: Scope, chapter_id: i64) -> Result<Vec<(String, Vec<(Event, Pick)>)>, ServerFnError> {
 	let events = get_events(cx, chapter_id)
 		.await
 		.map_err(|err| ServerFnErrorErr::Request(format!("Could not get events: {err}")))?;
@@ -202,10 +204,95 @@ pub async fn get_picks(cx: Scope, chapter_id: i64) -> Result<Vec<(Event, Pick)>,
 		awaited_picks.push(pick.await?)
 	}
 
-	Ok(
-		events
+	let event_picks: Vec<(Event, Pick)> = events
 			.into_iter()
 			.zip(awaited_picks)
-			.collect()
-	)
+			.collect();
+
+	let mut data_grouped = Vec::new();
+	for (key, group) in &event_picks.into_iter().group_by(|elt| elt.0.event_type.clone()) {
+		data_grouped.push((key, group.collect()));
+	}
+
+	Ok(data_grouped)
+}
+
+
+cfg_if! {
+	if #[cfg(feature = "ssr")] {
+		pub async fn create_pick(cx: Scope, pick: Pick) -> Result<(), ServerFnError> {
+			let book_sub = get_book(cx, pick.book_id).await?;
+			match book_sub.role {
+				BookRole::Unauthorized =>
+					return Err(ServerFnError::Request("You can't make picks for a book you are not a member of".into())),
+				_ => ()
+			}
+
+			let chapter = get_chapter(cx, pick.chapter_id).await?;
+			let closing_time = chrono::DateTime::parse_from_rfc3339(&chapter.closing_time).unwrap();
+			if	closing_time < chrono::Utc::now() {
+				return Err(ServerFnError::Request("You're too late to make picks".into()))
+			}
+
+			let pool = pool(cx)?;
+			sqlx::query(
+				r#" INSERT INTO picks(book_id, chapter_id, event_id, user_id, choice, wager)
+					VALUES ($1, $2, $3, $4, $5, $6)
+				"#
+			)
+				.bind(pick.book_id)
+				.bind(pick.chapter_id)
+				.bind(pick.event_id)
+				.bind(book_sub.user_id)
+				.bind(pick.choice)
+				.bind(pick.wager)
+				.execute(&pool)
+				.await?;
+
+			Ok(())
+		}
+
+		pub async fn update_pick(cx: Scope, pick: Pick) -> Result<(), ServerFnError> {
+			let book_sub = get_book(cx, pick.book_id).await?;
+			match book_sub.role {
+				BookRole::Unauthorized =>
+					return Err(ServerFnError::Request("You can't update picks for a book you are not a member of".into())),
+				_ => ()
+			}
+
+			let chapter = get_chapter(cx, pick.chapter_id).await?;
+			let closing_time = chrono::DateTime::parse_from_rfc3339(&chapter.closing_time).unwrap();
+			if	closing_time < chrono::Utc::now() {
+				return Err(ServerFnError::Request("You're too late to update picks".into()))
+			}
+
+			let pool = pool(cx)?;
+			sqlx::query(
+				r#" UPDATE picks
+					SET choice = $1, wager = $2
+					WHERE id = $3
+				"#
+			)
+				.bind(pick.choice)
+				.bind(pick.wager)
+				.bind(pick.id)
+				.execute(&pool)
+				.await?;
+
+			Ok(())
+		}
+	}
+}
+
+#[server(SavePicks, "/secure")]
+pub async fn save_picks(cx: Scope, picks: Vec<Pick>) -> Result<(), ServerFnError> {
+	for pick in picks {
+		if pick.id.is_some() {
+			update_pick(cx, pick).await?
+		} else {
+			create_pick(cx, pick).await?
+		}
+	}
+
+	Ok(())
 }
