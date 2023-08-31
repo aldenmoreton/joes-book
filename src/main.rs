@@ -104,6 +104,7 @@ if #[cfg(feature = "ssr")] {
         let session_config = SessionConfig::default().with_table_name("axum_sessions");
 
         println!("Attempting Migration");
+        // sqlx::migrate!(migrations);
         sqlx::query_file!("migrations/users.sql").execute(&pool).await.ok();
         sqlx::query_file!("migrations/user_permissions.sql").execute(&pool).await.ok();
         sqlx::query_file!("migrations/todos.sql").execute(&pool).await.ok();
