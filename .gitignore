@@ -17,7 +17,6 @@ Cargo.lock
 # Tailwind
 node_modules/
 package-lock.json
-output.css
 
 Joe.db
 migration.ipynb
