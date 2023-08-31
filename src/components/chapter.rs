@@ -1,5 +1,5 @@
 use leptos::*;
-use leptos_router::{use_params_map, Redirect};
+use leptos_router::use_params_map;
 
 use crate::{server::{get_picks, get_spread_teams, save_picks}, objects::{Event, Pick, EventContent}};
 
@@ -17,9 +17,8 @@ pub fn Chapter(cx: Scope) -> impl IntoView {
 	view!{cx,
 		<p>{book_id}</p>
 		<p>{chapter_id}</p>
-		<h1>"Chapter Page!"</h1>
 		<Transition fallback=|| "Loading...">
-			<div class="flex flex-col items-center justify-center border border-green-500">
+			<div class="flex flex-col items-center justify-center">
 				{move ||
 					{move ||
 						pick_fetcher.read(cx).map(|events| match events {
@@ -54,8 +53,7 @@ pub fn ChapterEvents(cx: Scope, initial_values: Vec<(String, Vec<(Event, Pick)>)
 		.map(move |value| {
 			match value.0.as_str() {
 				"SpreadGroup" => view!{cx,
-					<div class="border border-black">
-						<h1>"SpreadGroup"</h1>
+					<div>
 						<SpreadGroupPick initial_values=value.1/>
 					</div>
 				}.into_view(cx),
@@ -76,9 +74,9 @@ pub fn ChapterEvents(cx: Scope, initial_values: Vec<(String, Vec<(Event, Pick)>)
 	);
 
 	view! {cx,
-		<h1>"Chapter Events"</h1>
 		{pick_views}
-		<div class="fixed inset-x-0 bottom-0 h-16 items-center justify-center grid">
+		// fixed inset-x-0 bottom-0
+		<div class="h-16 items-center justify-center grid">
 			<div class="h-full w-32 justify-center self-center text-center content-center">
 				{move || match discrepancies.get() {
 					Some(discrepancies) if discrepancies == 0 => {
@@ -90,7 +88,12 @@ pub fn ChapterEvents(cx: Scope, initial_values: Vec<(String, Vec<(Event, Pick)>)
 							},
 							(false, Some(Ok(()))) => {
 								view!{cx,
-									<Redirect path={format!("/books/{}", book_id)}/>
+									<a href={format!("/books/{}", book_id)}>
+										<button class="border border-black rounded-md bg-green-500">
+											<h1>"Picks are saved"</h1>
+											<p>"Go back to book"</p>
+										</button>
+									</a>
 								}.into_view(cx)
 							},
 							(false, Some(Err(e))) => {
@@ -104,23 +107,6 @@ pub fn ChapterEvents(cx: Scope, initial_values: Vec<(String, Vec<(Event, Pick)>)
 								}.into_view(cx)
 							}
 						}
-						// if !pick_submission.pending().get() {
-						// 	view!{cx,
-						// 		<button on:click=move |_| pick_submission.dispatch(()) class="h-full w-full bg-black text-white rounded-xl">"Submit"</button>
-						// 	}.into_view(cx)
-						// } else if let Some(Ok(_)) = pick_submission.value().get() {
-						// 	view!{cx,
-						// 		<Redirect path={format!("/books/{}", book_id)}/>
-						// 	}.into_view(cx)
-						// } else if let Some(Err(e)) = pick_submission.value().get() {
-						// 	view!{cx,
-						// 		<h1>{e}</h1>
-						// 	}.into_view(cx)
-						// } else {
-						// 	view!{cx,
-						// 		<p>"Loading..."</p>
-						// 	}.into_view(cx)
-						// }
 					},
 					Some(d) => {
 						view!{cx,
@@ -128,7 +114,14 @@ pub fn ChapterEvents(cx: Scope, initial_values: Vec<(String, Vec<(Event, Pick)>)
 						}.into_view(cx)
 					},
 					None => {
-						().into_view(cx)
+						view!{cx,
+							<a href={format!("/books/{}", book_id)}>
+								<button class="border border-black rounded-md bg-green-500">
+									<h1>"No changes yet"</h1>
+									<p>"Go back to book"</p>
+								</button>
+							</a>
+						}.into_view(cx)
 					}
 				}}
 			</div>
@@ -150,11 +143,9 @@ pub fn SpreadGroupPick(cx: Scope, initial_values: Vec<(Event, Pick)>) -> impl In
 		.into_iter()
 		.map(|(event, pick)| {
 			if let Some(wager) = pick.wager {
-				log!("Some wager");
 				wager_trackers.update(|t| t[wager as usize - 1] += 1);
 			}
 			if pick.wager.is_none() { global_discrepancies.update(|d| *d = Some(d.unwrap_or(0) + 1)) }
-			// else {  }
 			if pick.choice.is_none() { global_discrepancies.update(|d| *d = Some(d.unwrap_or(0) + 1)) }
 
 			let new_pick = create_rw_signal(cx, pick);
@@ -176,7 +167,6 @@ pub fn SpreadGroupPick(cx: Scope, initial_values: Vec<(Event, Pick)>) -> impl In
 
 	let wager_setter = move |pick: RwSignal<Pick>, wager| {
 		pick.update(|pick| {
-			log!("Update wager for pick: {pick:?}");
 			let new_wager_right = wager_trackers.get()[wager-1] == 0;
 			if let Some(old_wager) = pick.wager {
 				let old_wager_wrong = wager_trackers.get()[old_wager as usize - 1] > 1;
@@ -191,10 +181,6 @@ pub fn SpreadGroupPick(cx: Scope, initial_values: Vec<(Event, Pick)>) -> impl In
 				}
 			}
 
-			// if no_old_wager && new_wager_right {
-			// 	global_discrepancies.update(|d| *d = Some(d.unwrap_or(1) - 1))
-			// } else if  { global_discrepancies.update(|d| *d = Some(d.unwrap_or(1) - 1)) }
-
 			wager_trackers.update(|t| {
 				if let Some(old_wager) = pick.wager {
 					t[old_wager as usize - 1] -= 1;
@@ -206,7 +192,6 @@ pub fn SpreadGroupPick(cx: Scope, initial_values: Vec<(Event, Pick)>) -> impl In
 	};
 
 	view! {cx,
-		<h1>"Tracker: " {move || wager_trackers.get()}</h1>
 		{
 			reactive_events
 				.into_iter()
@@ -217,8 +202,6 @@ pub fn SpreadGroupPick(cx: Scope, initial_values: Vec<(Event, Pick)>) -> impl In
 						view!{cx,
 							<div class="p-3">
 								<div class="max-w-sm rounded-lg overflow-hidden shadow-lg justify-center content-center bg-white">
-									// <h1>{format!("{:?}", spread)}</h1>
-									// <h1>{move || format!("{:?}", pick)}</h1>
 									<h1>"Game " {i+1}</h1>
 									<Await future=move |cx| get_spread_teams(cx, spread.home_id, spread.away_id) bind:spread_teams>
 										{match spread_teams {
@@ -253,30 +236,9 @@ pub fn SpreadGroupPick(cx: Scope, initial_values: Vec<(Event, Pick)>) -> impl In
 									{
 										(1..=num_of_picks)
 											.map(|i| {
-												log!("{i:?}");
 												view!{cx,
 													<li class="inline-flex p-1 items-center">
 														<input on:click=move |_| wager_setter(pick, i) type="radio" id={format!("{}-{}-{}-wager", i, spread.home_id, spread.away_id)} name={format!("{}-{}-wager", spread.home_id, spread.away_id)} value="home" class="hidden peer" checked={if old_pick.wager == Some(i as i64) {true} else {false}}/>
-														// {
-														// 	match wager_trackers.get()[i-1] {
-														// 		0 => view!{cx,
-														// 			<label for={format!("{}-{}-{}-wager", i, spread.home_id, spread.away_id)} class="inline-grid w-5 h-5 p-5 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100">
-														// 				<p class="text-center">{i}</p>
-														// 			</label>
-														// 		},
-														// 		1 => view!{cx,
-														// 			<label for={format!("{}-{}-{}-wager", i, spread.home_id, spread.away_id)} class="inline-grid w-5 h-5 p-5 border border-black bg-green-700 rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100">
-														// 				<p class="text-center">{i}</p>
-														// 			</label>
-														// 		},
-														// 		2.. => view!{cx,
-														// 			<label for={format!("{}-{}-{}-wager", i, spread.home_id, spread.away_id)} class="inline-grid w-5 h-5 p-5 border border-black bg-red-500 rounded-lg cursor-pointer hover:border-red-700 peer-checked:bg-red-500 peer-checked:border-red-600 hover:bg-red-100">
-														// 				<p class="text-center">{i}</p>
-														// 			</label>
-														// 		},
-														// 		i32::MIN..=-1 => panic!("You can't wager a negative number")
-														// 	}
-														// }
 														<label for={format!("{}-{}-{}-wager", i, spread.home_id, spread.away_id)} class="inline-grid w-5 h-5 p-5 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100">
 															<p class="text-center">{i}</p>
 														</label>
@@ -291,7 +253,11 @@ pub fn SpreadGroupPick(cx: Scope, initial_values: Vec<(Event, Pick)>) -> impl In
 											view!{cx,
 												<details class="pt-1 pb-3">
 													<summary>"Notes"</summary>
-													<p>{notes}</p>
+													<p>
+														<span style="white-space: pre-line">
+															{notes}
+														</span>
+													</p>
 												</details>
 											}.into_view(cx)
 										} else {
