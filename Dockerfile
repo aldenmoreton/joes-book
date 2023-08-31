@@ -1,43 +1,38 @@
-# Get started with a build env with Rust nightly
-FROM rust:1.72 as builder
+FROM rust:alpine3.18 AS builder
+WORKDIR /build
 
-# If you’re using stable, use this instead
-# FROM rust:1.70-bullseye as builder
+RUN apk update && \
+	apk upgrade --no-cache && \
+	apk add pkgconfig libressl-dev musl-dev
 
-# Install cargo-binstall, which makes it easier to install other
-# cargo extensions like cargo-leptos
-RUN wget https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz
-RUN tar -xvf cargo-binstall-x86_64-unknown-linux-musl.tgz
-RUN cp cargo-binstall /usr/local/cargo/bin
-
-# Install cargo-leptos
-RUN cargo binstall cargo-leptos -y
-
-# Add the WASM target
+# RUN rustup default nightly
 RUN rustup target add wasm32-unknown-unknown
 
-# Make an /app dir, which everything will eventually live in
-RUN mkdir -p /app
-WORKDIR /app
+RUN cargo install --locked cargo-leptos
+
 COPY . .
 
-# Build the app
 RUN cargo leptos build --release -vv
 
-FROM rust:1.72 as runner
-# Copy the server binary to the /app directory
-COPY --from=builder /app/target/server/release/joes_book /app/
-# /target/site contains our JS/WASM/CSS, etc.
-COPY --from=builder /app/target/site /app/site
-# Copy Cargo.toml if it’s needed at runtime
-COPY --from=builder /app/Cargo.toml /app/
-WORKDIR /app
 
-# Set any required env variables and
-ENV RUST_LOG="info"
-ENV APP_ENVIRONMENT="production"
-ENV LEPTOS_SITE_ADDR="0.0.0.0:8080"
-ENV LEPTOS_SITE_ROOT="site"
-EXPOSE 8080
-# Run the server
-CMD ["/app/joes_book"]
+FROM alpine:3.18 AS runner
+WORKDIR /var/www/app
+
+RUN addgroup -S server && \
+	adduser -S www-data -G server && \
+	chown -R www-data:server /var/www/app
+
+COPY --chown=www-data:server --from=builder /build/target/server/release/joes_book ./server/joes_book
+COPY --chown=www-data:server --from=builder /build/target/front/wasm32-unknown-unknown/release/joes_book.wasm ./front/joes_book.wasm
+COPY --chown=www-data:server --from=builder /build/target/site ./site
+
+USER www-data
+
+ENV LEPTOS_OUTPUT_NAME "joes_book"
+ENV LEPTOS_SITE_ROOT "/var/www/app/site"
+ENV LEPTOS_ENV "PROD"
+ENV LEPTOS_SITE_ADDR "0.0.0.0:3000"
+
+EXPOSE 3000
+
+CMD ["./server/joes_book"]
