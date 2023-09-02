@@ -78,7 +78,7 @@ pub fn UserSelect(
     view! {
         cx,
         <div>
-			<input type="text" on:input=move |ev|{
+			<input type="text" class="border border-black bg-green-300" on:input=move |ev|{
 				let new_query = event_target_value(&ev);
 				 if new_query.len() == 0 {
 					set_query.set(None);
@@ -106,7 +106,7 @@ pub fn UserSelect(
                                                     view! {
                                                         cx,
                                                         <li>
-															<button
+															<button class="border border-black bg-gray-50 rounded-md m-1"
 																on:click=move |_| {
 																	set_query.set(None);
 																	user_selector.set(Some(user_select.clone()))

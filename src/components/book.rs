@@ -40,8 +40,8 @@ pub fn Book(
 			{move || match book.read(cx) {
 				Some(Ok(BookSubscription{role: BookRole::Admin, ..})) |
 				Some(Ok(BookSubscription{role: BookRole::Owner, ..})) => view!{cx,
-					<VerifiedView/>
 					<AdminView book_id/>
+					<VerifiedView/>
 				}.into_view(cx),
 				Some(Ok(BookSubscription{role: BookRole::Participant, ..})) => view!{cx,
 					<VerifiedView/>
@@ -78,9 +78,9 @@ pub fn VerifiedView(cx: Scope) -> impl IntoView {
 				}
 			}
 		</Await>
-		<div class="flex flex-col items-center justify-center border border-green-500">
+		<div class="flex flex-col items-center justify-center">
 		<Transition fallback=|| "Loading...">
-			<ul class="border border-black items-center self-center justify-center">
+			<ul class="items-center self-center justify-center">
 			{move ||
 				{
 					move || {
@@ -104,7 +104,6 @@ pub fn VerifiedView(cx: Scope) -> impl IntoView {
 												<li class="p-3 h-30 w-60">
 													<a href=format!("/books/{book_id}/chapters/{}", chapter.chapter_id)>
 														<div class="max-w-sm rounded-lg overflow-hidden shadow-lg justify-center content-center bg-white">
-														// <p>{format!("{:?}", chapter)}</p>
 															<p>{chapter.title}</p>
 															<p>"Deadline:"<br/>{gods_time}</p>
 														</div>
@@ -143,13 +142,23 @@ pub fn AdminView(cx: Scope, book_id: i64) -> impl IntoView {
 	);
 
 	view! {cx,
-		<div class="border">
-			<h2>"Book owner options"</h2>
-			<A href="new"><button>"Add Pick Event"</button></A>
-			<ActionForm action=delete_book>
-				<input type="hidden" name="id" value={book_id}/>
-				<input type="submit" value="Delete Book"/>
-			</ActionForm>
+		<div>
+			<details>
+			<summary>"Book owner options"</summary>
+			<div class="grid items-center self-center justify-center">
+			<div class="max-w-sm rounded-lg overflow-hidden shadow-lg justify-center content-center bg-white p-2">
+			<div class="grid grid-cols-2">
+				<div class="justify-end content-end justify-self-end place-items-end">
+				<A href="new"><button class="border border-black rounded-md bg-green-500 hover:bg-green-700">"Add Pick Event"</button></A>
+				</div>
+				<div class="justify-start content-start justify-self-start place-items-start">
+				<ActionForm action=delete_book>
+					<input type="hidden" name="id" value={book_id}/>
+					<input type="submit" class="border border-black bg-red-400 hover:bg-red-700 rounded-md" value="Delete Book"/>
+				</ActionForm>
+				</div>
+			</div>
+			<h1>"Change user options"</h1>
 			<UserSelect user_selector/>
 			<Suspense fallback=move || view! {cx, <p>"Loading..."</p> }>
 				{move ||
@@ -161,6 +170,9 @@ pub fn AdminView(cx: Scope, book_id: i64) -> impl IntoView {
 					}
 				}
 			</Suspense>
+			</div>
+			</div>
+			</details>
 		</div>
 	}
 }
@@ -175,25 +187,25 @@ pub fn UserOptions(cx: Scope, user: FrontendUser, user_subscription: BookSubscri
 
 	let user_options = match user_subscription.role {
 		BookRole::Unauthorized => view!{cx,
-			<ActionForm action=add_user>
+			<ActionForm action=add_user class="p-1">
 				<input type="hidden" name="user_id" value={user.id}/>
 				<input type="hidden" name="book_id" value={user_subscription.book_id}/>
-				<input type="submit" value={format!("Add {} to {}", user.username, user_subscription.name)}/>
+				<input type="submit" class="border border-black bg-gray-50 rounded-md" value={format!("Add {} to {}", user.username, user_subscription.name)}/>
 			</ActionForm>
 		},
 		BookRole::Participant => {
 			let promoter = user.clone();
 			let promote_sub = user_subscription.clone();
 			view! {cx,
-				<ActionForm action=remove_user>
+				<ActionForm action=remove_user class="p-1">
 					<input type="hidden" name="user_id" value={user.id}/>
 					<input type="hidden" name="book_id" value={user_subscription.book_id}/>
-					<input type="submit" value={format!("Remove {} from {}", user.username, user_subscription.name)}/>
+					<input type="submit" class="border border-black bg-gray-50 rounded-md" value={format!("Remove {} from {}", user.username, user_subscription.name)}/>
 				</ActionForm>
-				<ActionForm action=promote_admin>
+				<ActionForm action=promote_admin class="p-1">
 					<input type="hidden" name="user_id" value={promoter.id}/>
 					<input type="hidden" name="book_id" value={promote_sub.book_id}/>
-					<input type="submit" value={format!("Promote {} to Admin for {}", promoter.username, promote_sub.name)}/>
+					<input type="submit" class="border border-black bg-gray-50 rounded-md" value={format!("Promote {} to Admin for {}", promoter.username, promote_sub.name)}/>
 				</ActionForm>
 			}.into_view(cx)
 		},
@@ -201,10 +213,10 @@ pub fn UserOptions(cx: Scope, user: FrontendUser, user_subscription: BookSubscri
 			<p>"Welcome home! (this is your book)"</p>
 		}.into_view(cx),
 		BookRole::Admin => view!{cx,
-			<ActionForm action=demote_admin>
+			<ActionForm action=demote_admin class="p-1">
 				<input type="hidden" name="user_id" value={user.id}/>
 				<input type="hidden" name="book_id" value={user_subscription.book_id}/>
-				<input type="submit" value={format!("Demote {} to Participant for {}", user.username, user_subscription.name)}/>
+				<input type="submit" class="border border-black bg-gray-50 rounded-md" value={format!("Demote {} to Participant for {}", user.username, user_subscription.name)}/>
 			</ActionForm>
 		}
 	};
@@ -213,13 +225,5 @@ pub fn UserOptions(cx: Scope, user: FrontendUser, user_subscription: BookSubscri
 		<>
 			{user_options}
 		</>
-		// {
-		// 	move || {
-		// 		add_user.version().get();
-		// 		remove_user.version().get();
-
-		// 		user_selector.set(None);
-		// 	}
-		// }
 	}
 }
