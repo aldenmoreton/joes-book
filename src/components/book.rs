@@ -141,15 +141,26 @@ pub fn AdminView(cx: Scope, book_id: i64) -> impl IntoView {
 		}
 	);
 
+	let dialog_show = create_rw_signal(cx, false);
 	view! {cx,
+		{move ||
+			if dialog_show.get() {
+				view!{cx,
+					<button class="border border-green-500 bg-green-200 rounded-md hover:bg-green-700 hover:text-white hover:border-black" on:click=move |_| dialog_show.update(|d| *d=!*d)>"Close Settings"</button>
+				}
+			} else {
+				view!{cx,
+					<button class="border border-green-500 bg-green-200 rounded-md hover:bg-green-700 hover:text-white hover:border-black" on:click=move |_| dialog_show.update(|d| *d=!*d)>"Admin Settings"</button>
+				}
+			}
+		}
 		<div>
-			<details>
-			<summary>"Book owner options"</summary>
+		<dialog open=move || dialog_show.get() class="fixed border border-black h-full w-full bg-transparent backdrop-blur-sm">
 			<div class="grid items-center self-center justify-center">
 			<div class="max-w-sm rounded-lg overflow-hidden shadow-lg justify-center content-center bg-white p-2">
 			<div class="grid grid-cols-2">
 				<div class="justify-end content-end justify-self-end place-items-end">
-				<A href="new"><button class="border border-black rounded-md bg-green-500 hover:bg-green-700">"Add Pick Event"</button></A>
+				<A href="new"><button class="rounded-md bg-green-500 hover:bg-green-700">"Add Pick Event"</button></A>
 				</div>
 				<div class="justify-start content-start justify-self-start place-items-start">
 				<ActionForm action=delete_book>
@@ -172,7 +183,7 @@ pub fn AdminView(cx: Scope, book_id: i64) -> impl IntoView {
 			</Suspense>
 			</div>
 			</div>
-			</details>
+			</dialog>
 		</div>
 	}
 }
