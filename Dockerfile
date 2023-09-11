@@ -1,6 +1,8 @@
 FROM rust:alpine3.18 AS builder
 WORKDIR /build
+
 ENV DATABASE_URL=$DATABASE_URL
+
 RUN apk update && \
 	apk upgrade --no-cache && \
 	apk add pkgconfig libressl-dev musl-dev
