@@ -1,7 +1,7 @@
 FROM rust:alpine3.18 AS builder
 WORKDIR /build
 
-ENV DATABASE_URLDATABASE_URL=$DATABASE_URL
+ENV DATABASE_URL=$DATABASE_URL
 
 RUN apk update && \
 	apk upgrade --no-cache && \
