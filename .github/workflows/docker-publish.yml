@@ -18,6 +18,7 @@ env:
   REGISTRY: ghcr.io
   # github.repository as <account>/<repo>
   IMAGE_NAME: ${{ github.repository }}
+  DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
 
 jobs:
