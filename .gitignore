@@ -22,3 +22,4 @@ Joe.db
 migration.ipynb
 .env
 objects.ipynb
+fly.toml
