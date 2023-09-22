@@ -103,7 +103,7 @@ pub fn VerifiedView(cx: Scope) -> impl IntoView {
 											view!{cx,
 												<li class="p-3 h-30 w-60">
 													<a href=format!("/books/{book_id}/chapters/{}", chapter.chapter_id)>
-														<div class="max-w-sm rounded-lg overflow-hidden shadow-lg justify-center content-center bg-white">
+														<div class="content-center justify-center max-w-sm overflow-hidden bg-white rounded-lg shadow-lg">
 															<p>{chapter.title}</p>
 															<p>"Deadline:"<br/>{gods_time}</p>
 														</div>
@@ -146,26 +146,25 @@ pub fn AdminView(cx: Scope, book_id: i64) -> impl IntoView {
 		{move ||
 			if dialog_show.get() {
 				view!{cx,
-					<button class="border border-green-500 bg-green-200 rounded-md hover:bg-green-700 hover:text-white hover:border-black" on:click=move |_| dialog_show.update(|d| *d=!*d)>"Close Settings"</button>
+					<button class="bg-green-200 border border-green-500 rounded-md hover:bg-green-700 hover:text-white hover:border-black" on:click=move |_| dialog_show.update(|d| *d = !*d)>"Close Settings"</button>
 				}
 			} else {
 				view!{cx,
-					<button class="border border-green-500 bg-green-200 rounded-md hover:bg-green-700 hover:text-white hover:border-black" on:click=move |_| dialog_show.update(|d| *d=!*d)>"Admin Settings"</button>
+					<button class="bg-green-200 border border-green-500 rounded-md hover:bg-green-700 hover:text-white hover:border-black" on:click=move |_| dialog_show.update(|d| *d=!*d)>"Admin Settings"</button>
 				}
 			}
 		}
-		<div>
-		<dialog open=move || dialog_show.get() class="fixed border border-black h-full w-full bg-transparent backdrop-blur-sm">
+		<dialog open=move || dialog_show.get() class="fixed w-full h-full bg-transparent border border-black backdrop-blur-sm">
 			<div class="grid items-center self-center justify-center">
-			<div class="max-w-sm rounded-lg overflow-hidden shadow-lg justify-center content-center bg-white p-2">
+			<div class="content-center justify-center max-w-sm p-2 overflow-hidden bg-white rounded-lg shadow-lg">
 			<div class="grid grid-cols-2">
-				<div class="justify-end content-end justify-self-end place-items-end">
-				<A href="new"><button class="rounded-md bg-green-500 hover:bg-green-700">"Add Pick Event"</button></A>
+				<div class="content-end justify-end justify-self-end place-items-end">
+				<A href="new"><button class="bg-green-500 rounded-md hover:bg-green-700">"Add Pick Event"</button></A>
 				</div>
-				<div class="justify-start content-start justify-self-start place-items-start">
+				<div class="content-start justify-start justify-self-start place-items-start">
 				<ActionForm action=delete_book>
 					<input type="hidden" name="id" value={book_id}/>
-					<input type="submit" class="border border-black bg-red-400 hover:bg-red-700 rounded-md" value="Delete Book"/>
+					<input type="submit" class="bg-red-400 border border-black rounded-md hover:bg-red-700" value="Delete Book"/>
 				</ActionForm>
 				</div>
 			</div>
@@ -184,7 +183,6 @@ pub fn AdminView(cx: Scope, book_id: i64) -> impl IntoView {
 			</div>
 			</div>
 			</dialog>
-		</div>
 	}
 }
 
@@ -201,7 +199,7 @@ pub fn UserOptions(cx: Scope, user: FrontendUser, user_subscription: BookSubscri
 			<ActionForm action=add_user class="p-1">
 				<input type="hidden" name="user_id" value={user.id}/>
 				<input type="hidden" name="book_id" value={user_subscription.book_id}/>
-				<input type="submit" class="border border-black bg-gray-50 rounded-md" value={format!("Add {} to {}", user.username, user_subscription.name)}/>
+				<input type="submit" class="border border-black rounded-md bg-gray-50" value={format!("Add {} to {}", user.username, user_subscription.name)}/>
 			</ActionForm>
 		},
 		BookRole::Participant => {
@@ -211,12 +209,12 @@ pub fn UserOptions(cx: Scope, user: FrontendUser, user_subscription: BookSubscri
 				<ActionForm action=remove_user class="p-1">
 					<input type="hidden" name="user_id" value={user.id}/>
 					<input type="hidden" name="book_id" value={user_subscription.book_id}/>
-					<input type="submit" class="border border-black bg-gray-50 rounded-md" value={format!("Remove {} from {}", user.username, user_subscription.name)}/>
+					<input type="submit" class="border border-black rounded-md bg-gray-50" value={format!("Remove {} from {}", user.username, user_subscription.name)}/>
 				</ActionForm>
 				<ActionForm action=promote_admin class="p-1">
 					<input type="hidden" name="user_id" value={promoter.id}/>
 					<input type="hidden" name="book_id" value={promote_sub.book_id}/>
-					<input type="submit" class="border border-black bg-gray-50 rounded-md" value={format!("Promote {} to Admin for {}", promoter.username, promote_sub.name)}/>
+					<input type="submit" class="border border-black rounded-md bg-gray-50" value={format!("Promote {} to Admin for {}", promoter.username, promote_sub.name)}/>
 				</ActionForm>
 			}.into_view(cx)
 		},
@@ -227,7 +225,7 @@ pub fn UserOptions(cx: Scope, user: FrontendUser, user_subscription: BookSubscri
 			<ActionForm action=demote_admin class="p-1">
 				<input type="hidden" name="user_id" value={user.id}/>
 				<input type="hidden" name="book_id" value={user_subscription.book_id}/>
-				<input type="submit" class="border border-black bg-gray-50 rounded-md" value={format!("Demote {} to Participant for {}", user.username, user_subscription.name)}/>
+				<input type="submit" class="border border-black rounded-md bg-gray-50" value={format!("Demote {} to Participant for {}", user.username, user_subscription.name)}/>
 			</ActionForm>
 		}
 	};

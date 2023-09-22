@@ -1,7 +1,7 @@
 use leptos::*;
 use leptos_router::{ActionForm, Redirect};
 
-use crate::server::{AddBook, get_books};
+use crate::server::{AddBook, get_books, has_permission};
 
 #[component]
 pub fn Books(
@@ -15,16 +15,36 @@ pub fn Books(
 		move |_| { get_books(cx) }
 	);
 
+	let owner_perm = create_resource(
+		cx,
+		|| (),
+		move |_| async move {
+			has_permission(cx, "admin".into()).await.unwrap_or(false)
+		}
+	);
+
 	view! {
         cx,
         <div>
-			<ActionForm action=add_book>
-				<label>
-					"Add Book"
-					<input type="text" name="name"/>
-				</label>
-				<input type="submit" value="Create"/>
-			</ActionForm>
+			<Suspense fallback=|| ()>
+				{move ||
+					owner_perm.read(cx).map(|owner_perm|
+						if owner_perm {
+							view!{cx,
+								<ActionForm action=add_book>
+									<label>
+									"Add Book"
+									<input type="text" name="name"/>
+									</label>
+									<input type="submit" value="Create"/>
+								</ActionForm>
+							}
+						} else {
+							().into_view(cx)
+						}
+					)
+				}
+			</Suspense>
 			{
 				move ||
 				if add_book.pending().get() {
@@ -38,6 +58,7 @@ pub fn Books(
 					().into_view(cx)
 				}
 			}
+			<div class="flex flex-col items-center justify-center">
 			<Transition fallback=move || view! {cx, <p>"Loading..."</p> }>
 				{move || {
 						let user_books = {
@@ -53,9 +74,13 @@ pub fn Books(
 											book_subscriptions
 												.into_iter()
 												.map(move |book_subscription| view! {cx,
-													<li>
-														<a href={format!("/books/{}", book_subscription.book_id)}>{book_subscription.name}</a>
-														<p>{Into::<String>::into(book_subscription.role)}</p>
+													<li class="p-3 w-60 h-30">
+														<a href={format!("/books/{}", book_subscription.book_id)}>
+															<div class="max-w-sm rounded-lg overflow-hidden shadow-lg justify-center content-center bg-white">
+																<h1>{book_subscription.name}</h1>
+																<p>{Into::<String>::into(book_subscription.role)}</p>
+															</div>
+														</a>
 													</li>
 												}).collect_view(cx)
 										}
@@ -64,13 +89,14 @@ pub fn Books(
 							}
 						};
 						view! {cx,
-							<ul>
+							<ul class="items-center self-center justify-center">
 								{user_books}
 							</ul>
 						}
 					}
 				}
 			</Transition>
+			</div>
         </div>
     }
 }

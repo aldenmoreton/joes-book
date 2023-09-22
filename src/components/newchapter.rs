@@ -3,7 +3,7 @@ use leptos_router::{use_params_map, Redirect};
 
 use crate::{
 	server::{get_book, add_chapter},
-	objects::{BookSubscription, BookRole, EventBuilder, Team, SpreadBuilder, EventContent}, components::{TeamSelect, DateTimePickerTZ}
+	objects::{BookSubscription, BookRole, EventBuilder, Team, SpreadBuilder, EventContent, UserInputBuilder}, components::{TeamSelect, DateTimePickerTZ}
 };
 
 #[component]
@@ -57,6 +57,10 @@ pub fn VerifiedNewChapter(cx: Scope) -> impl IntoView {
 				let new_tuple = (0, new_spread);
 				let new_group = create_rw_signal(cx, vec![new_tuple]);
 				EventBuilder::SpreadGroup(new_group)
+			},
+			"UserInput" => {
+				let new_input = create_rw_signal(cx, UserInputBuilder::new());
+				EventBuilder::UserInput(new_input)
 			},
 			_ => panic!()
 		};
@@ -115,6 +119,9 @@ pub fn VerifiedNewChapter(cx: Scope) -> impl IntoView {
 					let event_view = move || match event {
 						EventBuilder::SpreadGroup(spreads) => view!{cx,
 							<NewSpreadGroup spreads/>
+						},
+						EventBuilder::UserInput(input) => view!{cx,
+							<NewUserInput input/>
 						}
 					};
 
@@ -124,35 +131,77 @@ pub fn VerifiedNewChapter(cx: Scope) -> impl IntoView {
 						</div>
 					}
 				}/>
-				// <button on:click=move |_| add_event("SpreadGroup") class="bg-transparent hover:bg-blue-500 text-blue-700 font-semibold hover:text-white py-2 px-4 border border-blue-500 hover:border-transparent rounded">"Add Spread Group"</button>
+				<button on:click=move |_| add_event("UserInput") class="px-4 py-2 font-semibold text-green-700 bg-transparent border border-green-500 rounded hover:bg-green-500 hover:text-white hover:border-transparent">"Add Extra Point"</button>
 		</div>
 		<div class="p-3">
 			{move ||
 				if untracked_changes.get() > 0 {
 					view!{cx,
-						<button class="bg-transparen text-black font-semibold py-2 px-4 border border-black rounded cursor-not-allowed w-30">"Incomplete"</button>
+						<button class="px-4 py-2 font-semibold text-black border border-black rounded cursor-not-allowed bg-transparen w-30">"Incomplete"</button>
 					}.into_view(cx)
+				} else if submit.pending().get() {
+					view!{cx,
+						<button class="px-4 py-2 font-semibold text-black border border-black rounded cursor-not-allowed bg-transparen w-30">"Creating..."</button>
+					}.into_view(cx)
+				} else if let Some(Ok(_new_chapter_id)) = submit.value().get() {
+					log!("/books/{}", book_id);
+					view! {cx,
+						<Redirect path={format!("/books/{}", book_id)}/>
+					}.into_view(cx)
+				} else if let Some(Err(e)) = submit.value().get() {
+					log!("{e:?}");
+					().into_view(cx)
 				} else {
-					if submit.pending().get() {
-						view!{cx,
-							<button class="bg-transparen text-black font-semibold py-2 px-4 border border-black rounded cursor-not-allowed w-30">"Creating..."</button>
-						}.into_view(cx)
-					} else if let Some(Ok(_new_chapter_id)) = submit.value().get() {
-						log!("/books/{}", book_id);
-						view! {cx,
-							<Redirect path={format!("/books/{}", book_id)}/>
-						}.into_view(cx)
-					} else if let Some(Err(e)) = submit.value().get() {
-						log!("{e:?}");
-						().into_view(cx)
-					}
-					else {
-						view!{cx,
-							<button on:click=move |ev|{ submit.dispatch(ev) } class="bg-black text-white font-semibold py-2 px-4 border border-black rounded w-30">"Submit"</button>
-						}.into_view(cx)
-					}
+					view!{cx,
+						<button on:click=move |ev|{ submit.dispatch(ev) } class="px-4 py-2 font-semibold text-white bg-black border border-black rounded w-30">"Submit"</button>
+					}.into_view(cx)
 				}
 			}
+		</div>
+	}
+}
+
+#[component]
+pub fn NewUserInput(cx: Scope, input: RwSignal<UserInputBuilder>) -> impl IntoView {
+	let total_invalid_count = use_context::<WriteSignal<i32>>(cx)
+		.expect("Where's the invalid state counter?");
+	total_invalid_count.update(|c| *c += 1);
+
+	input.update(|input| input.points = Some(1));
+
+	let change_question = move |event| {
+		input.update(|input| {
+			let new_question = event_target_value(&event);
+			let new_length = new_question.len();
+
+			if new_length == 0 {
+				if input.question.is_some() {
+					total_invalid_count.update(|c| *c += 1)
+				}
+				input.question = None
+			} else {
+				if input.question.is_none() {
+					total_invalid_count.update(|c| *c -= 1)
+				}
+				input.question = Some(new_question)
+			}
+		})
+	};
+
+	view!{cx,
+		<div class="content-center justify-center max-w-sm overflow-hidden bg-white rounded-lg shadow-lg">
+			<h1>"Extra Point"</h1>
+			<div class="justify-center p-2">
+				<div class="relative h-30">
+					<textarea
+					class="peer resize-none h-full w-full rounded-[7px] border border-green-200 border-t-transparent bg-transparent px-3 py-2.5 font-sans text-sm font-normal text-green-700 outline outline-0 transition-all placeholder-shown:border placeholder-shown:border-green-200 placeholder-shown:border-t-green-200 focus:border-2 focus:border-t-transparent focus:outline-0 disabled:border-0 disabled:bg-green-50"
+					placeholder=""
+					on:input=change_question/>
+					<label class="before:content[' '] after:content[' '] pointer-events-none absolute left-0 -top-1.5 flex h-full w-full select-none text-[11px] font-normal leading-tight text-green-400 transition-all before:pointer-events-none before:mt-[6.5px] before:mr-1 before:box-border before:block before:h-1.5 before:w-2.5 before:rounded-tl-md before:border-t before:border-l before:border-green-200 before:transition-all after:pointer-events-none after:mt-[6.5px] after:ml-1 after:box-border after:block after:h-1.5 after:w-2.5 after:flex-grow after:rounded-tr-md after:border-t after:border-r after:border-green-200 after:transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:leading-[3.75] peer-placeholder-shown:text-green-500 peer-placeholder-shown:before:border-transparent peer-placeholder-shown:after:border-transparent peer-focus:text-[11px] peer-focus:leading-tight peer-focus:text-gree-500 peer-focus:before:border-t-2 peer-focus:before:border-l-2 peer-focus:after:border-t-2 peer-focus:after:border-r-2 peer-disabled:text-transparent peer-disabled:before:border-transparent peer-disabled:after:border-transparent peer-disabled:peer-placeholder-shown:text-green-500">
+					"Question"
+					</label>
+				</div>
+			</div>
 		</div>
 	}
 }
@@ -183,7 +232,7 @@ pub fn NewSpreadGroup(cx: Scope, spreads: RwSignal<Vec<(i64, RwSignal<SpreadBuil
 					}
 				}/>
 			<div class="p-3">
-				<button on:click=add_spread class="bg-transparent hover:bg-green-500 text-green-700 font-semibold hover:text-white py-2 px-4 border border-green-500 hover:border-transparent rounded">"Add Spread"</button>
+				<button on:click=add_spread class="px-4 py-2 font-semibold text-green-700 bg-transparent border border-green-500 rounded hover:bg-green-500 hover:text-white hover:border-transparent">"Add Spread"</button>
 			</div>
 		</div>
 	}
@@ -315,14 +364,14 @@ pub fn NewSpread(cx: Scope, spread: RwSignal<SpreadBuilder>) -> impl IntoView {
 	};
 
 	view! {cx,
-		<div class="max-w-sm rounded-lg overflow-hidden shadow-lg justify-center content-center bg-white">
+		<div class="content-center justify-center max-w-sm overflow-hidden bg-white rounded-lg shadow-lg">
 			<h3 class="text-right">{move || local_invalid_count.get()}</h3>
-			<div class="grid grid-cols-2 grid-flow-col gap-4 p-5">
+			<div class="grid grid-flow-col grid-cols-2 gap-4 p-5">
 				{home_view}
 				{away_view}
 			</div>
 			<div class="justify-center p-2">
-				<div class="relative h-10 w-full">
+				<div class="relative w-full h-10">
 					<input
 					class="peer h-full w-full rounded-[7px] border border-green-200 border-t-transparent bg-transparent px-3 py-2.5 font-sans text-sm font-normal text-green-700 outline outline-0 transition-all placeholder-shown:border placeholder-shown:border-green-200 placeholder-shown:border-t-green-200 focus:border-2 focus:border-t-transparent focus:outline-0 disabled:border-0 disabled:bg-green-50"
 					placeholder=""

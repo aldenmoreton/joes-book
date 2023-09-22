@@ -5,9 +5,9 @@ use crate::{server::{get_picks, get_spread_teams, save_picks}, objects::{Event, 
 
 
 #[component]
-pub fn Chapter(cx: Scope) -> impl IntoView {
+pub fn GradeChapter(cx: Scope) -> impl IntoView {
 	let params = use_params_map(cx);
-	// let book_id: i64 = params.with_untracked(|params| params.get("book_id").cloned()).unwrap().parse::<i64>().unwrap();
+	let book_id: i64 = params.with_untracked(|params| params.get("book_id").cloned()).unwrap().parse::<i64>().unwrap();
 	let chapter_id: i64 = params.with_untracked(|params| params.get("chapter_id").cloned()).unwrap().parse::<i64>().unwrap();
 
 	let new_picks: RwSignal<bool> = create_rw_signal(cx, false);
@@ -18,6 +18,8 @@ pub fn Chapter(cx: Scope) -> impl IntoView {
 	);
 
 	view!{cx,
+		<p>{book_id}</p>
+		<p>{chapter_id}</p>
 		<Transition fallback=|| "Loading...">
 			<div class="flex flex-col items-center justify-center">
 				{move ||
@@ -80,25 +82,25 @@ pub fn ChapterEvents(cx: Scope, initial_values: Vec<(String, Vec<(Event, Pick)>)
 		{pick_views}
 		{move || new_picks.update(|p| {if pick_submission.value().get().is_some() { *p = !*p }})}
 		// fixed inset-x-0 bottom-0
-		<div class="grid items-center justify-center h-16">
-			<div class="content-center self-center justify-center w-32 h-full text-center">
+		<div class="h-16 items-center justify-center grid">
+			<div class="h-full w-32 justify-center self-center text-center content-center">
 				{move || match discrepancies.get() {
 					Some(discrepancies) if discrepancies == 0 => {
 						match (pick_submission.pending().get(), pick_submission.value().get()) {
 							(false, None) => {
 								view!{cx,
-									<button on:click=move |_| pick_submission.dispatch(()) class="w-full h-full text-white bg-black rounded-xl">"Submit"</button>
+									<button on:click=move |_| pick_submission.dispatch(()) class="h-full w-full bg-black text-white rounded-xl">"Submit"</button>
 								}.into_view(cx)
 							},
 							(false, Some(Ok(()))) => {
 								view!{cx,
 									<a href={format!("/books/{}", book_id)}>
-										<button class="bg-green-500 border border-black rounded-md">
+										<button class="border border-black rounded-md bg-green-500">
 											<h1>"Picks are saved"</h1>
 											<p>"Go back to book"</p>
 										</button>
 									</a>
-									<button class="bg-green-500 border border-black rounded-md" on:click=move |_| pick_submission.value().set(None)>
+									<button class="border border-black rounded-md bg-green-500" on:click=move |_| pick_submission.value().set(None)>
 										<h1>"Edit Picks Again"</h1>
 									</button>
 								}.into_view(cx)
@@ -123,7 +125,7 @@ pub fn ChapterEvents(cx: Scope, initial_values: Vec<(String, Vec<(Event, Pick)>)
 					None => {
 						view!{cx,
 							<a href={format!("/books/{}", book_id)}>
-								<button class="bg-green-500 border border-black rounded-md">
+								<button class="border border-black rounded-md bg-green-500">
 									<h1>"Current Picks are Saved"</h1>
 									<p>"Go back to book"</p>
 								</button>
@@ -185,8 +187,10 @@ pub fn SpreadGroupPick(cx: Scope, initial_values: Vec<(Event, Pick)>) -> impl In
 				} else if !old_wager_wrong && !new_wager_right {
 					global_discrepancies.update(|d| *d = Some(d.unwrap_or(0) + 1))
 				}
-			} else if new_wager_right {
-				global_discrepancies.update(|d| *d = Some(d.unwrap_or(1) - 1))
+			} else {
+				if new_wager_right {
+					global_discrepancies.update(|d| *d = Some(d.unwrap_or(1) - 1))
+				}
 			}
 
 			wager_trackers.update(|t| {
@@ -209,30 +213,30 @@ pub fn SpreadGroupPick(cx: Scope, initial_values: Vec<(Event, Pick)>) -> impl In
 						let old_pick = pick.get();
 						view!{cx,
 							<div class="p-3">
-								<div class="content-center justify-center max-w-sm overflow-hidden bg-white rounded-lg shadow-lg">
+								<div class="max-w-sm rounded-lg overflow-hidden shadow-lg justify-center content-center bg-white">
 									<h1>"Game " {i+1}</h1>
 									<Await future=move |cx| get_spread_teams(cx, spread.home_id, spread.away_id) bind:spread_teams>
 										{match spread_teams {
 											Err(e) => format!("Could not find spread teams: {e}").into_view(cx),
 											Ok((home_team, away_team)) => {
 												view!{cx,
-													<div class="grid grid-flow-col grid-cols-2 gap-4 p-5">
+													<div class="grid grid-cols-2 grid-flow-col gap-4 p-5">
 														<div class="col-span-1">
 															<h1>"Home"</h1>
 															<input on:click=move |_| spread_setter(pick, "Home") type="radio" id={format!("{}", &home_team.id)} name={format!("{}-{}", &home_team.id, &away_team.id)} value="home" class="hidden peer" checked={if &old_pick.choice == &Some("Home".into()) {true} else {false}}/>
-															<label for={format!("{}", &home_team.id)} class="inline-grid w-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100">
+															<label for={format!("{}", &home_team.id)} class="inline-grid w-full p-5 pb-0 pt-0 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100">
 																<img src=&home_team.logo class="w-full"/>
 																<h2>{&home_team.name}</h2>
-																<h2 class="pb-1 text-center">{format!("{:+}", spread.home_spread)}</h2>
+																<h2 class="text-center pb-1">{format!("{:+}", spread.home_spread)}</h2>
 															</label>
 														</div>
 														<div class="col-span-1">
 															<h1>"Away"</h1>
 															<input on:click=move |_| spread_setter(pick, "Away") type="radio" id={format!("{}", &away_team.id)} name={format!("{}-{}", &home_team.id, &away_team.id)} value="away" class="hidden peer" checked={if &old_pick.choice == &Some("Away".into()) {true} else {false}}/>
-															<label for={format!("{}", &away_team.id)} class="inline-grid w-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100">
+															<label for={format!("{}", &away_team.id)} class="inline-grid w-full p-5 pb-0 pt-0 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100">
 																<img src=&away_team.logo class="w-full"/>
 																<h2>{&away_team.name}</h2>
-																<h2 class="pb-1 text-center">{format!("{:+}", -1. * spread.home_spread)}</h2>
+																<h2 class="text-center pb-1">{format!("{:+}", -1. * spread.home_spread)}</h2>
 															</label>
 														</div>
 													</div>
@@ -245,7 +249,7 @@ pub fn SpreadGroupPick(cx: Scope, initial_values: Vec<(Event, Pick)>) -> impl In
 										(1..=num_of_picks)
 											.map(|i| {
 												view!{cx,
-													<li class="inline-flex items-center p-1">
+													<li class="inline-flex p-1 items-center">
 														<input on:click=move |_| wager_setter(pick, i) type="radio" id={format!("{}-{}-{}-wager", i, spread.home_id, spread.away_id)} name={format!("{}-{}-wager", spread.home_id, spread.away_id)} value="home" class="hidden peer" checked={if old_pick.wager == Some(i as i64) {true} else {false}}/>
 														<label for={format!("{}-{}-{}-wager", i, spread.home_id, spread.away_id)} class="inline-grid w-5 h-5 p-5 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100">
 															<p class="text-center">{i}</p>
@@ -343,7 +347,7 @@ pub fn UserInputs(cx: Scope, initial_values: Vec<(Event, Pick)>) -> impl IntoVie
 				.map(|(i, (event, pick))| match event.contents {
 					EventContent::UserInput(user_input_event) => {
 						view!{cx,
-							<div class="content-center justify-center max-w-sm overflow-hidden bg-white rounded-lg shadow-lg">
+							<div class="max-w-sm rounded-lg overflow-hidden shadow-lg justify-center content-center bg-white">
 								<h1>"Extra Point Question " {i+1}</h1>
 								<p>{user_input_event.question}</p>
 								<div class="justify-center p-2">

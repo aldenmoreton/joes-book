@@ -1,46 +1,29 @@
 use leptos::*;
 use leptos_router::{Outlet, ActionForm};
 
-use crate::server::{Logout, get_username};
+use crate::server::Logout;
 
 #[component]
 pub fn Header(
     cx: Scope
 ) -> impl IntoView {
-
-
-	let username = create_resource(
-		cx,
-		|| (),
-		move |_| { get_username(cx) }
-	);
-
 	let logout = create_server_action::<Logout>(cx);
 
     view! {
         cx,
-        <div class="bg-green-700 text-center">
-			<a href="/" class="justify-center text-center"><h1>Home</h1></a>
-			<Suspense fallback=move || view! { cx, <p>"Loading..."</p> }>
-				{move || {
-					match username.read(cx) {
-						Some(Ok(username)) => view!{cx,
-							<p>
-								{format!("Username: {}", username)}
-							</p>
-						}.into_view(cx),
-						_ => ().into_view(cx)
-					}
-				}}
-			</Suspense>
+        <div class="text-center bg-green-700">
+			<a href="/" class="justify-center text-center">
+				<button class="w-40 h-10 bg-green-500 rounded-md">"Home"</button>
+			</a>
 			<nav>
-				<a href="/">"Home"</a> |
-				<a href="/books">"Books"</a>
+			// 	<a href="/">"Home"</a> |
+			// 	<a href="/books">"Books"</a>
 				<ActionForm action=logout>
 					<button type="submit" class="button">"Log Out"</button>
 				</ActionForm>
 			</nav>
 		</div>
+
 		<Outlet/>
     }
 }

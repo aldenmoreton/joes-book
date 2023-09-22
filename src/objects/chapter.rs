@@ -54,8 +54,8 @@ cfg_if! {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum EventContent {
-	SpreadGroup{spread: Spread},
-	UserInput(TextBet)
+	SpreadGroup(Spread),
+	UserInput(UserInput)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -72,7 +72,8 @@ pub struct Pick {
 
 #[derive(Clone, Debug)]
 pub enum EventBuilder {
-	SpreadGroup(RwSignal<Vec<(i64, RwSignal<SpreadBuilder>)>>)
+	SpreadGroup(RwSignal<Vec<(i64, RwSignal<SpreadBuilder>)>>),
+	UserInput(RwSignal<UserInputBuilder>)
 }
 
 impl EventBuilder {
@@ -82,11 +83,21 @@ impl EventBuilder {
 				let mut spread_groups = Vec::new();
 				for (_, spread) in spreads.get() {
 					match spread.get().build() {
-						Ok(spread) => spread_groups.push(EventContent::SpreadGroup { spread }),
+						Ok(spread) => spread_groups.push(EventContent::SpreadGroup(spread)),
 						Err(e) => return Err(format!("Could not build Spread: {:?}", e).into())
 					}
 				}
 				Ok(spread_groups)
+			}
+			EventBuilder::UserInput(input) => {
+				Ok(vec![
+					input
+						.get()
+						.build()
+						.map(|input| EventContent::UserInput(input))
+						.ok_or(format!("Could not build user input"))?
+					]
+				)
 			}
 		}
 	}

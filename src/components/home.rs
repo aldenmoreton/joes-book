@@ -8,6 +8,9 @@ pub fn Home(
     view! {
         cx,
 		<h1>"Welcome to the home page"</h1>
-		<a href="/books"><h1>"Go To Books"</h1></a>
+    <a href="/books">
+        <button class="border border-black rounded-md bg-slate-100">"Go to books"
+        </button>
+    </a>
     }
 }

@@ -8,6 +8,7 @@ mod book; pub use book::Book;
 mod admin; pub use admin::Admin;
 mod newchapter; pub use newchapter::NewChapter;
 mod chapter; pub use chapter::Chapter;
+mod gradechapter; pub use gradechapter::GradeChapter;
 
 // Components
 mod header; pub use header::Header;

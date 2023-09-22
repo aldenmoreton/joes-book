@@ -44,7 +44,7 @@ pub async fn add_chapter(cx: Scope, book_id: i64, title: String, closing_time: S
 	for event in events{
 		let contents = serde_json::to_string(&event)?;
 		let event_type = match event {
-			EventContent::SpreadGroup{..} => "SpreadGroup",
+			EventContent::SpreadGroup(_) => "SpreadGroup",
 			EventContent::UserInput(_) => "UserInput"
 		};
 		sqlx::query(
@@ -80,6 +80,7 @@ pub async fn get_chapters(cx: Scope, book_id: i64) -> Result<Vec<Chapter>, Serve
 		r#"	SELECT id AS chapter_id, book_id, title, is_open, TO_CHAR(closing_time, 'YYYY-MM-DD"T"HH24:MI:SS.MSZ') as closing_time
 			FROM chapters
 			WHERE book_id = $1
+			ORDER BY created_at DESC
 		"#,
 		book_id
 	)
