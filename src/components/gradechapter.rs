@@ -1,7 +1,7 @@
 use leptos::*;
 use leptos_router::{use_params_map, Redirect};
 
-use crate::{server::{get_spread_teams, get_book, get_events, save_answers}, objects::{Event, EventContent, BookSubscription, BookRole, Spread}};
+use crate::{server::{get_spread_teams, get_book, get_events, save_answers, get_user_inputs}, objects::{Event, EventContent, BookSubscription, BookRole, Spread, UserInput}};
 
 #[component]
 pub fn GradeChapter(cx: Scope) -> impl IntoView {
@@ -63,9 +63,6 @@ pub fn ChapterEvents(cx: Scope, events: Vec<Event>) -> impl IntoView {
 	let params = use_params_map(cx);
 	let book_id: i64 = params.with_untracked(|params| params.get("book_id").cloned()).unwrap().parse::<i64>().unwrap();
 
-	let discrepancies: RwSignal<bool> = create_rw_signal(cx, false);
-	provide_context(cx, discrepancies.write_only());
-
 	let global_answers: RwSignal<Vec<ReadSignal<Option<(i64, Vec<String>)>>>> = create_rw_signal(cx, Vec::new());
 	provide_context(cx, global_answers);
 
@@ -76,8 +73,7 @@ pub fn ChapterEvents(cx: Scope, events: Vec<Event>) -> impl IntoView {
 					<SpreadGroupGrade id=event.id spread/>
 				}.into_view(cx),
 				EventContent::UserInput(input) => view!{cx,
-					<p>"Not implemented for User Input yet"</p>
-					{format!("{input:?}")}
+					<UserInputGrade id=event.id question=input/>
 				}.into_view(cx)
 			}
 		})
@@ -99,28 +95,28 @@ pub fn ChapterEvents(cx: Scope, events: Vec<Event>) -> impl IntoView {
 	view! {cx,
 		{pick_views}
 		<br/>
-		{global_answers}
+		{move ||
+			global_answers
+				.get()
+				.into_iter()
+				.map(|answer| answer.get())
+				.flatten()
+				.map(|answer| format!("{}-{:?}<br/>", answer.0, answer.1))
+				.collect::<Vec<_>>()
+		}
 		<div class="grid items-center justify-center h-16">
 			<div class="content-center self-center justify-center w-32 h-full text-center">
-				{move || match discrepancies.get() {
-					true => {
-						view!{cx,
-							<button on:click=move |_| pick_submission.dispatch(()) class="w-full h-full text-white bg-black rounded-xl">"Submit"</button>
-						}.into_view(cx)
-					},
-					false => {
-						view!{cx,
-							<a href={format!("/books/{}", book_id)}>
-								<button class="bg-green-500 border border-black rounded-md">
-									<h1>"Current Picks are Saved"</h1>
-									<p>"Go back to book"</p>
-								</button>
-							</a>
-						}.into_view(cx)
-					}
+				{move || match pick_submission.pending().get() {
+					false => view!{cx, <button on:click=move |_| pick_submission.dispatch(()) class="w-full h-full text-white bg-black rounded-xl">"Submit"</button>},
+					true => view!{cx, <button disabled on:click=move |_| pick_submission.dispatch(()) class="w-full h-full text-black bg-gray-400 rounded-xl">"Pending"</button>}
 				}}
 			</div>
 		</div>
+		{move || match pick_submission.value().get() {
+			None => ().into_view(cx),
+			Some(Err(e)) => format!("Error saving picks: {e}").into_view(cx),
+			Some(Ok(_)) => view!{cx, <Redirect path=format!("/books/{book_id}")/>}
+		}}
 	}
 }
 
@@ -174,121 +170,92 @@ pub fn SpreadGroupGrade(cx: Scope, id: i64, spread: Spread) -> impl IntoView {
 												</label>
 											</div>
 										</div>
+										<input on:click=move |_| answer_setter("Push") type="radio" id={format!("{}-push", &away_team.id)} name={format!("{}-{}", &home_team.id, &away_team.id)} value="away" class="hidden peer"/>
+										<label for={format!("{}-push", &away_team.id)} class="inline-grid w-1/2 pt-1 pb-1 mb-3 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100">
+											<h2>"Push"</h2>
+										</label>
 									}.into_view(cx)
 							}
 						})
 					}
 				</Suspense>
-				// <Await future=move |cx| get_spread_teams(cx, spread.home_id, spread.away_id) bind:spread_teams>
-				// 	{match spread_teams {
-				// 		Err(e) => format!("Could not find spread teams: {e}").into_view(cx),
-				// 		Ok((home_team, away_team)) => {
-				// 			view!{cx,
-				// 				<div class="grid grid-flow-col grid-cols-2 gap-4 p-5">
-				// 					<div class="col-span-1">
-				// 						<h1>"Home"</h1>
-				// 						<input on:click=move |_| spread_setter(pick, "Home") type="radio" id={format!("{}", &home_team.id)} name={format!("{}-{}", &home_team.id, &away_team.id)} value="home" class="hidden peer" checked={if &old_pick.choice == &Some("Home".into()) {true} else {false}}/>
-				// 						<label for={format!("{}", &home_team.id)} class="inline-grid w-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100">
-				// 							<img src=&home_team.logo class="w-full"/>
-				// 							<h2>{&home_team.name}</h2>
-				// 							<h2 class="pb-1 text-center">{format!("{:+}", spread.home_spread)}</h2>
-				// 						</label>
-				// 					</div>
-				// 					<div class="col-span-1">
-				// 						<h1>"Away"</h1>
-				// 						<input on:click=move |_| spread_setter(pick, "Away") type="radio" id={format!("{}", &away_team.id)} name={format!("{}-{}", &home_team.id, &away_team.id)} value="away" class="hidden peer" checked={if &old_pick.choice == &Some("Away".into()) {true} else {false}}/>
-				// 						<label for={format!("{}", &away_team.id)} class="inline-grid w-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100">
-				// 							<img src=&away_team.logo class="w-full"/>
-				// 							<h2>{&away_team.name}</h2>
-				// 							<h2 class="pb-1 text-center">{format!("{:+}", -1. * spread.home_spread)}</h2>
-				// 						</label>
-				// 					</div>
-				// 				</div>
-				// 			}.into_view(cx)
-				// 		}
-				// 	}}
-				// </Await>
 			</div>
 		</div>
 
 	}
 }
 
-// #[component]
-// pub fn UserInputs(cx: Scope, initial_values: Vec<(Event, Pick)>) -> impl IntoView {
-// 	let global_picks = use_context::<WriteSignal<Vec<ReadSignal<Pick>>>>(cx)
-// 		.expect("You should have access to the picks");
-// 	let global_discrepancies = use_context::<WriteSignal<Option<i32>>>(cx)
-// 		.expect("You should have access to discrepancies counter");
+#[component]
+pub fn UserInputGrade(cx: Scope, id: i64, question: UserInput) -> impl IntoView {
+	let global_answers = use_context::<RwSignal<Vec<ReadSignal<Option<(i64, Vec<String>)>>>>>(cx)
+		.expect("You should have access to the picks");
 
-// 	let reactive_events: Vec<(Event, RwSignal<Pick>)> = initial_values
-// 		.into_iter()
-// 		.map(|(event, pick)| {
-// 			if pick.choice.is_none() { global_discrepancies.update(|d| *d = Some(d.unwrap_or(0) + 1)) }
+	let input_answers: RwSignal<Option<(i64, Vec<String>)>> = create_rw_signal(cx, None);
+	global_answers.update(|answers| answers.push(input_answers.read_only()));
 
-// 			let new_pick = create_rw_signal(cx, pick);
-// 			new_pick.update(|p| {
-// 				if p.wager.is_none() {
-// 					let wager = match event.contents.clone() {
-// 						EventContent::UserInput(input) => input.points,
-// 						_ => panic!("You shouldn't be in this component with an event other than UserInput")
-// 					};
-// 					p.wager = Some(wager)
-// 				}
-// 			});
-// 			global_picks.update(|picks| picks.push(new_pick.read_only()));
-// 			(event, new_pick)
-// 		})
-// 		.collect::<Vec<_>>();
+	let answer_setter = move |add: bool, choice: &str| {
+		let pos = input_answers.get().map(|answers| answers.1.iter().position(|x| *x == choice));
+		match (add, pos) {
+			(true, None) => input_answers.set(Some((id, vec![choice.into()]))),
+			(true, Some(None)) => input_answers.update(|answers| answers.as_mut().unwrap().1.push(choice.into())),
+			(true, Some(Some(_))) => (),
+			(false, None) => (),
+			(false, Some(None)) => (),
+			(false, Some(Some(i))) => {
+				input_answers.update(|answers| {
+					answers.as_mut().unwrap().1.remove(i);
+					if answers.as_ref().unwrap().1.len() == 0 {
+						*answers = None;
+					};
+				});
+			}
+		}
+	};
 
-// 	let change_answer = move |pick: RwSignal<Pick>, new_answer: String| {
-// 		pick.update(|pick| {
-// 			let new_length = new_answer.len();
-
-// 			if new_length == 0 {
-// 				if pick.choice.is_some() {
-// 					global_discrepancies.update(|c| *c = Some(c.unwrap_or(0) + 1))
-// 				}
-// 				pick.choice = None
-// 			} else {
-// 				if pick.choice.is_none() {
-// 					global_discrepancies.update(|c| *c = Some(c.unwrap_or(1) - 1))
-// 				} else {
-// 					global_discrepancies.update(|c| if c.is_none() { *c = Some(0) })
-// 				}
-// 				pick.choice = Some(new_answer)
-// 			}
-// 		})
-// 	};
-
-// 	view! {cx,
-// 		{
-// 			reactive_events
-// 				.into_iter()
-// 				.enumerate()
-// 				.map(|(i, (event, pick))| match event.contents {
-// 					EventContent::UserInput(user_input_event) => {
-// 						view!{cx,
-// 							<div class="content-center justify-center max-w-sm overflow-hidden bg-white rounded-lg shadow-lg">
-// 								<h1>"Extra Point Question " {i+1}</h1>
-// 								<p>{user_input_event.question}</p>
-// 								<div class="justify-center p-2">
-// 									<div class="relative h-30">
-// 										<textarea
-// 										class="peer resize-none h-full w-full rounded-[7px] border border-green-200 border-t-transparent bg-transparent px-3 py-2.5 font-sans text-sm font-normal text-green-700 outline outline-0 transition-all placeholder-shown:border placeholder-shown:border-green-200 placeholder-shown:border-t-green-200 focus:border-2 focus:border-t-transparent focus:outline-0 disabled:border-0 disabled:bg-green-50"
-// 										placeholder=""
-// 										on:input=move |ev| {change_answer(pick, event_target_value(&ev))}/>
-// 										<label class="before:content[' '] after:content[' '] pointer-events-none absolute left-0 -top-1.5 flex h-full w-full select-none text-[11px] font-normal leading-tight text-green-400 transition-all before:pointer-events-none before:mt-[6.5px] before:mr-1 before:box-border before:block before:h-1.5 before:w-2.5 before:rounded-tl-md before:border-t before:border-l before:border-green-200 before:transition-all after:pointer-events-none after:mt-[6.5px] after:ml-1 after:box-border after:block after:h-1.5 after:w-2.5 after:flex-grow after:rounded-tr-md after:border-t after:border-r after:border-green-200 after:transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:leading-[3.75] peer-placeholder-shown:text-green-500 peer-placeholder-shown:before:border-transparent peer-placeholder-shown:after:border-transparent peer-focus:text-[11px] peer-focus:leading-tight peer-focus:text-gree-500 peer-focus:before:border-t-2 peer-focus:before:border-l-2 peer-focus:after:border-t-2 peer-focus:after:border-r-2 peer-disabled:text-transparent peer-disabled:before:border-transparent peer-disabled:after:border-transparent peer-disabled:peer-placeholder-shown:text-green-500">
-// 										{pick.get().choice.map(|c| format!("Current Answer: {c}")).unwrap_or("Please Answer".into())}
-// 										</label>
-// 									</div>
-// 								</div>
-// 							</div>
-// 						}
-// 					},
-// 					_ => panic!("You shouldn't be calling this component with something other than a UserInput")
-// 				})
-// 				.collect_view(cx)
-// 		}
-// 	}
-// }
+	let inputs_getter = create_resource(cx,
+		|| (),
+		move |_| get_user_inputs(cx, id)
+	);
+	let question_str = question.question.clone();
+	view!{cx,
+		<div class="p-3">
+			<div class="content-center justify-center max-w-sm overflow-hidden bg-white rounded-lg shadow-lg">
+				<h1 class="mt-1">{question_str}</h1>
+				<Suspense fallback=move || view!{cx, <p>"Loading..."</p>}>
+					{move ||
+						inputs_getter.read(cx).map(|inputs| {
+							match inputs {
+								Err(e) => format!("Could not load user inputs: {e}").into_view(cx),
+								Ok(inputs) => {
+									inputs
+										.into_iter()
+										.map(|user_input| {
+											let (remove_input, add_input) = (user_input.clone(), user_input.clone());
+											view!{cx,
+												<div class="grid grid-flow-col grid-cols-2 gap-4 p-5 border border-gray-100">
+													<h1>{&user_input}</h1>
+													<div class="col-span-1">
+														<input on:click=move |_| answer_setter(false, &remove_input) type="radio" id=format!("{}-Remove", &user_input) name=format!("{}", &user_input) value="wrong" class="hidden peer"/>
+														<label for=format!("{}-Remove", user_input) class="inline-grid w-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-red-700 peer-checked:bg-red-500 peer-checked:border-red-600 hover:bg-red-100">
+															<h2>"Wrong"</h2>
+														</label>
+													</div>
+													<div class="col-span-1">
+														<input on:click=move |_| answer_setter(true, &add_input) type="radio" id=format!("{}-Add", &user_input) name=format!("{}", &user_input) value="right" class="hidden peer"/>
+														<label for=format!("{}-Add", user_input) class="inline-grid w-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100">
+															<h2>"Right"</h2>
+														</label>
+													</div>
+												</div>
+											}
+										})
+										.collect_view(cx)
+								}
+							}
+						})
+					}
+				</Suspense>
+			</div>
+		</div>
+	}
+}
