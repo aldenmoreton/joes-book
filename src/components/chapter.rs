@@ -1,7 +1,7 @@
 use leptos::*;
 use leptos_router::use_params_map;
 
-use crate::{server::{get_picks, get_spread_teams, save_picks}, objects::{Event, Pick, EventContent}};
+use crate::{server::{get_picks, get_spread_teams, save_picks, get_book}, objects::{Event, Pick, EventContent, BookSubscription, BookRole}};
 
 
 #[component]
@@ -19,20 +19,18 @@ pub fn Chapter(cx: Scope) -> impl IntoView {
 
 	view!{cx,
 		<Transition fallback=|| "Loading...">
-			<div class="flex flex-col items-center justify-center">
-				{move ||
-					pick_fetcher.read(cx).map(|events| match events {
-						Err(e) => {
-							view! { cx, <pre class="error">"Server Error with pick fetcher: " {e.to_string()}</pre>}.into_view(cx)
-						},
-						Ok(events) => {
-							view!{cx,
-								<ChapterEvents initial_values=events/>
-							}.into_view(cx)
-						}
-					})
-				}
-			</div>
+			{move ||
+				pick_fetcher.read(cx).map(|events| match events {
+					Err(e) => {
+						view! { cx, <pre class="error">"Server Error with pick fetcher: " {e.to_string()}</pre>}.into_view(cx)
+					},
+					Ok(events) => {
+						view!{cx,
+							<ChapterEvents initial_values=events/>
+						}.into_view(cx)
+					}
+				})
+			}
 		</Transition>
 	}
 }
@@ -41,6 +39,7 @@ pub fn Chapter(cx: Scope) -> impl IntoView {
 pub fn ChapterEvents(cx: Scope, initial_values: Vec<(String, Vec<(Event, Pick)>)>) -> impl IntoView {
 	let params = use_params_map(cx);
 	let book_id: i64 = params.with_untracked(|params| params.get("book_id").cloned()).unwrap().parse::<i64>().unwrap();
+	let chapter_id: i64 = params.with_untracked(|params| params.get("chapter_id").cloned()).unwrap().parse::<i64>().unwrap();
 
 	let discrepancies: RwSignal<Option<i32>> = create_rw_signal(cx, None);
 	provide_context(cx, discrepancies.write_only());
@@ -77,60 +76,67 @@ pub fn ChapterEvents(cx: Scope, initial_values: Vec<(String, Vec<(Event, Pick)>)
 	);
 
 	view! {cx,
-		{pick_views}
-		{move || new_picks.update(|p| {if pick_submission.value().get().is_some() { *p = !*p }})}
-		// fixed inset-x-0 bottom-0
-		<div class="grid items-center justify-center h-16">
-			<div class="content-center self-center justify-center w-32 h-full text-center">
-				{move || match discrepancies.get() {
-					Some(discrepancies) if discrepancies == 0 => {
-						match (pick_submission.pending().get(), pick_submission.value().get()) {
-							(false, None) => {
-								view!{cx,
-									<button on:click=move |_| pick_submission.dispatch(()) class="w-full h-full text-white bg-black rounded-xl">"Submit"</button>
-								}.into_view(cx)
-							},
-							(false, Some(Ok(()))) => {
-								view!{cx,
-									<a href={format!("/books/{}", book_id)}>
-										<button class="bg-green-500 border border-black rounded-md">
-											<h1>"Picks are saved"</h1>
-											<p>"Go back to book"</p>
-										</button>
-									</a>
-									<button class="bg-green-500 border border-black rounded-md" on:click=move |_| pick_submission.value().set(None)>
-										<h1>"Edit Picks Again"</h1>
-									</button>
-								}.into_view(cx)
-							},
-							(false, Some(Err(e))) => {
-								view!{cx,
-									<p>{format!("{e}")}</p>
-								}.into_view(cx)
-							},
-							(true, _) => {
-								view!{cx,
-									<p>"Loading..."</p>
-								}.into_view(cx)
-							}
-						}
-					},
-					Some(d) => {
-						view!{cx,
-							<h1>"Picks aren't finished yet: "{d}</h1>
-						}.into_view(cx)
-					},
-					None => {
-						view!{cx,
-							<a href={format!("/books/{}", book_id)}>
-								<button class="bg-green-500 border border-black rounded-md">
-									<h1>"Current Picks are Saved"</h1>
-									<p>"Go back to book"</p>
-								</button>
-							</a>
-						}.into_view(cx)
-					}
+		<div class="flex flex-col items-center justify-center">
+			<Await future=move |_| get_book(cx, book_id) bind:subscription>
+				{match subscription {
+					Ok(BookSubscription{role: BookRole::Owner, ..}) => view!{cx, <a href=format!("/books/{book_id}/chapters/{chapter_id}/grade") class="bg-green-200 border border-black rounded-md">"Grade Picks"</a>}.into_view(cx),
+					_ => ().into_view(cx)
 				}}
+			</Await>
+			{pick_views}
+			{move || new_picks.update(|p| {if pick_submission.value().get().is_some() { *p = !*p }})}
+			<div class="grid items-center justify-center h-16">
+				<div class="content-center self-center justify-center w-32 h-full text-center">
+					{move || match discrepancies.get() {
+						Some(discrepancies) if discrepancies == 0 => {
+							match (pick_submission.pending().get(), pick_submission.value().get()) {
+								(false, None) => {
+									view!{cx,
+										<button on:click=move |_| pick_submission.dispatch(()) class="w-full h-full text-white bg-black rounded-xl">"Submit"</button>
+									}.into_view(cx)
+								},
+								(false, Some(Ok(()))) => {
+									view!{cx,
+										<a href={format!("/books/{}", book_id)}>
+											<button class="bg-green-500 border border-black rounded-md">
+												<h1>"Picks are saved"</h1>
+												<p>"Go back to book"</p>
+											</button>
+										</a>
+										<button class="bg-green-500 border border-black rounded-md" on:click=move |_| pick_submission.value().set(None)>
+											<h1>"Edit Picks Again"</h1>
+										</button>
+									}.into_view(cx)
+								},
+								(false, Some(Err(e))) => {
+									view!{cx,
+										<p>{format!("{e}")}</p>
+									}.into_view(cx)
+								},
+								(true, _) => {
+									view!{cx,
+										<p>"Loading..."</p>
+									}.into_view(cx)
+								}
+							}
+						},
+						Some(d) => {
+							view!{cx,
+								<h1>"Picks aren't finished yet: "{d}</h1>
+							}.into_view(cx)
+						},
+						None => {
+							view!{cx,
+								<a href={format!("/books/{}", book_id)}>
+									<button class="bg-green-500 border border-black rounded-md">
+										<h1>"Current Picks are Saved"</h1>
+										<p>"Go back to book"</p>
+									</button>
+								</a>
+							}.into_view(cx)
+						}
+					}}
+				</div>
 			</div>
 		</div>
 	}
@@ -206,7 +212,7 @@ pub fn SpreadGroupPick(cx: Scope, initial_values: Vec<(Event, Pick)>) -> impl In
 				.enumerate()
 				.map(|(i, (event, pick))| match event.contents {
 					EventContent::SpreadGroup(spread) => {
-						let old_pick = pick.get();
+						let old_pick = pick.get_untracked();
 						view!{cx,
 							<div class="p-3">
 								<div class="content-center justify-center max-w-sm overflow-hidden bg-white rounded-lg shadow-lg">

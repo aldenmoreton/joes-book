@@ -6,6 +6,7 @@ use crate::objects::{ Event, Chapter, EventContent, Pick };
 cfg_if! {
 	if #[cfg(feature = "ssr")] {
 		use itertools::Itertools;
+		use sqlx::Row;
 		use crate::{
 			server::{pool, get_book, auth},
 			objects::{ BookRole }
@@ -297,3 +298,46 @@ pub async fn save_picks(cx: Scope, picks: Vec<Pick>) -> Result<(), ServerFnError
 
 	Ok(())
 }
+
+#[server(GetUserInputs, "/secure")]
+pub async fn get_user_inputs(cx: Scope, event_id: i64) -> Result<Vec<String>, ServerFnError> {
+	let pool = pool(cx)?;
+
+	let result = sqlx::query(
+		r#" SELECT DISTINCT choice
+			FROM picks
+			WHERE event_id = $1
+		"#
+	)
+		.bind(event_id)
+		.fetch_all(&pool)
+		.await?;
+
+	Ok(
+		result
+			.into_iter()
+			.map(|row| row.get("choice"))
+			.collect()
+	)
+}
+
+#[server(SaveAnswers, "/secure")]
+pub async fn save_answers(cx: Scope, picks: Vec<(i64, Vec<String>)>) -> Result<(), ServerFnError> {
+	let pool = pool(cx)?;
+	for (id, answers) in picks {
+		let answers = answers.iter().map(|a| format!(r#"'{a}'"#)).collect::<Vec<String>>().join(",");
+		let query = format!(r#"
+			UPDATE picks
+			SET correct = choice IN ({})
+			WHERE event_id = $1
+		"#, answers);
+
+		sqlx::query(&query)
+			.bind(id)
+			.execute(&pool)
+			.await?;
+	}
+
+	Ok(())
+}
+
