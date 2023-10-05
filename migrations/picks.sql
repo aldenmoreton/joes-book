@@ -6,5 +6,5 @@ CREATE TABLE IF NOT EXISTS picks (
 	user_id			INT8 NOT NULL REFERENCES users(id),
 	choice			TEXT NOT NULL,
 	wager			INT8 NOT NULL,
-	correct			BOOLEAN DEFAULT FALSE
+	correct			BOOLEAN
 );

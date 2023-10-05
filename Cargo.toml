@@ -31,7 +31,8 @@ http = { version = "0.2.8" }
 sqlx = { version = "0.6.2", features = [
 	"runtime-tokio-rustls",
 	"postgres",
-	"offline"
+	"offline",
+	"bigdecimal"
 ], optional = true }
 thiserror = "1.0.38"
 wasm-bindgen = "0.2"

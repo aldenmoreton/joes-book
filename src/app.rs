@@ -27,6 +27,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                     <Route path="books/:book_id/new" view=NewChapter/>
                     <Route path="books/:book_id/chapters/:chapter_id" view=Chapter/>
                     <Route path="books/:book_id/chapters/:chapter_id/grade" view=GradeChapter/>
+                    <Route path="books/:book_id/chapters/:chapter_id/table" view=ChapterTable/>
                     <Route path="admin" view=Admin/>
                 </Route>
                 <Route path="signup" view=Signup/>
