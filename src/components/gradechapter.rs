@@ -62,6 +62,7 @@ pub fn VerifiedGradeChapter(cx: Scope) -> impl IntoView {
 pub fn ChapterEvents(cx: Scope, events: Vec<Event>) -> impl IntoView {
 	let params = use_params_map(cx);
 	let book_id: i64 = params.with_untracked(|params| params.get("book_id").cloned()).unwrap().parse::<i64>().unwrap();
+	let chapter_id: i64 = params.with_untracked(|params| params.get("chapter_id").cloned()).unwrap().parse::<i64>().unwrap();
 
 	let global_answers: RwSignal<Vec<ReadSignal<Option<(i64, Vec<String>)>>>> = create_rw_signal(cx, Vec::new());
 	provide_context(cx, global_answers);
@@ -115,7 +116,7 @@ pub fn ChapterEvents(cx: Scope, events: Vec<Event>) -> impl IntoView {
 		{move || match pick_submission.value().get() {
 			None => ().into_view(cx),
 			Some(Err(e)) => format!("Error saving picks: {e}").into_view(cx),
-			Some(Ok(_)) => view!{cx, <Redirect path=format!("/books/{book_id}")/>}
+			Some(Ok(_)) => view!{cx, <Redirect path=format!("/books/{book_id}/chapters/{chapter_id}")/>}
 		}}
 	}
 }
