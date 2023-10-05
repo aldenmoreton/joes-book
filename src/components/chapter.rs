@@ -1,17 +1,21 @@
 use leptos::*;
-use leptos_router::use_params_map;
+use leptos_router::{use_params_map, Redirect};
 
-use crate::{server::{get_picks, get_spread_teams, save_picks, get_book}, objects::{Event, Pick, EventContent, BookSubscription, BookRole}};
+use crate::{server::{get_picks, get_spread_teams, save_picks, is_open}, objects::{Event, Pick, EventContent}};
 
 
 #[component]
 pub fn Chapter(cx: Scope) -> impl IntoView {
 	let params = use_params_map(cx);
-	// let book_id: i64 = params.with_untracked(|params| params.get("book_id").cloned()).unwrap().parse::<i64>().unwrap();
+	let book_id: i64 = params.with_untracked(|params| params.get("book_id").cloned()).unwrap().parse::<i64>().unwrap();
 	let chapter_id: i64 = params.with_untracked(|params| params.get("chapter_id").cloned()).unwrap().parse::<i64>().unwrap();
 
 	let new_picks: RwSignal<bool> = create_rw_signal(cx, false);
 	provide_context(cx, new_picks.write_only());
+
+	let status_fetcher = create_resource(cx, || (),
+		move |_| is_open(cx, chapter_id)
+	);
 
 	let pick_fetcher = create_resource(cx, move || new_picks.get(),
 		move |_| get_picks(cx, chapter_id)
@@ -20,15 +24,25 @@ pub fn Chapter(cx: Scope) -> impl IntoView {
 	view!{cx,
 		<Transition fallback=|| "Loading...">
 			{move ||
-				pick_fetcher.read(cx).map(|events| match events {
+				status_fetcher.read(cx).map(|status| match status {
 					Err(e) => {
-						view! { cx, <pre class="error">"Server Error with pick fetcher: " {e.to_string()}</pre>}.into_view(cx)
+						view! { cx, <pre class="error">"Server Error with status fetcher: " {e.to_string()}</pre>}.into_view(cx)
 					},
-					Ok(events) => {
-						view!{cx,
-							<ChapterEvents initial_values=events/>
-						}.into_view(cx)
-					}
+					Ok(true) => view!{cx,
+						{move ||
+							pick_fetcher.read(cx).map(|events| match events {
+								Err(e) => {
+									view! { cx, <pre class="error">"Server Error with pick fetcher: " {e.to_string()}</pre>}.into_view(cx)
+								},
+								Ok(events) => {
+									view!{cx,
+										<ChapterEvents initial_values=events/>
+									}.into_view(cx)
+								}
+							})
+						}
+					}.into_view(cx),
+					Ok(false) => view!{cx, <Redirect path=format!("/books/{}/chapters/{}/table", book_id, chapter_id)/>}.into_view(cx)
 				})
 			}
 		</Transition>
@@ -39,7 +53,6 @@ pub fn Chapter(cx: Scope) -> impl IntoView {
 pub fn ChapterEvents(cx: Scope, initial_values: Vec<(String, Vec<(Event, Pick)>)>) -> impl IntoView {
 	let params = use_params_map(cx);
 	let book_id: i64 = params.with_untracked(|params| params.get("book_id").cloned()).unwrap().parse::<i64>().unwrap();
-	let chapter_id: i64 = params.with_untracked(|params| params.get("chapter_id").cloned()).unwrap().parse::<i64>().unwrap();
 
 	let discrepancies: RwSignal<Option<i32>> = create_rw_signal(cx, None);
 	provide_context(cx, discrepancies.write_only());
@@ -77,12 +90,6 @@ pub fn ChapterEvents(cx: Scope, initial_values: Vec<(String, Vec<(Event, Pick)>)
 
 	view! {cx,
 		<div class="flex flex-col items-center justify-center">
-			<Await future=move |_| get_book(cx, book_id) bind:subscription>
-				{match subscription {
-					Ok(BookSubscription{role: BookRole::Owner, ..}) => view!{cx, <a href=format!("/books/{book_id}/chapters/{chapter_id}/grade") class="bg-green-200 border border-black rounded-md">"Grade Picks"</a>}.into_view(cx),
-					_ => ().into_view(cx)
-				}}
-			</Await>
 			{pick_views}
 			{move || new_picks.update(|p| {if pick_submission.value().get().is_some() { *p = !*p }})}
 			<div class="grid items-center justify-center h-16">
@@ -349,18 +356,20 @@ pub fn UserInputs(cx: Scope, initial_values: Vec<(Event, Pick)>) -> impl IntoVie
 				.map(|(i, (event, pick))| match event.contents {
 					EventContent::UserInput(user_input_event) => {
 						view!{cx,
-							<div class="content-center justify-center max-w-sm overflow-hidden bg-white rounded-lg shadow-lg">
-								<h1>"Extra Point Question " {i+1}</h1>
-								<p>{user_input_event.question}</p>
-								<div class="justify-center p-2">
-									<div class="relative h-30">
-										<textarea
-										class="peer resize-none h-full w-full rounded-[7px] border border-green-200 border-t-transparent bg-transparent px-3 py-2.5 font-sans text-sm font-normal text-green-700 outline outline-0 transition-all placeholder-shown:border placeholder-shown:border-green-200 placeholder-shown:border-t-green-200 focus:border-2 focus:border-t-transparent focus:outline-0 disabled:border-0 disabled:bg-green-50"
-										placeholder=""
-										on:input=move |ev| {change_answer(pick, event_target_value(&ev))}/>
-										<label class="before:content[' '] after:content[' '] pointer-events-none absolute left-0 -top-1.5 flex h-full w-full select-none text-[11px] font-normal leading-tight text-green-400 transition-all before:pointer-events-none before:mt-[6.5px] before:mr-1 before:box-border before:block before:h-1.5 before:w-2.5 before:rounded-tl-md before:border-t before:border-l before:border-green-200 before:transition-all after:pointer-events-none after:mt-[6.5px] after:ml-1 after:box-border after:block after:h-1.5 after:w-2.5 after:flex-grow after:rounded-tr-md after:border-t after:border-r after:border-green-200 after:transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:leading-[3.75] peer-placeholder-shown:text-green-500 peer-placeholder-shown:before:border-transparent peer-placeholder-shown:after:border-transparent peer-focus:text-[11px] peer-focus:leading-tight peer-focus:text-gree-500 peer-focus:before:border-t-2 peer-focus:before:border-l-2 peer-focus:after:border-t-2 peer-focus:after:border-r-2 peer-disabled:text-transparent peer-disabled:before:border-transparent peer-disabled:after:border-transparent peer-disabled:peer-placeholder-shown:text-green-500">
-										{pick.get().choice.map(|c| format!("Current Answer: {c}")).unwrap_or("Please Answer".into())}
-										</label>
+							<div class="p-3">
+								<div class="content-center justify-center max-w-sm overflow-hidden bg-white rounded-lg shadow-lg">
+									<h1>"Extra Point Question " {i+1}</h1>
+									<p>{user_input_event.question}</p>
+									<div class="justify-center p-2">
+										<div class="relative h-30">
+											<textarea
+											class="peer resize-none h-full w-full rounded-[7px] border border-green-200 border-t-transparent bg-transparent px-3 py-2.5 font-sans text-sm font-normal text-green-700 outline outline-0 transition-all placeholder-shown:border placeholder-shown:border-green-200 placeholder-shown:border-t-green-200 focus:border-2 focus:border-t-transparent focus:outline-0 disabled:border-0 disabled:bg-green-50"
+											placeholder=""
+											on:input=move |ev| {change_answer(pick, event_target_value(&ev))}/>
+											<label class="before:content[' '] after:content[' '] pointer-events-none absolute left-0 -top-1.5 flex h-full w-full select-none text-[11px] font-normal leading-tight text-green-400 transition-all before:pointer-events-none before:mt-[6.5px] before:mr-1 before:box-border before:block before:h-1.5 before:w-2.5 before:rounded-tl-md before:border-t before:border-l before:border-green-200 before:transition-all after:pointer-events-none after:mt-[6.5px] after:ml-1 after:box-border after:block after:h-1.5 after:w-2.5 after:flex-grow after:rounded-tr-md after:border-t after:border-r after:border-green-200 after:transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:leading-[3.75] peer-placeholder-shown:text-green-500 peer-placeholder-shown:before:border-transparent peer-placeholder-shown:after:border-transparent peer-focus:text-[11px] peer-focus:leading-tight peer-focus:text-gree-500 peer-focus:before:border-t-2 peer-focus:before:border-l-2 peer-focus:after:border-t-2 peer-focus:after:border-r-2 peer-disabled:text-transparent peer-disabled:before:border-transparent peer-disabled:after:border-transparent peer-disabled:peer-placeholder-shown:text-green-500">
+											{pick.get().choice.map(|c| format!("Current Answer: {c}")).unwrap_or("Please Answer".into())}
+											</label>
+										</div>
 									</div>
 								</div>
 							</div>
