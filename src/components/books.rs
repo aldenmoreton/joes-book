@@ -53,7 +53,7 @@ pub fn Books(
 			}
 			{
 				move || if let Some(Ok(new_id)) = add_book.value().get() {
-					view!{cx, <Redirect path=new_id.to_string()/>}
+					view!{cx, <Redirect path=format!("/books/{new_id}")/>}
 				} else {
 					().into_view(cx)
 				}
@@ -76,7 +76,7 @@ pub fn Books(
 												.map(move |book_subscription| view! {cx,
 													<li class="p-3 w-60 h-30">
 														<a href={format!("/books/{}", book_subscription.book_id)}>
-															<div class="max-w-sm rounded-lg overflow-hidden shadow-lg justify-center content-center bg-white">
+															<div class="content-center justify-center max-w-sm overflow-hidden bg-white rounded-lg shadow-lg">
 																<h1>{book_subscription.name}</h1>
 																<p>{Into::<String>::into(book_subscription.role)}</p>
 															</div>
