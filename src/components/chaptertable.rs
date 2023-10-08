@@ -14,6 +14,7 @@ pub fn ChapterTable(cx: Scope) -> impl IntoView {
 	);
 
 	view!{cx,
+		<a href=format!("/books/{book_id}") class="bg-green-300 border border-black rounded-md">"Back to Book"</a>
 		<br/>
 		<Await future=move |_| get_book(cx, book_id) bind:subscription>
 			{match subscription {
