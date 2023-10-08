@@ -97,6 +97,19 @@ pub async fn get_chapters(cx: Scope, book_id: i64) -> Result<Vec<Chapter>, Serve
 pub async fn get_chapter(cx: Scope, chapter_id: i64) -> Result<Chapter, ServerFnError> {
 	let pool = pool(cx)?;
 
+	let book_id = sqlx::query!(r#"
+		SELECT book_id
+		FROM chapters
+		WHERE id = $1
+	"#, chapter_id)
+		.fetch_one(&pool)
+		.await?.book_id;
+	let book_subscription = get_book(cx, book_id).await?;
+	match book_subscription.role {
+		BookRole::Unauthorized => return Err(ServerFnError::Request("You aren't in this book".into())),
+		_ => ()
+	}
+
 	let chapter = sqlx::query_as_unchecked!(
 		Chapter,
 		r#"	SELECT id AS chapter_id, book_id, title, is_open, TO_CHAR(closing_time, 'YYYY-MM-DD"T"HH24:MI:SS.MSZ') AS closing_time
@@ -118,13 +131,60 @@ pub async fn get_chapter(cx: Scope, chapter_id: i64) -> Result<Chapter, ServerFn
 	Ok(chapter)
 }
 
+#[server(IsOpen, "/secure")]
+pub async fn is_open(cx: Scope, chapter_id: i64) -> Result<bool, ServerFnError> {
+	let pool = pool(cx)?;
+
+	let book_id = sqlx::query!(r#"
+		SELECT book_id
+		FROM chapters
+		WHERE id = $1
+	"#, chapter_id)
+		.fetch_one(&pool)
+		.await?.book_id;
+	let book_subscription = get_book(cx, book_id).await?;
+	match book_subscription.role {
+		BookRole::Unauthorized => return Err(ServerFnError::Request("You aren't in this book".into())),
+		_ => ()
+	}
+
+	let status = sqlx::query!(r#"
+		UPDATE chapters
+		SET is_open = CASE
+			WHEN is_open = true AND closing_time < NOW() THEN false
+			ELSE is_open
+		END
+		WHERE id = $1
+		RETURNING is_open
+	"#, chapter_id)
+		.fetch_one(&pool)
+		.await?.is_open;
+
+	Ok(status)
+}
+
 #[server(GetEvents, "/secure")]
 pub async fn get_events(cx: Scope, chapter_id: i64) -> Result<Vec<Event>, ServerFnError> {
+	let pool = pool(cx)?;
+
+	let book_id = sqlx::query!(r#"
+		SELECT book_id
+		FROM chapters
+		WHERE id = $1
+	"#, chapter_id)
+		.fetch_one(&pool)
+		.await?.book_id;
+
+	let book_subscription = get_book(cx, book_id).await?;
+	match book_subscription.role {
+		BookRole::Unauthorized => return Err(ServerFnError::Request("You aren't in this book".into())),
+		_ => ()
+	}
+
 	get_chapter(cx, chapter_id)
 		.await
 		.map_err(|err| ServerFnErrorErr::Request(format!("Could not get chapter: {err}")))?;
 
-	let pool = pool(cx)?;
 
 	let events = sqlx::query_as::<_, Event>(
 		r#"	SELECT id, book_id, chapter_id, contents, event_type, is_open, TO_CHAR(closing_time, 'YYYY-MM-DD"T"HH24:MI:SS.MSZ') AS closing_time
@@ -138,176 +198,6 @@ pub async fn get_events(cx: Scope, chapter_id: i64) -> Result<Vec<Event>, Server
 		.await?;
 
 	Ok(events)
-}
-
-#[server(GetChapterTable, "/secure")]
-pub async fn get_chapter_table(cx: Scope, chapter_id: i64) -> Result<String, ServerFnError> {
-	let events = get_events(cx, chapter_id).await?;
-	let mut teams: HashMap<i64, Team> = HashMap::new();
-
-	for event in events.iter() {
-		match &event.contents {
-			EventContent::SpreadGroup(spreads) => {
-				let (home, away) = super::get_spread_teams(cx, spreads.home_id, spreads.away_id).await?;
-				teams.insert(spreads.home_id, home);
-				teams.insert(spreads.away_id, away);
-			},
-			_ => ()
-		}
-	}
-
-	let table_header = view!{cx,
-		<tr>
-			<th></th>
-			{
-				events
-					.iter()
-					.map(|event| {
-						let description: String = match &event.contents {
-							EventContent::SpreadGroup(spreads) =>
-								format!(
-									"{} vs {}",
-									teams.get(&spreads.home_id).unwrap().name,
-									teams.get(&spreads.away_id).unwrap().name
-								),
-							EventContent::UserInput(input) =>
-								input.question.clone()
-						};
-						view!{cx,
-							<th>
-								<h1>{description}</h1>
-							</th>
-						}
-					}
-					)
-					.collect_view(cx)
-			}
-		</tr>
-	};
-
-	let pool = pool(cx)?;
-	let user_points: Vec<(_, _, _)> = sqlx::query!(r#"
-		SELECT users.id AS id, users.username AS username, CAST(SUM(picks.wager) AS INTEGER) AS week_total
-		FROM picks
-		JOIN users ON picks.user_id = users.id
-		WHERE picks.chapter_id = $1 AND picks.correct
-		GROUP BY users.id, users.username"#,
-		chapter_id
-	)
-		.fetch_all(&pool)
-		.await?
-		.into_iter()
-		.map(|row| {
-			(row.id, row.username, row.week_total.unwrap_or_default())
-		})
-		.collect();
-
-	let mut user_rows: Vec<View> = Vec::new();
-	for (user_id, username, week_total) in user_points {
-		let picks: Vec<_> = sqlx::query!(r#"
-			SELECT picks.choice, picks.wager, picks.correct, events.event_type, picks.event_id
-			FROM picks
-			JOIN events ON picks.event_id = events.id
-			WHERE picks.chapter_id = $1 AND picks.user_id = $2"#,
-			chapter_id, user_id
-		)
-			.fetch_all(&pool)
-			.await?
-			.into_iter()
-			.map(|row|
-				(row.choice, row.wager, row.correct, row.event_type, row.event_id)
-			)
-			.collect();
-
-		let view = view!{cx,
-			<tr>
-				<td>
-					{username}
-					<br/>
-					{week_total}
-				</td>
-				{
-					picks
-						.into_iter()
-						.map(|(choice, wager, correct, ty, event_id)| {
-							match ty.as_str() {
-								"SpreadGroup" => {
-									let event_idx = events.iter().position(|x| x.id == event_id);
-									let choice = if let Some(idx) = event_idx {
-										let event = match &events[idx].contents {
-											EventContent::SpreadGroup(spread) => spread,
-											_ => panic!()
-										};
-										match choice.as_str() {
-											"Home" => teams.get(&event.home_id).unwrap().name.clone(),
-											"Away" => teams.get(&event.away_id).unwrap().name.clone(),
-											_ => "None".into()
-										}
-									} else {
-										"None".into()
-									};
-									if let Some(correct) = correct {
-										if correct {
-											view!{cx,
-												<td class="bg-green-300">
-													<p>{choice}</p>
-													<br/>
-													<p>{wager}</p>
-												</td>
-											}
-										} else {
-											view!{cx,
-												<td class="bg-red-300">
-													<p>{choice}</p>
-													<br/>
-													<p>{wager}</p>
-												</td>
-											}
-										}
-									} else {
-										view!{cx,
-											<td>
-												<p>{choice}</p>
-												<br/>
-												<p>{wager}</p>
-											</td>
-										}
-									}
-								},
-								"UserInput" =>
-									match correct {
-										Some(true) => view!{cx, <td class="bg-green-300">{choice}</td>},
-										Some(false) => view!{cx, <td class="bg-red-300">{choice}</td>},
-										None => view!{cx, <td>{choice}</td>}
-									},
-								_ => view!{cx,
-									<td>
-										"No table view for this pick type"
-									</td>
-								}
-							}
-						})
-						.collect_view(cx)
-				}
-			</tr>
-		}.into_view(cx);
-		user_rows.push(view)
-	}
-
-	let table = view!{cx,
-		<h1>"This is going to be a table"</h1>
-		<div class="picktable">
-			<table>
-				{table_header}
-				{user_rows}
-			</table>
-		</div>
-	}
-		.into_view(cx)
-		.render_to_string(cx)
-		.to_string();
-
-	Ok(table)
 }
 
 #[server(GetPick, "/secure")]
@@ -324,7 +214,7 @@ pub async fn get_pick(cx: Scope, event_id: i64) -> Result<Pick, ServerFnError> {
 		.bind(user.id)
 		.fetch_optional(&pool)
 		.await
-		.map_err(|err| ServerFnError::Args(format!("Could not build pick: {err}")))?;
+		.map_err(|err| ServerFnError::Args(format!("Could not find pick: {err}")))?;
 
 	let pick = match pick {
 		Some(pick) => pick,
@@ -474,6 +364,18 @@ pub async fn save_picks(cx: Scope, picks: Vec<Pick>) -> Result<(), ServerFnError
 pub async fn get_user_inputs(cx: Scope, event_id: i64) -> Result<Vec<String>, ServerFnError> {
 	let pool = pool(cx)?;
 
+	let chapter_id = sqlx::query!(r#"
+		SELECT chapter_id
+		FROM events
+		WHERE id = $1
+	"#, event_id)
+		.fetch_one(&pool)
+		.await?.chapter_id;
+
+	if is_open(cx, chapter_id).await? {
+		return Err(ServerFnError::Request("The chapter isn't closed yet! You can't see everyone's picks!".into()))
+	}
+
 	let result = sqlx::query(
 		r#" SELECT DISTINCT choice
 			FROM picks
@@ -495,16 +397,31 @@ pub async fn get_user_inputs(cx: Scope, event_id: i64) -> Result<Vec<String>, Se
 #[server(SaveAnswers, "/secure")]
 pub async fn save_answers(cx: Scope, picks: Vec<(i64, Vec<String>)>) -> Result<(), ServerFnError> {
 	let pool = pool(cx)?;
+
+	let book_id = sqlx::query!(r#"
+		SELECT book_id
+		FROM picks
+		WHERE event_id = $1
+	"#, picks.get(0).ok_or(ServerFnError::Args("List of picks must not be empty".into()))?.0)
+		.fetch_one(&pool)
+		.await.map_err(|_| ServerFnError::ServerError("Could not get book id".into()))?.book_id;
+	let book_sub = get_book(cx, book_id).await?;
+	match book_sub.role {
+		BookRole::Owner => (),
+	   _ => return Err(ServerFnError::Request("You can't make answers for someone else's book".into()))
+   }
+
 	for (id, answers) in picks {
 		let answers = answers.iter().map(|a| format!(r#"'{a}'"#)).collect::<Vec<String>>().join(",");
 		let query = format!(r#"
 			UPDATE picks
 			SET correct = choice IN ({})
-			WHERE event_id = $1
+			WHERE event_id = $1 AND book_id = $2
 		"#, answers);
 
 		sqlx::query(&query)
 			.bind(id)
+			.bind(book_id)
 			.execute(&pool)
 			.await?;
 	}
@@ -512,3 +429,187 @@ pub async fn save_answers(cx: Scope, picks: Vec<(i64, Vec<String>)>) -> Result<(
 	Ok(())
 }
 
+#[server(GetChapterTable, "/secure")]
+pub async fn get_chapter_table(cx: Scope, chapter_id: i64) -> Result<String, ServerFnError> {
+	if is_open(cx, chapter_id).await? {
+		return Err(ServerFnError::Request("The chapter isn't closed yet! You can't see everyone's picks!".into()))
+	}
+
+	let events = get_events(cx, chapter_id).await?;
+	let mut teams: HashMap<i64, Team> = HashMap::new();
+
+	for event in events.iter() {
+		match &event.contents {
+			EventContent::SpreadGroup(spreads) => {
+				let (home, away) = super::get_spread_teams(cx, spreads.home_id, spreads.away_id).await?;
+				teams.insert(spreads.home_id, home);
+				teams.insert(spreads.away_id, away);
+			},
+			_ => ()
+		}
+	}
+
+	let table_header = view!{cx,
+		<tr>
+			<th></th>
+			{
+				events
+					.iter()
+					.map(|event| {
+						let description: String = match &event.contents {
+							EventContent::SpreadGroup(spreads) =>
+								format!(
+									"{} vs {}",
+									teams.get(&spreads.home_id).unwrap().name,
+									teams.get(&spreads.away_id).unwrap().name
+								),
+							EventContent::UserInput(input) =>
+								input.question.clone()
+						};
+						view!{cx,
+							<th>
+								<h1>{description}</h1>
+							</th>
+						}
+					}
+					)
+					.collect_view(cx)
+			}
+		</tr>
+	};
+
+	let pool = pool(cx)?;
+	let user_points: Vec<(_, _, _)> = sqlx::query!(r#"
+		SELECT u.id AS id, u.username AS username, CAST(COALESCE(p.total, 0) AS INTEGER) AS week_total
+		FROM (
+			SELECT users.id, users.username
+			FROM chapters
+			INNER JOIN subscriptions ON subscriptions.book_id = chapters.book_id
+			INNER JOIN users ON users.id = subscriptions.user_id
+			WHERE chapters.id = $1
+			GROUP BY users.id, users.username
+		) AS u
+		LEFT JOIN (
+			SELECT user_id, SUM(picks.wager) AS total
+			FROM picks
+			WHERE picks.chapter_id = $1 AND picks.correct
+			GROUP BY user_id
+		) AS p
+		ON u.id = p.user_id"#,
+		chapter_id
+	)
+		.fetch_all(&pool)
+		.await?
+		.into_iter()
+		.map(|row| {
+			(row.id, row.username, row.week_total.unwrap_or(0))
+		})
+		.collect();
+
+	let mut user_rows: Vec<View> = Vec::new();
+	for (user_id, username, week_total) in user_points {
+		let picks: Vec<_> = sqlx::query!(r#"
+			SELECT picks.choice, picks.wager, picks.correct, events.event_type, picks.event_id
+			FROM picks
+			JOIN events ON picks.event_id = events.id
+			WHERE picks.chapter_id = $1 AND picks.user_id = $2
+			ORDER BY events.event_type, events.id"#,
+			chapter_id, user_id
+		)
+			.fetch_all(&pool)
+			.await?
+			.into_iter()
+			.map(|row|
+				(row.choice, row.wager, row.correct, row.event_type, row.event_id)
+			)
+			.collect();
+
+		let view = view!{cx,
+			<tr>
+				<td>
+					{username}
+					<br/>
+					{week_total}
+				</td>
+				{
+					picks
+						.into_iter()
+						.map(|(choice, wager, correct, ty, event_id)| {
+							match ty.as_str() {
+								"SpreadGroup" => {
+									let event_idx = events.iter().position(|x| x.id == event_id);
+									let choice = if let Some(idx) = event_idx {
+										let event = match &events[idx].contents {
+											EventContent::SpreadGroup(spread) => spread,
+											_ => panic!()
+										};
+										match choice.as_str() {
+											"Home" => teams.get(&event.home_id).unwrap().name.clone(),
+											"Away" => teams.get(&event.away_id).unwrap().name.clone(),
+											_ => "None".into()
+										}
+									} else {
+										"None".into()
+									};
+									if let Some(correct) = correct {
+										if correct {
+											view!{cx,
+												<td class="bg-green-300">
+													<p>{choice}</p>
+													<br/>
+													<p>{wager}</p>
+												</td>
+											}
+										} else {
+											view!{cx,
+												<td class="bg-red-300">
+													<p>{choice}</p>
+													<br/>
+													<p>{wager}</p>
+												</td>
+											}
+										}
+									} else {
+										view!{cx,
+											<td>
+												<p>{choice}</p>
+												<br/>
+												<p>{wager}</p>
+											</td>
+										}
+									}
+								},
+								"UserInput" =>
+									match correct {
+										Some(true) => view!{cx, <td class="bg-green-300">{choice}</td>},
+										Some(false) => view!{cx, <td class="bg-red-300">{choice}</td>},
+										None => view!{cx, <td>{choice}</td>}
+									},
+								_ => view!{cx,
+									<td>
+										"No table view for this pick type"
+									</td>
+								}
+							}
+						})
+						.collect_view(cx)
+				}
+			</tr>
+		}.into_view(cx);
+		user_rows.push(view)
+	}
+
+	let table = view!{cx,
+		<div class="picktable">
+			<table>
+				{table_header}
+				{user_rows}
+			</table>
+		</div>
+	}
+		.into_view(cx)
+		.render_to_string(cx)
+		.to_string();
+
+	Ok(table)
+}
