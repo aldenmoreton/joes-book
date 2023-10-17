@@ -217,11 +217,12 @@ pub fn UserInputGrade(cx: Scope, id: i64, question: UserInput) -> impl IntoView 
 		|| (),
 		move |_| get_user_inputs(cx, id)
 	);
-	let question_str = question.question.clone();
+	// let question_str = create_write(question.question.clone());
+	let (question_str, _) = create_signal(cx, question.question.clone());
 	view!{cx,
 		<div class="p-3">
 			<div class="content-center justify-center max-w-sm overflow-hidden bg-white rounded-lg shadow-lg">
-				<h1 class="mt-1">{question_str}</h1>
+				<h1 class="mt-1">{format!("{}", question_str.get())}</h1>
 				<Suspense fallback=move || view!{cx, <p>"Loading..."</p>}>
 					{move ||
 						inputs_getter.read(cx).map(|inputs| {
@@ -230,20 +231,21 @@ pub fn UserInputGrade(cx: Scope, id: i64, question: UserInput) -> impl IntoView 
 								Ok(inputs) => {
 									inputs
 										.into_iter()
-										.map(|user_input| {
+										.enumerate()
+										.map(|(i, user_input)| {
 											let (remove_input, add_input) = (user_input.clone(), user_input.clone());
 											view!{cx,
 												<div class="grid grid-flow-col grid-cols-2 gap-4 p-5 border border-gray-100">
 													<h1>{&user_input}</h1>
 													<div class="col-span-1">
-														<input on:click=move |_| answer_setter(false, &remove_input) type="radio" id=format!("{}-Remove", &user_input) name=format!("{}", &user_input) value="wrong" class="hidden peer"/>
-														<label for=format!("{}-Remove", user_input) class="inline-grid w-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-red-700 peer-checked:bg-red-500 peer-checked:border-red-600 hover:bg-red-100">
+														<input on:click=move |_| answer_setter(false, &remove_input) type="radio" id=format!("{}-{}-Remove-{}", i, &user_input, question_str.get()) name=format!("{}-{}-{}", i, user_input, question_str.get()) value="wrong" class="hidden peer" checked/>
+														<label for=format!("{}-{}-Remove-{}", i, user_input, question_str.get()) class="inline-grid w-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-red-700 peer-checked:bg-red-500 peer-checked:border-red-600 hover:bg-red-100">
 															<h2>"Wrong"</h2>
 														</label>
 													</div>
 													<div class="col-span-1">
-														<input on:click=move |_| answer_setter(true, &add_input) type="radio" id=format!("{}-Add", &user_input) name=format!("{}", &user_input) value="right" class="hidden peer"/>
-														<label for=format!("{}-Add", user_input) class="inline-grid w-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100">
+														<input on:click=move |_| answer_setter(true, &add_input) type="radio" id=format!("{}-{}-Add-{}", i, user_input, question_str.get()) name=format!("{}-{}-{}", i, user_input, question_str.get()) value="right" class="hidden peer"/>
+														<label for=format!("{}-{}-Add-{}", i, user_input, question_str.get()) class="inline-grid w-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100">
 															<h2>"Right"</h2>
 														</label>
 													</div>
