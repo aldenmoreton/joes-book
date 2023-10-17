@@ -131,6 +131,36 @@ pub async fn get_chapter(cx: Scope, chapter_id: i64) -> Result<Chapter, ServerFn
 	Ok(chapter)
 }
 
+#[server(SetOpen, "/secure")]
+pub async fn set_open(cx:Scope, chapter_id: i64, new_status: bool) -> Result<(), ServerFnError> {
+	let pool = pool(cx)?;
+
+	let book_id = sqlx::query!(r#"
+		SELECT book_id
+		FROM chapters
+		WHERE id = $1
+	"#, chapter_id)
+		.fetch_one(&pool)
+		.await?.book_id;
+	let book_subscription = get_book(cx, book_id).await?;
+	match book_subscription.role {
+		BookRole::Owner => (),
+		_ => return Err(ServerFnError::Request("You aren't the owner of this book".into()))
+	}
+
+	sqlx::query(r#"
+		UPDATE chapters
+		SET is_open = $1
+		WHERE chapter_id = $2
+	"#)
+		.bind(new_status)
+		.bind(chapter_id)
+		.execute(&pool)
+		.await?;
+
+	Ok(())
+}
+
 #[server(IsOpen, "/secure")]
 pub async fn is_open(cx: Scope, chapter_id: i64) -> Result<bool, ServerFnError> {
 	let pool = pool(cx)?;
@@ -149,13 +179,9 @@ pub async fn is_open(cx: Scope, chapter_id: i64) -> Result<bool, ServerFnError> 
 	}
 
 	let status = sqlx::query!(r#"
-		UPDATE chapters
-		SET is_open = CASE
-			WHEN is_open = true AND closing_time < NOW() THEN false
-			ELSE is_open
-		END
+		SELECT is_open
+		FROM chapters
 		WHERE id = $1
-		RETURNING is_open
 	"#, chapter_id)
 		.fetch_one(&pool)
 		.await?.is_open;
@@ -292,8 +318,7 @@ cfg_if! {
 			}
 
 			let chapter = get_chapter(cx, pick.chapter_id).await?;
-			let closing_time = chrono::DateTime::parse_from_rfc3339(&chapter.closing_time).unwrap();
-			if	closing_time < chrono::Utc::now() {
+			if !chapter.is_open {
 				return Err(ServerFnError::Request("You're too late to make picks".into()))
 			}
 
@@ -324,8 +349,7 @@ cfg_if! {
 			}
 
 			let chapter = get_chapter(cx, pick.chapter_id).await?;
-			let closing_time = chrono::DateTime::parse_from_rfc3339(&chapter.closing_time).unwrap();
-			if	closing_time < chrono::Utc::now() {
+			if	!chapter.is_open {
 				return Err(ServerFnError::Request("You're too late to update picks".into()))
 			}
 
