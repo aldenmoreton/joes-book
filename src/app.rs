@@ -5,11 +5,10 @@ use leptos_router::*;
 use crate::components::*;
 
 #[component]
-pub fn App(cx: Scope) -> impl IntoView {
-    provide_meta_context(cx);
+pub fn App() -> impl IntoView {
+    provide_meta_context();
 
     view! {
-        cx,
         <Link rel="icon" type_="image/ico" href="/favicon.ico"/>
         <Link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png"/>
         <Link rel="icon" type_="image/png" sizes="32x32" href="/favicon-32x32.png"/>

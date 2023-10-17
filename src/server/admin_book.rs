@@ -15,11 +15,11 @@ cfg_if! {
 }
 
 #[server(DeleteBook, "/secure")]
-pub async fn delete_book(cx: Scope, id: i64) -> Result<(), ServerFnError> {
-	let user = auth(cx)?.current_user.unwrap();
-	let pool = pool(cx)?;
+pub async fn delete_book(id: i64) -> Result<(), ServerFnError> {
+	let user = auth()?.current_user.unwrap();
+	let pool = pool()?;
 
-	match get_book(cx, id).await? {
+	match get_book(id).await? {
 		BookSubscription { role: BookRole::Owner, .. } => (),
 		_ => return Err(ServerFnError::Request("You can't just delete someone else's book! Rude!!!".into()))
 	}
@@ -53,20 +53,20 @@ pub async fn delete_book(cx: Scope, id: i64) -> Result<(), ServerFnError> {
 		.execute(&pool)
 		.await?;
 
-	leptos_axum::redirect(cx, "/books");
+	leptos_axum::redirect("/books");
 
 	Ok(())
 }
 
 #[server(AddUser, "/secure")]
-pub async fn add_user(cx: Scope, user_id: i64, book_id: i64) -> Result<bool, ServerFnError> {
-	let owner = get_book(cx, book_id).await?;
+pub async fn add_user(user_id: i64, book_id: i64) -> Result<bool, ServerFnError> {
+	let owner = get_book(book_id).await?;
 	match owner {
 		BookSubscription{role: BookRole::Owner, ..} => (),
 		_ => return Err(ServerFnError::Request("I love your enthusiasm, but you can't add people to a book you don't own".into()))
 	}
 
-	let pool = pool(cx)?;
+	let pool = pool()?;
 
 	let result = sqlx::query(
 		r#"SELECT user_id
@@ -94,14 +94,14 @@ pub async fn add_user(cx: Scope, user_id: i64, book_id: i64) -> Result<bool, Ser
 }
 
 #[server(RemoveUser, "/secure")]
-pub async fn remove_user(cx: Scope, user_id: i64, book_id: i64) -> Result<bool, ServerFnError> {
-	let owner = get_book(cx, book_id).await?;
+pub async fn remove_user(user_id: i64, book_id: i64) -> Result<bool, ServerFnError> {
+	let owner = get_book(book_id).await?;
 	match owner {
 		BookSubscription{role: BookRole::Owner, ..} => (),
 		_ => return Err(ServerFnError::Request("You can't remove people from a book that isn't yours... that's antisocial".into()))
 	}
 
-	let pool = pool(cx)?;
+	let pool = pool()?;
 
 	let result = sqlx::query(
 		r#"SELECT user_id
@@ -129,22 +129,22 @@ pub async fn remove_user(cx: Scope, user_id: i64, book_id: i64) -> Result<bool, 
 }
 
 #[server(PromoteAdmin, "/secure")]
-pub async fn promote_admin(cx: Scope, user_id: i64, book_id: i64) -> Result<bool, ServerFnError> {
-	let owner = get_book(cx, book_id).await?;
+pub async fn promote_admin(user_id: i64, book_id: i64) -> Result<bool, ServerFnError> {
+	let owner = get_book(book_id).await?;
 	match owner {
 		BookSubscription{role: BookRole::Owner, ..} => (),
 		_ => return Err(ServerFnError::Request("That's flattering, but you can't promte people in a book that isn't yours.".into()))
 	}
 
-	let subscription = get_subsciption(cx, user_id, book_id).await?;
+	let subscription = get_subsciption(user_id, book_id).await?;
 	match subscription.role {
 		BookRole::Admin => return Ok(false),
 		BookRole::Owner => return Err(ServerFnError::Request("You are already kind of an admin (you're the owner)".into())),
-		BookRole::Unauthorized => { add_user(cx, user_id, book_id).await?; },
+		BookRole::Unauthorized => { add_user(user_id, book_id).await?; },
 		BookRole::Participant => ()
 	}
 
-	let pool = pool(cx)?;
+	let pool = pool()?;
 
 	sqlx::query(
 		r#"	UPDATE subscriptions
@@ -161,14 +161,14 @@ pub async fn promote_admin(cx: Scope, user_id: i64, book_id: i64) -> Result<bool
 }
 
 #[server(DemoteAdmin, "/secure")]
-pub async fn demote_admin(cx: Scope, user_id: i64, book_id: i64) -> Result<bool, ServerFnError> {
-	let owner = get_book(cx, book_id).await?;
+pub async fn demote_admin(user_id: i64, book_id: i64) -> Result<bool, ServerFnError> {
+	let owner = get_book(book_id).await?;
 	match owner {
 		BookSubscription{role: BookRole::Owner, ..} => (),
 		_ => return Err(ServerFnError::Request("You can't demote people in a book that isn't yours... that's antisocial".into()))
 	}
 
-	let pool = pool(cx)?;
+	let pool = pool()?;
 
 	sqlx::query(
 		r#"	UPDATE subscriptions
@@ -185,10 +185,10 @@ pub async fn demote_admin(cx: Scope, user_id: i64, book_id: i64) -> Result<bool,
 }
 
 #[server(GetSubscription, "/secure")]
-pub async fn get_subsciption(cx: Scope, user_id: i64, book_id: i64) -> Result<BookSubscription, ServerFnError> {
-	let pool = pool(cx)?;
+pub async fn get_subsciption(user_id: i64, book_id: i64) -> Result<BookSubscription, ServerFnError> {
+	let pool = pool()?;
 
-	let admin_book = get_book(cx, book_id).await?;
+	let admin_book = get_book(book_id).await?;
 	match admin_book {
 		BookSubscription{role: BookRole::Owner, ..} => (),
 		_ => return Err(ServerFnError::Request("I can't just give out info willy nilly".into()))

@@ -16,8 +16,8 @@ cfg_if! {
 }
 
 #[server(AddChapter, "/secure")]
-pub async fn add_chapter(cx: Scope, book_id: i64, title: String, closing_time: String, events: Vec<EventContent>) -> Result<i64, ServerFnError> {
-	let book_sub = get_book(cx, book_id).await?;
+pub async fn add_chapter(book_id: i64, title: String, closing_time: String, events: Vec<EventContent>) -> Result<i64, ServerFnError> {
+	let book_sub = get_book(book_id).await?;
 
 	match book_sub.role {
  		BookRole::Owner => (),
@@ -30,7 +30,7 @@ pub async fn add_chapter(cx: Scope, book_id: i64, title: String, closing_time: S
 		return Err(ServerFnError::Args("Your closing time can't be in the past".into()))
 	}
 
-	let pool = pool(cx)?;
+	let pool = pool()?;
 	let chapter_id = sqlx::query!(
 		r#"	INSERT INTO chapters (title, book_id, is_open, closing_time)
 			VALUES ($1, $2, $3, $4)
@@ -68,14 +68,14 @@ pub async fn add_chapter(cx: Scope, book_id: i64, title: String, closing_time: S
 }
 
 #[server(GetChapters, "/secure")]
-pub async fn get_chapters(cx: Scope, book_id: i64) -> Result<Vec<Chapter>, ServerFnError> {
-	let book_subscription = get_book(cx, book_id).await?;
+pub async fn get_chapters(book_id: i64) -> Result<Vec<Chapter>, ServerFnError> {
+	let book_subscription = get_book(book_id).await?;
 	match book_subscription.role {
 		BookRole::Unauthorized => return Err(ServerFnError::Request("You aren't in this book".into())),
 		_ => ()
 	}
 
-	let pool = pool(cx)?;
+	let pool = pool()?;
 
 	let chapters = sqlx::query_as_unchecked!(
 		Chapter,
@@ -94,8 +94,8 @@ pub async fn get_chapters(cx: Scope, book_id: i64) -> Result<Vec<Chapter>, Serve
 }
 
 #[server(GetChapter, "/secure")]
-pub async fn get_chapter(cx: Scope, chapter_id: i64) -> Result<Chapter, ServerFnError> {
-	let pool = pool(cx)?;
+pub async fn get_chapter(chapter_id: i64) -> Result<Chapter, ServerFnError> {
+	let pool = pool()?;
 
 	let book_id = sqlx::query!(r#"
 		SELECT book_id
@@ -104,7 +104,7 @@ pub async fn get_chapter(cx: Scope, chapter_id: i64) -> Result<Chapter, ServerFn
 	"#, chapter_id)
 		.fetch_one(&pool)
 		.await?.book_id;
-	let book_subscription = get_book(cx, book_id).await?;
+	let book_subscription = get_book(book_id).await?;
 	match book_subscription.role {
 		BookRole::Unauthorized => return Err(ServerFnError::Request("You aren't in this book".into())),
 		_ => ()
@@ -122,7 +122,7 @@ pub async fn get_chapter(cx: Scope, chapter_id: i64) -> Result<Chapter, ServerFn
 		.await
 		.map_err(|err| ServerFnError::Request(format!("Could not find chapter: {err}")))?;
 
-	let book_subscription = get_book(cx, chapter.book_id).await?;
+	let book_subscription = get_book(chapter.book_id).await?;
 	match book_subscription.role {
 		BookRole::Unauthorized => return Err(ServerFnError::Request("You don't have access to this book's chapters".into())),
 		_ => ()
@@ -132,8 +132,8 @@ pub async fn get_chapter(cx: Scope, chapter_id: i64) -> Result<Chapter, ServerFn
 }
 
 #[server(SetOpen, "/secure")]
-pub async fn set_open(cx:Scope, chapter_id: i64, new_status: bool) -> Result<(), ServerFnError> {
-	let pool = pool(cx)?;
+pub async fn set_open(chapter_id: i64, new_status: bool) -> Result<(), ServerFnError> {
+	let pool = pool()?;
 
 	let book_id = sqlx::query!(r#"
 		SELECT book_id
@@ -142,7 +142,7 @@ pub async fn set_open(cx:Scope, chapter_id: i64, new_status: bool) -> Result<(),
 	"#, chapter_id)
 		.fetch_one(&pool)
 		.await?.book_id;
-	let book_subscription = get_book(cx, book_id).await?;
+	let book_subscription = get_book(book_id).await?;
 	match book_subscription.role {
 		BookRole::Owner => (),
 		_ => return Err(ServerFnError::Request("You aren't the owner of this book".into()))
@@ -162,8 +162,8 @@ pub async fn set_open(cx:Scope, chapter_id: i64, new_status: bool) -> Result<(),
 }
 
 #[server(IsOpen, "/secure")]
-pub async fn is_open(cx: Scope, chapter_id: i64) -> Result<bool, ServerFnError> {
-	let pool = pool(cx)?;
+pub async fn is_open(chapter_id: i64) -> Result<bool, ServerFnError> {
+	let pool = pool()?;
 
 	let book_id = sqlx::query!(r#"
 		SELECT book_id
@@ -172,7 +172,7 @@ pub async fn is_open(cx: Scope, chapter_id: i64) -> Result<bool, ServerFnError> 
 	"#, chapter_id)
 		.fetch_one(&pool)
 		.await?.book_id;
-	let book_subscription = get_book(cx, book_id).await?;
+	let book_subscription = get_book(book_id).await?;
 	match book_subscription.role {
 		BookRole::Unauthorized => return Err(ServerFnError::Request("You aren't in this book".into())),
 		_ => ()
@@ -190,8 +190,8 @@ pub async fn is_open(cx: Scope, chapter_id: i64) -> Result<bool, ServerFnError> 
 }
 
 #[server(GetEvents, "/secure")]
-pub async fn get_events(cx: Scope, chapter_id: i64) -> Result<Vec<Event>, ServerFnError> {
-	let pool = pool(cx)?;
+pub async fn get_events(chapter_id: i64) -> Result<Vec<Event>, ServerFnError> {
+	let pool = pool()?;
 
 	let book_id = sqlx::query!(r#"
 		SELECT book_id
@@ -201,13 +201,13 @@ pub async fn get_events(cx: Scope, chapter_id: i64) -> Result<Vec<Event>, Server
 		.fetch_one(&pool)
 		.await?.book_id;
 
-	let book_subscription = get_book(cx, book_id).await?;
+	let book_subscription = get_book(book_id).await?;
 	match book_subscription.role {
 		BookRole::Unauthorized => return Err(ServerFnError::Request("You aren't in this book".into())),
 		_ => ()
 	}
 
-	get_chapter(cx, chapter_id)
+	get_chapter(chapter_id)
 		.await
 		.map_err(|err| ServerFnErrorErr::Request(format!("Could not get chapter: {err}")))?;
 
@@ -227,9 +227,9 @@ pub async fn get_events(cx: Scope, chapter_id: i64) -> Result<Vec<Event>, Server
 }
 
 #[server(GetPick, "/secure")]
-pub async fn get_pick(cx: Scope, event_id: i64) -> Result<Pick, ServerFnError> {
-	let user = auth(cx)?.current_user.unwrap();
-	let pool = pool(cx)?;
+pub async fn get_pick(event_id: i64) -> Result<Pick, ServerFnError> {
+	let user = auth()?.current_user.unwrap();
+	let pool = pool()?;
 
 	let pick = sqlx::query_as::<_, Pick>(
 		r#" SELECT *
@@ -257,7 +257,7 @@ pub async fn get_pick(cx: Scope, event_id: i64) -> Result<Pick, ServerFnError> {
 				.await
 				.map_err(|err| ServerFnError::Args(format!("Could not build event: {err}")))?;
 
-			let book_subscription = get_book(cx, event.book_id).await?;
+			let book_subscription = get_book(event.book_id).await?;
 			match book_subscription.role {
 				BookRole::Unauthorized => return Err(ServerFnError::Request("You don't have access to this book's chapters".into())),
 				_ => ()
@@ -278,14 +278,14 @@ pub async fn get_pick(cx: Scope, event_id: i64) -> Result<Pick, ServerFnError> {
 }
 
 #[server(GetPicks, "/secure")]
-pub async fn get_picks(cx: Scope, chapter_id: i64) -> Result<Vec<(String, Vec<(Event, Pick)>)>, ServerFnError> {
-	let events = get_events(cx, chapter_id)
+pub async fn get_picks(chapter_id: i64) -> Result<Vec<(String, Vec<(Event, Pick)>)>, ServerFnError> {
+	let events = get_events(chapter_id)
 		.await
 		.map_err(|err| ServerFnErrorErr::Request(format!("Could not get events: {err}")))?;
 
 	let mut picks = Vec::new();
 	for event in events.iter() {
-		picks.push(get_pick(cx, event.id))
+		picks.push(get_pick(event.id))
 	}
 
 	let mut awaited_picks = Vec::new();
@@ -309,20 +309,20 @@ pub async fn get_picks(cx: Scope, chapter_id: i64) -> Result<Vec<(String, Vec<(E
 
 cfg_if! {
 	if #[cfg(feature = "ssr")] {
-		pub async fn create_pick(cx: Scope, pick: Pick) -> Result<(), ServerFnError> {
-			let book_sub = get_book(cx, pick.book_id).await?;
+		pub async fn create_pick(pick: Pick) -> Result<(), ServerFnError> {
+			let book_sub = get_book(pick.book_id).await?;
 			match book_sub.role {
 				BookRole::Unauthorized =>
 					return Err(ServerFnError::Request("You can't make picks for a book you are not a member of".into())),
 				_ => ()
 			}
 
-			let chapter = get_chapter(cx, pick.chapter_id).await?;
+			let chapter = get_chapter(pick.chapter_id).await?;
 			if !chapter.is_open {
 				return Err(ServerFnError::Request("You're too late to make picks".into()))
 			}
 
-			let pool = pool(cx)?;
+			let pool = pool()?;
 			sqlx::query(
 				r#" INSERT INTO picks(book_id, chapter_id, event_id, user_id, choice, wager)
 					VALUES ($1, $2, $3, $4, $5, $6)
@@ -340,20 +340,20 @@ cfg_if! {
 			Ok(())
 		}
 
-		pub async fn update_pick(cx: Scope, pick: Pick) -> Result<(), ServerFnError> {
-			let book_sub = get_book(cx, pick.book_id).await?;
+		pub async fn update_pick(pick: Pick) -> Result<(), ServerFnError> {
+			let book_sub = get_book(pick.book_id).await?;
 			match book_sub.role {
 				BookRole::Unauthorized =>
 					return Err(ServerFnError::Request("You can't update picks for a book you are not a member of".into())),
 				_ => ()
 			}
 
-			let chapter = get_chapter(cx, pick.chapter_id).await?;
+			let chapter = get_chapter(pick.chapter_id).await?;
 			if	!chapter.is_open {
 				return Err(ServerFnError::Request("You're too late to update picks".into()))
 			}
 
-			let pool = pool(cx)?;
+			let pool = pool()?;
 			sqlx::query(
 				r#" UPDATE picks
 					SET choice = $1, wager = $2
@@ -372,12 +372,12 @@ cfg_if! {
 }
 
 #[server(SavePicks, "/secure")]
-pub async fn save_picks(cx: Scope, picks: Vec<Pick>) -> Result<(), ServerFnError> {
+pub async fn save_picks(picks: Vec<Pick>) -> Result<(), ServerFnError> {
 	for pick in picks {
 		if pick.id.is_some() {
-			update_pick(cx, pick).await?
+			update_pick(pick).await?
 		} else {
-			create_pick(cx, pick).await?
+			create_pick(pick).await?
 		}
 	}
 
@@ -385,8 +385,8 @@ pub async fn save_picks(cx: Scope, picks: Vec<Pick>) -> Result<(), ServerFnError
 }
 
 #[server(GetUserInputs, "/secure")]
-pub async fn get_user_inputs(cx: Scope, event_id: i64) -> Result<Vec<String>, ServerFnError> {
-	let pool = pool(cx)?;
+pub async fn get_user_inputs(event_id: i64) -> Result<Vec<String>, ServerFnError> {
+	let pool = pool()?;
 
 	let chapter_id = sqlx::query!(r#"
 		SELECT chapter_id
@@ -396,7 +396,7 @@ pub async fn get_user_inputs(cx: Scope, event_id: i64) -> Result<Vec<String>, Se
 		.fetch_one(&pool)
 		.await?.chapter_id;
 
-	if is_open(cx, chapter_id).await? {
+	if is_open(chapter_id).await? {
 		return Err(ServerFnError::Request("The chapter isn't closed yet! You can't see everyone's picks!".into()))
 	}
 
@@ -419,8 +419,8 @@ pub async fn get_user_inputs(cx: Scope, event_id: i64) -> Result<Vec<String>, Se
 }
 
 #[server(SaveAnswers, "/secure")]
-pub async fn save_answers(cx: Scope, picks: Vec<(i64, Vec<String>)>) -> Result<(), ServerFnError> {
-	let pool = pool(cx)?;
+pub async fn save_answers(picks: Vec<(i64, Vec<String>)>) -> Result<(), ServerFnError> {
+	let pool = pool()?;
 
 	let book_id = sqlx::query!(r#"
 		SELECT book_id
@@ -429,7 +429,7 @@ pub async fn save_answers(cx: Scope, picks: Vec<(i64, Vec<String>)>) -> Result<(
 	"#, picks.get(0).ok_or(ServerFnError::Args("List of picks must not be empty".into()))?.0)
 		.fetch_one(&pool)
 		.await.map_err(|_| ServerFnError::ServerError("Could not get book id".into()))?.book_id;
-	let book_sub = get_book(cx, book_id).await?;
+	let book_sub = get_book(book_id).await?;
 	match book_sub.role {
 		BookRole::Owner => (),
 	   _ => return Err(ServerFnError::Request("You can't make answers for someone else's book".into()))
@@ -454,18 +454,18 @@ pub async fn save_answers(cx: Scope, picks: Vec<(i64, Vec<String>)>) -> Result<(
 }
 
 #[server(GetChapterTable, "/secure")]
-pub async fn get_chapter_table(cx: Scope, chapter_id: i64) -> Result<String, ServerFnError> {
-	if is_open(cx, chapter_id).await? {
+pub async fn get_chapter_table(chapter_id: i64) -> Result<String, ServerFnError> {
+	if is_open(chapter_id).await? {
 		return Err(ServerFnError::Request("The chapter isn't closed yet! You can't see everyone's picks!".into()))
 	}
 
-	let events = get_events(cx, chapter_id).await?;
+	let events = get_events(chapter_id).await?;
 	let mut teams: HashMap<i64, Team> = HashMap::new();
 
 	for event in events.iter() {
 		match &event.contents {
 			EventContent::SpreadGroup(spreads) => {
-				let (home, away) = super::get_spread_teams(cx, spreads.home_id, spreads.away_id).await?;
+				let (home, away) = super::get_spread_teams(spreads.home_id, spreads.away_id).await?;
 				teams.insert(spreads.home_id, home);
 				teams.insert(spreads.away_id, away);
 			},
@@ -473,7 +473,7 @@ pub async fn get_chapter_table(cx: Scope, chapter_id: i64) -> Result<String, Ser
 		}
 	}
 
-	let table_header = view!{cx,
+	let table_header = view!{
 		<tr>
 			<th></th>
 			{
@@ -491,19 +491,19 @@ pub async fn get_chapter_table(cx: Scope, chapter_id: i64) -> Result<String, Ser
 							EventContent::UserInput(input) =>
 								input.question.clone()
 						};
-						view!{cx,
+						view!{
 							<th>
 								<h1>{description}</h1>
 							</th>
 						}
 					}
 					)
-					.collect_view(cx)
+					.collect_view()
 			}
 		</tr>
 	};
 
-	let pool = pool(cx)?;
+	let pool = pool()?;
 	let user_points: Vec<(_, _, _)> = sqlx::query!(r#"
 		SELECT u.id AS id, u.username AS username, CAST(COALESCE(p.total, 0) AS INTEGER) AS week_total
 		FROM (
@@ -550,7 +550,7 @@ pub async fn get_chapter_table(cx: Scope, chapter_id: i64) -> Result<String, Ser
 			)
 			.collect();
 
-		let view = view!{cx,
+		let view = view!{
 			<tr>
 				<td>
 					{username}
@@ -589,20 +589,20 @@ pub async fn get_chapter_table(cx: Scope, chapter_id: i64) -> Result<String, Ser
 									};
 									if let Some(correct) = correct {
 										if correct {
-											view!{cx,
+											view!{
 												<td class="bg-green-300">
 													<p class="whitespace-pre-wrap">{inner_text}</p>
 												</td>
 											}
 										} else {
-											view!{cx,
+											view!{
 												<td class="bg-red-300">
 													<p class="whitespace-pre-wrap">{inner_text}</p>
 												</td>
 											}
 										}
 									} else {
-										view!{cx,
+										view!{
 											<td>
 												<p class="whitespace-pre-wrap">{inner_text}</p>
 											</td>
@@ -611,25 +611,25 @@ pub async fn get_chapter_table(cx: Scope, chapter_id: i64) -> Result<String, Ser
 								},
 								"UserInput" =>
 									match correct {
-										Some(true) => view!{cx, <td class="bg-green-300">{choice}</td>},
-										Some(false) => view!{cx, <td class="bg-red-300">{choice}</td>},
-										None => view!{cx, <td>{choice}</td>}
+										Some(true) => view!{<td class="bg-green-300">{choice}</td>},
+										Some(false) => view!{<td class="bg-red-300">{choice}</td>},
+										None => view!{<td>{choice}</td>}
 									},
-								_ => view!{cx,
+								_ => view!{
 									<td>
 										"No table view for this pick type"
 									</td>
 								}
 							}
 						})
-						.collect_view(cx)
+						.collect_view()
 				}
 			</tr>
-		}.into_view(cx);
+		}.into_view();
 		user_rows.push(view)
 	}
 
-	let table = view!{cx,
+	let table = view!{
 		<div class="h-screen overflow-auto border border-black">
 			<table class="picktable">
 				{table_header}
@@ -637,8 +637,8 @@ pub async fn get_chapter_table(cx: Scope, chapter_id: i64) -> Result<String, Ser
 			</table>
 		</div>
 	}
-		.into_view(cx)
-		.render_to_string(cx)
+		.into_view()
+		.render_to_string()
 		.to_string();
 
 	Ok(table)

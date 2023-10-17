@@ -1,7 +1,7 @@
 use leptos::*;
 
 #[component]
-pub fn DateTimePickerTZ(cx: Scope, picker: WriteSignal<String>, initial_datetime: String) -> impl IntoView {
+pub fn DateTimePickerTZ(picker: WriteSignal<String>, initial_datetime: String) -> impl IntoView {
 
 	let change_datetime = move |ev| {
 		picker.update(|datetime| {
@@ -21,7 +21,7 @@ pub fn DateTimePickerTZ(cx: Scope, picker: WriteSignal<String>, initial_datetime
 		})
 	};
 
-	view!{cx,
+	view!{
 		<div class="grid grid-cols-2">
 			<div class="grid-cols-1">
 				<input type="datetime-local" id="timepicker" name="timepicker" value=initial_datetime on:input=change_datetime/>
@@ -34,8 +34,8 @@ pub fn DateTimePickerTZ(cx: Scope, picker: WriteSignal<String>, initial_datetime
 }
 
 #[component]
-pub fn TimezoneDropdown(cx: Scope) -> impl IntoView {
-	view! {cx,
+pub fn TimezoneDropdown() -> impl IntoView {
+	view! {
 		<select>
 			<option selected="selected" data-time-zone-id="11" data-gmt-adjustment="GMT-06:00" data-use-daylight="1" value="-06:00">"Central"</option>
 			<option data-time-zone-id="15" data-gmt-adjustment="GMT-05:00" data-use-daylight="1" value="-05:00">"Eastern"</option>

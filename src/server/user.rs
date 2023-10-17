@@ -19,14 +19,13 @@ cfg_if! {
 
 #[server(Signup, "/api")]
 pub async fn signup(
-    cx: Scope,
     username: String,
     password: String,
     password_confirmation: String,
     remember: Option<String>,
 ) -> Result<(), ServerFnError> {
-    let pool = pool(cx)?;
-    let auth = auth(cx)?;
+    let pool = pool()?;
+    let auth = auth()?;
 
     if password != password_confirmation {
         return Err(ServerFnError::ServerError(
@@ -51,20 +50,19 @@ pub async fn signup(
     auth.login_user(user.id);
     auth.remember_user(remember.is_some());
 
-    leptos_axum::redirect(cx, "/");
+    leptos_axum::redirect("/");
 
     Ok(())
 }
 
 #[server(Login, "/api")]
 pub async fn login(
-    cx: Scope,
     username: String,
     password: String,
     remember: Option<String>,
 ) -> Result<(), ServerFnError> {
-    let pool = pool(cx)?;
-    let auth = auth(cx)?;
+    let pool = pool()?;
+    let auth = auth()?;
 
     let user: BackendUser = BackendUser::get_from_username(username, &pool)
         .await
@@ -77,7 +75,7 @@ pub async fn login(
         true => {
             auth.login_user(user.id);
             auth.remember_user(remember.is_some());
-            leptos_axum::redirect(cx, "/");
+            leptos_axum::redirect("/");
             Ok(())
         }
         false => Err(ServerFnError::ServerError(
@@ -87,18 +85,18 @@ pub async fn login(
 }
 
 #[server(Logout, "/secure")]
-pub async fn logout(cx: Scope) -> Result<(), ServerFnError> {
-    let auth = auth(cx)?;
+pub async fn logout() -> Result<(), ServerFnError> {
+    let auth = auth()?;
 
     auth.logout_user();
-    leptos_axum::redirect(cx, "/");
+    leptos_axum::redirect("/");
 
     Ok(())
 }
 
 #[server(SearchUser, "/secure")]
-pub async fn search_user(cx: Scope, username: String) -> Result<Vec<FrontendUser>, ServerFnError> {
-	let pool = pool(cx)?;
+pub async fn search_user(username: String) -> Result<Vec<FrontendUser>, ServerFnError> {
+	let pool = pool()?;
 
 	let result = sqlx::query_as::<_, FrontendUser>(
 		r#"	SELECT id, username
@@ -115,29 +113,29 @@ pub async fn search_user(cx: Scope, username: String) -> Result<Vec<FrontendUser
 }
 
 #[server(GetUser, "/secure")]
-pub async fn get_user(cx: Scope) -> Result<FrontendUser, ServerFnError> {
-    let auth = auth(cx)?;
+pub async fn get_user() -> Result<FrontendUser, ServerFnError> {
+    let auth = auth()?;
     let BackendUser{ id, username, .. } = auth.current_user.unwrap();
     Ok(FrontendUser{ id, username })
 }
 
 #[server(GetUsername, "/secure")]
-pub async fn get_username(cx: Scope) -> Result<String, ServerFnError> {
-    let auth = auth(cx)?;
+pub async fn get_username() -> Result<String, ServerFnError> {
+    let auth = auth()?;
 
     Ok(auth.current_user.unwrap().username)
 }
 
 #[server(GetUserID, "/secure")]
-pub async fn get_user_id(cx: Scope) -> Result<i64, ServerFnError> {
-    let auth = auth(cx)?;
+pub async fn get_user_id() -> Result<i64, ServerFnError> {
+    let auth = auth()?;
 
     Ok(auth.current_user.unwrap().id)
 }
 
 #[server(HasPermission, "/secure")]
-pub async fn has_permission(cx: Scope, permission: String) -> Result<bool, ServerFnError> {
-    match auth(cx)? {
+pub async fn has_permission(permission: String) -> Result<bool, ServerFnError> {
+    match auth()? {
         AuthSession{current_user: Some(user), ..} => {
             Ok(user.permissions.contains(&permission))
         },
@@ -146,8 +144,8 @@ pub async fn has_permission(cx: Scope, permission: String) -> Result<bool, Serve
 }
 
 #[server(GetPermissions, "/secure")]
-pub async fn get_permissions(cx: Scope) -> Result<Vec<String>, ServerFnError> {
-    match auth(cx)? {
+pub async fn get_permissions() -> Result<Vec<String>, ServerFnError> {
+    match auth()? {
         AuthSession{current_user: Some(user), ..} => {
             Ok(user.permissions.into_iter().collect())
         },

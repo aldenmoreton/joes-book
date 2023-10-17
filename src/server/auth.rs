@@ -151,8 +151,8 @@ cfg_if! {
                 self.permissions.contains(perm)
             }
         }
-        pub fn auth(cx: Scope) -> Result<AuthSession, ServerFnError> {
-			use_context::<AuthSession>(cx)
+        pub fn auth() -> Result<AuthSession, ServerFnError> {
+			use_context::<AuthSession>()
 				.ok_or("Auth session missing.")
 				.map_err(|e| ServerFnError::ServerError(e.to_string()))
 		}

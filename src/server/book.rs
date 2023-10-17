@@ -17,9 +17,9 @@ cfg_if! {
 }
 
 #[server(GetBook, "/secure")]
-pub async fn get_book(cx: Scope, book_id: i64) -> Result<BookSubscription, ServerFnError> {
-	let user = auth(cx)?.current_user.unwrap();
-	let pool = pool(cx)?;
+pub async fn get_book(book_id: i64) -> Result<BookSubscription, ServerFnError> {
+	let user = auth()?.current_user.unwrap();
+	let pool = pool()?;
 
     let result = sqlx::query_as::<_, BookSubscription>(
 		r#"	SELECT b.id, b.name, s.role, s.user_id
@@ -38,9 +38,9 @@ pub async fn get_book(cx: Scope, book_id: i64) -> Result<BookSubscription, Serve
 }
 
 #[server(GetBooks, "/secure")]
-pub async fn get_books(cx: Scope) -> Result<Vec<BookSubscription>, ServerFnError> {
-	let user = auth(cx)?.current_user.unwrap();
-	let pool = pool(cx)?;
+pub async fn get_books() -> Result<Vec<BookSubscription>, ServerFnError> {
+	let user = auth()?.current_user.unwrap();
+	let pool = pool()?;
 
     let result = sqlx::query_as::<_, BookSubscription>(
 		r#"	SELECT b.id, b.name, s.role, s.user_id
@@ -58,11 +58,11 @@ pub async fn get_books(cx: Scope) -> Result<Vec<BookSubscription>, ServerFnError
 }
 
 #[server(AddBook, "/secure")]
-pub async fn add_book(cx: Scope, name: String) -> Result<i64, ServerFnError> {
-	if !has_permission(cx, "admin".into()).await? { return Err(ServerFnError::Request("Not permitted to create books".into())) }
+pub async fn add_book(name: String) -> Result<i64, ServerFnError> {
+	if !has_permission("admin".into()).await? { return Err(ServerFnError::Request("Not permitted to create books".into())) }
 
-	let user = auth(cx)?.current_user.unwrap();
-	let pool = pool(cx)?;
+	let user = auth()?.current_user.unwrap();
+	let pool = pool()?;
 
 	let result = sqlx::query!(
 		r#"	WITH inserted_book AS (
@@ -82,14 +82,14 @@ pub async fn add_book(cx: Scope, name: String) -> Result<i64, ServerFnError> {
 }
 
 #[server(GetBookTable, "/secure")]
-pub async fn get_book_table(cx: Scope, book_id: i64) -> Result<String, ServerFnError> {
-	let book_subscription = get_book(cx, book_id).await?;
+pub async fn get_book_table(book_id: i64) -> Result<String, ServerFnError> {
+	let book_subscription = get_book(book_id).await?;
 	match book_subscription.role {
 		BookRole::Unauthorized => return Err(ServerFnError::Request("You aren't in this book".into())),
 		_ => ()
 	}
 
-	let pool = pool(cx)?;
+	let pool = pool()?;
 	let user_points: Vec<(_, _, _)> = sqlx::query!(r#"
 		SELECT u.id AS id, u.username AS username, CAST(COALESCE(p.total, 0) AS INTEGER) AS book_total
 		FROM (
@@ -119,7 +119,7 @@ pub async fn get_book_table(cx: Scope, book_id: i64) -> Result<String, ServerFnE
 		.collect();
 
 	Ok(
-		view!{cx,
+		view!{
 			<table class="bg-white rounded-md">
 				<tr>
 					<th>"Rank"</th>
@@ -130,19 +130,19 @@ pub async fn get_book_table(cx: Scope, book_id: i64) -> Result<String, ServerFnE
 					user_points
 						.into_iter()
 						.enumerate()
-						.map(|(i, (_, username, total))| view!{cx,
+						.map(|(i, (_, username, total))| view!{
 							<tr>
 								<td><p>{i + 1}</p></td>
 								<td><p>{username}</p></td>
 								<td><p>{total}</p></td>
 							</tr>
 						})
-						.collect_view(cx)
+						.collect_view()
 				}
 			</table>
 		}
-			.into_view(cx)
-			.render_to_string(cx)
+			.into_view()
+			.render_to_string()
 			.to_string()
 	)
 }

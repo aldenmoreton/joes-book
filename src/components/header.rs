@@ -4,13 +4,10 @@ use leptos_router::{Outlet, ActionForm};
 use crate::server::Logout;
 
 #[component]
-pub fn Header(
-    cx: Scope
-) -> impl IntoView {
-	let logout = create_server_action::<Logout>(cx);
+pub fn Header() -> impl IntoView {
+	let logout = create_server_action::<Logout>();
 
-    view! {
-        cx,
+    view!{
         <div class="text-center bg-green-700">
 			<a href="/" class="justify-center text-center">
 				<button class="w-40 h-10 bg-green-500 rounded-md">"Home"</button>

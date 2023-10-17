@@ -15,14 +15,14 @@ cfg_if! {
 }
 
 #[server(MakeAdmin, "/secure")]
-pub async fn make_admin(cx:Scope, id: i64) -> Result<bool, ServerFnError> {
-	let auth = auth(cx)?;
+pub async fn make_admin(id: i64) -> Result<bool, ServerFnError> {
+	let auth = auth()?;
 	match auth.current_user {
 		Some(BackendUser { permissions, ..}) if permissions.contains("owner") => (),
 		_ => return Err(ServerFnError::Request("You can't go in there!".into()))
 	}
 
-	let pool = pool(cx)?;
+	let pool = pool()?;
 	let result = sqlx::query(
 		r#"	SELECT user_id
 					FROM user_permissions

@@ -4,24 +4,23 @@ use leptos_router::{use_params_map, Redirect};
 use crate::{server::{get_spread_teams, get_book, get_events, save_answers, get_user_inputs}, objects::{Event, EventContent, BookSubscription, BookRole, Spread, UserInput}};
 
 #[component]
-pub fn GradeChapter(cx: Scope) -> impl IntoView {
-	let params = use_params_map(cx);
+pub fn GradeChapter() -> impl IntoView {
+	let params = use_params_map();
 	let book_id:i64 = params.with_untracked(|params| params.get("book_id").cloned()).unwrap().parse::<i64>().unwrap();
 	let user_subscription = create_resource(
-		cx,
 		|| (),
 		move |_| async move {
-			get_book(cx, book_id).await
+			get_book(book_id).await
 		}
 	);
 
-	view!{cx,
+	view!{
 		<Suspense fallback=|| "Loading user data">
-			{move || user_subscription.read(cx).map(|subscription| {
+			{move || user_subscription.get().map(|subscription| {
 				match subscription {
-					Err(e) => format!("{e}").into_view(cx),
-					Ok(BookSubscription{role: BookRole::Owner, ..}) => VerifiedGradeChapter(cx).into_view(cx),
-					Ok(_) => view! { cx, <Redirect path=format!("/books/{book_id}")/> }.into_view(cx)
+					Err(e) => format!("{e}").into_view(),
+					Ok(BookSubscription{role: BookRole::Owner, ..}) => VerifiedGradeChapter().into_view(),
+					Ok(_) => view! { <Redirect path=format!("/books/{book_id}")/> }.into_view()
 				}
 			})
 			}
@@ -30,26 +29,26 @@ pub fn GradeChapter(cx: Scope) -> impl IntoView {
 }
 
 #[component]
-pub fn VerifiedGradeChapter(cx: Scope) -> impl IntoView {
-	let params = use_params_map(cx);
+pub fn VerifiedGradeChapter() -> impl IntoView {
+	let params = use_params_map();
 	let chapter_id: i64 = params.with_untracked(|params| params.get("chapter_id").cloned()).unwrap().parse::<i64>().unwrap();
 
-	let events_fetcher = create_resource(cx, move || (),
-		move |_| get_events(cx, chapter_id)
+	let events_fetcher = create_resource(move || (),
+		move |_| get_events(chapter_id)
 	);
 
-	view!{cx,
+	view!{
 		<Transition fallback=|| "Loading...">
 			<div class="flex flex-col items-center justify-center">
 				{move ||
-					events_fetcher.read(cx).map(|events| match events {
+					events_fetcher.get().map(|events| match events {
 						Err(e) => {
-							view! { cx, <pre class="error">"Server Error with event fetcher: " {e.to_string()}</pre>}.into_view(cx)
+							view! {<pre class="error">"Server Error with event fetcher: " {e.to_string()}</pre>}.into_view()
 						},
 						Ok(events) => {
-							view!{cx,
+							view!{
 								<ChapterEvents events/>
-							}.into_view(cx)
+							}.into_view()
 						}
 					})
 				}
@@ -59,28 +58,28 @@ pub fn VerifiedGradeChapter(cx: Scope) -> impl IntoView {
 }
 
 #[component]
-pub fn ChapterEvents(cx: Scope, events: Vec<Event>) -> impl IntoView {
-	let params = use_params_map(cx);
+pub fn ChapterEvents(events: Vec<Event>) -> impl IntoView {
+	let params = use_params_map();
 	let book_id: i64 = params.with_untracked(|params| params.get("book_id").cloned()).unwrap().parse::<i64>().unwrap();
 	let chapter_id: i64 = params.with_untracked(|params| params.get("chapter_id").cloned()).unwrap().parse::<i64>().unwrap();
 
-	let global_answers: RwSignal<Vec<ReadSignal<Option<(i64, Vec<String>)>>>> = create_rw_signal(cx, Vec::new());
-	provide_context(cx, global_answers);
+	let global_answers: RwSignal<Vec<ReadSignal<Option<(i64, Vec<String>)>>>> = create_rw_signal(Vec::new());
+	provide_context(global_answers);
 
 	let pick_views = events.into_iter()
 		.map(move |event| {
 			match event.contents {
-				EventContent::SpreadGroup(spread) => view!{cx,
+				EventContent::SpreadGroup(spread) => view!{
 					<SpreadGroupGrade id=event.id spread/>
-				}.into_view(cx),
-				EventContent::UserInput(input) => view!{cx,
+				}.into_view(),
+				EventContent::UserInput(input) => view!{
 					<UserInputGrade id=event.id question=input/>
-				}.into_view(cx)
+				}.into_view()
 			}
 		})
-		.collect_view(cx);
+		.collect_view();
 
-	let pick_submission = create_action(cx,
+	let pick_submission = create_action(
 		move |_| async move {
 			let picks: Vec<(i64, Vec<String>)> = global_answers
 				.get()
@@ -89,11 +88,11 @@ pub fn ChapterEvents(cx: Scope, events: Vec<Event>) -> impl IntoView {
 				.flatten()
 				.map(|answer| (answer.0, answer.1))
 				.collect();
-			save_answers(cx, picks).await
+			save_answers(picks).await
 		}
 	);
 
-	view! {cx,
+	view!{
 		{pick_views}
 		<br/>
 		{move ||
@@ -108,25 +107,25 @@ pub fn ChapterEvents(cx: Scope, events: Vec<Event>) -> impl IntoView {
 		<div class="grid items-center justify-center h-16">
 			<div class="content-center self-center justify-center w-32 h-full text-center">
 				{move || match pick_submission.pending().get() {
-					false => view!{cx, <button on:click=move |_| pick_submission.dispatch(()) class="w-full h-full text-white bg-black rounded-xl">"Submit"</button>},
-					true => view!{cx, <button disabled on:click=move |_| pick_submission.dispatch(()) class="w-full h-full text-black bg-gray-400 rounded-xl">"Pending"</button>}
+					false => view!{<button on:click=move |_| pick_submission.dispatch(()) class="w-full h-full text-white bg-black rounded-xl">"Submit"</button>},
+					true => view!{<button disabled on:click=move |_| pick_submission.dispatch(()) class="w-full h-full text-black bg-gray-400 rounded-xl">"Pending"</button>}
 				}}
 			</div>
 		</div>
 		{move || match pick_submission.value().get() {
-			None => ().into_view(cx),
-			Some(Err(e)) => format!("Error saving picks: {e}").into_view(cx),
-			Some(Ok(_)) => view!{cx, <Redirect path=format!("/books/{book_id}/chapters/{chapter_id}")/>}
+			None => ().into_view(),
+			Some(Err(e)) => format!("Error saving picks: {e}").into_view(),
+			Some(Ok(_)) => view!{<Redirect path=format!("/books/{book_id}/chapters/{chapter_id}")/>}
 		}}
 	}
 }
 
 #[component]
-pub fn SpreadGroupGrade(cx: Scope, id: i64, spread: Spread) -> impl IntoView {
-	let global_answers = use_context::<RwSignal<Vec<ReadSignal<Option<(i64, Vec<String>)>>>>>(cx)
+pub fn SpreadGroupGrade(id: i64, spread: Spread) -> impl IntoView {
+	let global_answers = use_context::<RwSignal<Vec<ReadSignal<Option<(i64, Vec<String>)>>>>>()
 		.expect("You should have access to the picks");
 
-	let spread_answer: RwSignal<Option<(i64, Vec<String>)>> = create_rw_signal(cx, None);
+	let spread_answer: RwSignal<Option<(i64, Vec<String>)>> = create_rw_signal(None);
 	global_answers.update(|answers| answers.push(spread_answer.read_only()));
 
 	let answer_setter = move |choice: &str| {
@@ -136,21 +135,21 @@ pub fn SpreadGroupGrade(cx: Scope, id: i64, spread: Spread) -> impl IntoView {
 		}
 	};
 
-	let teams_getter = create_resource(cx,
+	let teams_getter = create_resource(
 		|| (),
-		move |_| get_spread_teams(cx, spread.home_id, spread.away_id)
+		move |_| get_spread_teams(spread.home_id, spread.away_id)
 	);
 
-	view!{cx,
+	view!{
 		<div class="p-3">
 			<div class="content-center justify-center max-w-sm overflow-hidden bg-white rounded-lg shadow-lg">
-				<Suspense fallback=move || view!{cx, <p>"Loading..."</p>}>
+				<Suspense fallback=move || view!{<p>"Loading..."</p>}>
 					{
-						move || teams_getter.read(cx).map(|result| {
+						move || teams_getter.get().map(|result| {
 							match result {
-								Err(e) => format!("Could not get teams:\n{e}").into_view(cx),
+								Err(e) => format!("Could not get teams:\n{e}").into_view(),
 								Ok((home_team, away_team)) =>
-									view!{cx,
+									view!{
 										<div class="grid grid-flow-col grid-cols-2 gap-4 p-5">
 											<div class="col-span-1">
 												<h1>"Home"</h1>
@@ -175,7 +174,7 @@ pub fn SpreadGroupGrade(cx: Scope, id: i64, spread: Spread) -> impl IntoView {
 										<label for={format!("{}-push", &away_team.id)} class="inline-grid w-1/2 pt-1 pb-1 mb-3 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100">
 											<h2>"Push"</h2>
 										</label>
-									}.into_view(cx)
+									}.into_view()
 							}
 						})
 					}
@@ -187,11 +186,11 @@ pub fn SpreadGroupGrade(cx: Scope, id: i64, spread: Spread) -> impl IntoView {
 }
 
 #[component]
-pub fn UserInputGrade(cx: Scope, id: i64, question: UserInput) -> impl IntoView {
-	let global_answers = use_context::<RwSignal<Vec<ReadSignal<Option<(i64, Vec<String>)>>>>>(cx)
+pub fn UserInputGrade(id: i64, question: UserInput) -> impl IntoView {
+	let global_answers = use_context::<RwSignal<Vec<ReadSignal<Option<(i64, Vec<String>)>>>>>()
 		.expect("You should have access to the picks");
 
-	let input_answers: RwSignal<Option<(i64, Vec<String>)>> = create_rw_signal(cx, None);
+	let input_answers: RwSignal<Option<(i64, Vec<String>)>> = create_rw_signal(None);
 	global_answers.update(|answers| answers.push(input_answers.read_only()));
 
 	let answer_setter = move |add: bool, choice: &str| {
@@ -213,28 +212,28 @@ pub fn UserInputGrade(cx: Scope, id: i64, question: UserInput) -> impl IntoView 
 		}
 	};
 
-	let inputs_getter = create_resource(cx,
+	let inputs_getter = create_resource(
 		|| (),
-		move |_| get_user_inputs(cx, id)
+		move |_| get_user_inputs(id)
 	);
 	// let question_str = create_write(question.question.clone());
-	let (question_str, _) = create_signal(cx, question.question.clone());
-	view!{cx,
+	let (question_str, _) = create_signal(question.question.clone());
+	view!{
 		<div class="p-3">
 			<div class="content-center justify-center max-w-sm overflow-hidden bg-white rounded-lg shadow-lg">
 				<h1 class="mt-1">{format!("{}", question_str.get())}</h1>
-				<Suspense fallback=move || view!{cx, <p>"Loading..."</p>}>
+				<Suspense fallback=move || view!{<p>"Loading..."</p>}>
 					{move ||
-						inputs_getter.read(cx).map(|inputs| {
+						inputs_getter.get().map(|inputs| {
 							match inputs {
-								Err(e) => format!("Could not load user inputs: {e}").into_view(cx),
+								Err(e) => format!("Could not load user inputs: {e}").into_view(),
 								Ok(inputs) => {
 									inputs
 										.into_iter()
 										.enumerate()
 										.map(|(i, user_input)| {
 											let (remove_input, add_input) = (user_input.clone(), user_input.clone());
-											view!{cx,
+											view!{
 												<div class="grid grid-flow-col grid-cols-2 gap-4 p-5 border border-gray-100">
 													<h1>{&user_input}</h1>
 													<div class="col-span-1">
@@ -252,7 +251,7 @@ pub fn UserInputGrade(cx: Scope, id: i64, question: UserInput) -> impl IntoView 
 												</div>
 											}
 										})
-										.collect_view(cx)
+										.collect_view()
 								}
 							}
 						})

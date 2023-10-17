@@ -7,35 +7,34 @@ use crate::{
 };
 
 #[component]
-pub fn NewChapter(cx: Scope) -> impl IntoView {
-	let params = use_params_map(cx);
+pub fn NewChapter() -> impl IntoView {
+	let params = use_params_map();
 	let book_id:i64 = params.with_untracked(|params| params.get("book_id").cloned()).unwrap().parse::<i64>().unwrap();
 	let user_subscription = create_resource(
-		cx,
 		|| (),
 		move |_| async move {
-			get_book(cx, book_id).await
+			get_book(book_id).await
 		}
 	);
 
-	view!{cx,
+	view!{
 		<Suspense fallback=|| "Loading user data">
-			{move || match user_subscription.read(cx) {
-				Some(Ok(BookSubscription{role: BookRole::Owner, ..})) => VerifiedNewChapter(cx).into_view(cx),
-				None => ().into_view(cx),
-				_ => view! { cx, <Redirect path="/books/"/> }.into_view(cx),
+			{move || match user_subscription.get() {
+				Some(Ok(BookSubscription{role: BookRole::Owner, ..})) => VerifiedNewChapter().into_view(),
+				None => ().into_view(),
+				_ => view! { <Redirect path="/books/"/> }.into_view(),
 			}}
 		</Suspense>
 	}
 }
 
 #[component]
-pub fn VerifiedNewChapter(cx: Scope) -> impl IntoView {
-	let params = use_params_map(cx);
+pub fn VerifiedNewChapter() -> impl IntoView {
+	let params = use_params_map();
 	let book_id: i64 = params.with_untracked(|params| params.get("book_id").cloned()).unwrap().parse::<i64>().unwrap();
 
-	let title = create_rw_signal(cx, String::new());
-	let events = create_rw_signal::<Vec<(i64, EventBuilder)>>(cx, Vec::new());
+	let title = create_rw_signal(String::new());
+	let events = create_rw_signal::<Vec<(i64, EventBuilder)>>(Vec::new());
 
 	let initial_datetime = {
 		let current = chrono::Utc::now();
@@ -45,21 +44,21 @@ pub fn VerifiedNewChapter(cx: Scope) -> impl IntoView {
 		datetime
 	};
 
-	let date_time_rfc3339 = create_rw_signal(cx, format!("{initial_datetime}:00-06:00"));
+	let date_time_rfc3339 = create_rw_signal(format!("{initial_datetime}:00-06:00"));
 
-	let untracked_changes = create_rw_signal(cx, 1);
-	provide_context(cx, untracked_changes.write_only());
+	let untracked_changes = create_rw_signal(1);
+	provide_context(untracked_changes.write_only());
 
 	let add_event = move |event: &str| {
 		let new_event = match event {
 			"SpreadGroup" => {
-				let new_spread = create_rw_signal(cx, SpreadBuilder::default());
+				let new_spread = create_rw_signal(SpreadBuilder::default());
 				let new_tuple = (0, new_spread);
-				let new_group = create_rw_signal(cx, vec![new_tuple]);
+				let new_group = create_rw_signal(vec![new_tuple]);
 				EventBuilder::SpreadGroup(new_group)
 			},
 			"UserInput" => {
-				let new_input = create_rw_signal(cx, UserInputBuilder::new());
+				let new_input = create_rw_signal(UserInputBuilder::new());
 				EventBuilder::UserInput(new_input)
 			},
 			_ => panic!()
@@ -74,7 +73,7 @@ pub fn VerifiedNewChapter(cx: Scope) -> impl IntoView {
 	};
 	add_event("SpreadGroup");
 
-	let submit = create_action(cx,
+	let submit = create_action(
 		move |_| async move {
 			let built_events: Result<Vec<Vec<EventContent>>, String> = events
 				.get()
@@ -87,7 +86,7 @@ pub fn VerifiedNewChapter(cx: Scope) -> impl IntoView {
 				Err(e) => return async {Err(ServerFnError::Serialization(e))}.await
 			};
 
-			add_chapter(cx, book_id, title.get(), date_time_rfc3339.get(), built_events.into_iter().flatten().collect()).await
+			add_chapter(book_id, title.get(), date_time_rfc3339.get(), built_events.into_iter().flatten().collect()).await
 		}
 	);
 
@@ -108,53 +107,56 @@ pub fn VerifiedNewChapter(cx: Scope) -> impl IntoView {
 		})
 	};
 
-	view! {cx,
+	view!{
 		<div class="flex flex-col items-center justify-center border border-green-500">
 		// <h1>"Untracked Changes: "{move || format!("{:?}", untracked_changes.get())}</h1>
 			<h1>{move || untracked_changes.get()}</h1>
 			<input type="text" class="border border-black" placeholder="Chapter Name" on:input=change_title/>
 			<DateTimePickerTZ picker=date_time_rfc3339.write_only() initial_datetime/>
-			<For each={move || events.get()} key={|event| event.0}
-				view=move |cx, (_, event)| {
-					let event_view = move || match event {
-						EventBuilder::SpreadGroup(spreads) => view!{cx,
+			<For
+				each={move || events.get()}
+				key={|event| event.0}
+				let:event
+			>
+				{
+					let event_view = move || match event.1 {
+						EventBuilder::SpreadGroup(spreads) => view!{
 							<NewSpreadGroup spreads/>
 						},
-						EventBuilder::UserInput(input) => view!{cx,
+						EventBuilder::UserInput(input) => view!{
 							<NewUserInput input/>
 						}
 					};
 
-					view! {cx,
+					view! {
 						<div class="grid items-center">
 							{event_view}
 						</div>
 					}
-				}/>
+				}
+			</For>
 				<button on:click=move |_| add_event("UserInput") class="px-4 py-2 font-semibold text-green-700 bg-transparent border border-green-500 rounded hover:bg-green-500 hover:text-white hover:border-transparent">"Add Extra Point"</button>
 		</div>
 		<div class="p-3">
 			{move ||
 				if untracked_changes.get() > 0 {
-					view!{cx,
+					view!{
 						<button class="px-4 py-2 font-semibold text-black border border-black rounded cursor-not-allowed bg-transparen w-30">"Incomplete"</button>
-					}.into_view(cx)
+					}.into_view()
 				} else if submit.pending().get() {
-					view!{cx,
+					view!{
 						<button class="px-4 py-2 font-semibold text-black border border-black rounded cursor-not-allowed bg-transparen w-30">"Creating..."</button>
-					}.into_view(cx)
+					}.into_view()
 				} else if let Some(Ok(_new_chapter_id)) = submit.value().get() {
-					log!("/books/{}", book_id);
-					view! {cx,
+					view!{
 						<Redirect path={format!("/books/{}", book_id)}/>
-					}.into_view(cx)
-				} else if let Some(Err(e)) = submit.value().get() {
-					log!("{e:?}");
-					().into_view(cx)
+					}.into_view()
+				} else if let Some(Err(_)) = submit.value().get() {
+					().into_view()
 				} else {
-					view!{cx,
+					view!{
 						<button on:click=move |ev|{ submit.dispatch(ev) } class="px-4 py-2 font-semibold text-white bg-black border border-black rounded w-30">"Submit"</button>
-					}.into_view(cx)
+					}.into_view()
 				}
 			}
 		</div>
@@ -162,8 +164,8 @@ pub fn VerifiedNewChapter(cx: Scope) -> impl IntoView {
 }
 
 #[component]
-pub fn NewUserInput(cx: Scope, input: RwSignal<UserInputBuilder>) -> impl IntoView {
-	let total_invalid_count = use_context::<WriteSignal<i32>>(cx)
+pub fn NewUserInput(input: RwSignal<UserInputBuilder>) -> impl IntoView {
+	let total_invalid_count = use_context::<WriteSignal<i32>>()
 		.expect("Where's the invalid state counter?");
 	total_invalid_count.update(|c| *c += 1);
 
@@ -188,7 +190,7 @@ pub fn NewUserInput(cx: Scope, input: RwSignal<UserInputBuilder>) -> impl IntoVi
 		})
 	};
 
-	view!{cx,
+	view!{
 		<div class="p-3">
 			<div class="content-center justify-center max-w-sm overflow-hidden bg-white rounded-lg shadow-lg">
 				<h1>"Extra Point"</h1>
@@ -209,7 +211,7 @@ pub fn NewUserInput(cx: Scope, input: RwSignal<UserInputBuilder>) -> impl IntoVi
 }
 
 #[component]
-pub fn NewSpreadGroup(cx: Scope, spreads: RwSignal<Vec<(i64, RwSignal<SpreadBuilder>)>>) -> impl IntoView {
+pub fn NewSpreadGroup(spreads: RwSignal<Vec<(i64, RwSignal<SpreadBuilder>)>>) -> impl IntoView {
 	let add_spread = move |_| {
 		spreads.update(|spreads| {
 				let new_id = if let Some(spread) = spreads.last() {
@@ -217,22 +219,23 @@ pub fn NewSpreadGroup(cx: Scope, spreads: RwSignal<Vec<(i64, RwSignal<SpreadBuil
 				} else {
 					0
 				};
-				let new_spread = (new_id, create_rw_signal(cx, SpreadBuilder::default()));
+				let new_spread = (new_id, create_rw_signal(SpreadBuilder::default()));
 				spreads.push(new_spread)
 			}
 		);
 	};
 
-	view!{cx,
+	view!{
 		<div class="flex flex-col items-center justify-center">
 		// <h1 class="text-center">"Spread Group"</h1>
-			<For each={move || spreads.get().into_iter().enumerate()} key={|spread| spread.0}
-				view=move |cx, (i, (_, spread))| {
-					view!{cx,
-						<h2>"Spread " {i + 1}</h2>
-						<NewSpread spread/>
-					}
-				}/>
+			<For
+				each={move || spreads.get().into_iter().enumerate()}
+				key={|spread| spread.0}
+				let:spread
+			>
+				<h2>"Spread " {spread.0 + 1}</h2>
+				<NewSpread spread=spread.1.1/>
+			</For>
 			<div class="p-3">
 				<button on:click=add_spread class="px-4 py-2 font-semibold text-green-700 bg-transparent border border-green-500 rounded hover:bg-green-500 hover:text-white hover:border-transparent">"Add Spread"</button>
 			</div>
@@ -241,14 +244,14 @@ pub fn NewSpreadGroup(cx: Scope, spreads: RwSignal<Vec<(i64, RwSignal<SpreadBuil
 }
 
 #[component]
-pub fn NewSpread(cx: Scope, spread: RwSignal<SpreadBuilder>) -> impl IntoView {
-	let total_invalid_count = use_context::<WriteSignal<i32>>(cx)
+pub fn NewSpread(spread: RwSignal<SpreadBuilder>) -> impl IntoView {
+	let total_invalid_count = use_context::<WriteSignal<i32>>()
 		.expect("Where's the invalid state counter?");
 	total_invalid_count.update(|c| *c += 1);
-	let local_invalid_count = create_rw_signal(cx, 1);
+	let local_invalid_count = create_rw_signal(1);
 
-	let home_team = create_rw_signal::<Option<Team>>(cx, None);
-	let away_team = create_rw_signal::<Option<Team>>(cx, None);
+	let home_team = create_rw_signal::<Option<Team>>(None);
+	let away_team = create_rw_signal::<Option<Team>>(None);
 
 	let home_view = {move ||
 		match home_team.get() {
@@ -261,7 +264,7 @@ pub fn NewSpread(cx: Scope, spread: RwSignal<SpreadBuilder>) -> impl IntoView {
 					}
 				});
 
-				view!{cx,
+				view!{
 					<button class="hover:bg-red-700 " on:click=move |_| home_team.set(None)>
 						<div class="col-span-1">
 							<h3 class="text-center">Home</h3>
@@ -269,7 +272,7 @@ pub fn NewSpread(cx: Scope, spread: RwSignal<SpreadBuilder>) -> impl IntoView {
 							<h3 class="text-center">{new_home_team.name}</h3>
 						</div>
 					</button>
-				}.into_view(cx)
+				}.into_view()
 			},
 			None => {
 				spread.update(|s| {
@@ -280,12 +283,12 @@ pub fn NewSpread(cx: Scope, spread: RwSignal<SpreadBuilder>) -> impl IntoView {
 					s.home_id = None
 				});
 
-				view!{cx,
+				view!{
 					<div class="col-span-1">
 						<h3 class="text-center">Home</h3>
 						<TeamSelect team_selector=home_team.write_only()/>
 					</div>
-				}.into_view(cx)
+				}.into_view()
 			}
 		}
 	};
@@ -301,7 +304,7 @@ pub fn NewSpread(cx: Scope, spread: RwSignal<SpreadBuilder>) -> impl IntoView {
 					}
 				});
 
-				view!{cx,
+				view!{
 					<button class="hover:bg-red-700" on:click=move |_| away_team.set(None)>
 						<div class="col-span-1">
 							<h3 class="text-center">Away</h3>
@@ -309,7 +312,7 @@ pub fn NewSpread(cx: Scope, spread: RwSignal<SpreadBuilder>) -> impl IntoView {
 							<h3 class="text-center">{team.name}</h3>
 						</div>
 					</button>
-				}.into_view(cx)
+				}.into_view()
 			},
 			None => {
 				spread.update(|s| {
@@ -320,12 +323,12 @@ pub fn NewSpread(cx: Scope, spread: RwSignal<SpreadBuilder>) -> impl IntoView {
 					s.away_id = None;
 				});
 
-				view!{cx,
+				view!{
 					<div class="col-span-1">
 						<h3 class="text-center">Away</h3>
 						<TeamSelect team_selector=away_team.write_only()/>
 					</div>
-				}.into_view(cx)
+				}.into_view()
 			}
 		}
 	};
@@ -365,7 +368,7 @@ pub fn NewSpread(cx: Scope, spread: RwSignal<SpreadBuilder>) -> impl IntoView {
 		})
 	};
 
-	view! {cx,
+	view! {
 		<div class="content-center justify-center max-w-sm overflow-hidden bg-white rounded-lg shadow-lg">
 			<h3 class="text-right">{move || local_invalid_count.get()}</h3>
 			<div class="grid grid-flow-col grid-cols-2 gap-4 p-5">

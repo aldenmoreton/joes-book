@@ -16,7 +16,7 @@ if #[cfg(feature = "ssr")] {
     use joes_book::state::AppState;
     use joes_book::fallback::file_and_error_handler;
     use leptos_axum::{generate_route_list, LeptosRoutes, handle_server_fns_with_context};
-    use leptos::{log, view, provide_context, get_configuration};
+    use leptos::{view, provide_context, get_configuration};
     use sqlx::{PgPool, postgres::PgPoolOptions};
     use axum_session::{SessionConfig, SessionLayer, SessionStore};
     use axum_session_auth::{AuthSessionLayer, AuthConfig, SessionPgPool};
@@ -30,9 +30,9 @@ if #[cfg(feature = "ssr")] {
         request: Request<AxumBody>
     ) -> impl IntoResponse {
 
-        let response = handle_server_fns_with_context(path, headers, raw_query, move |cx| {
-            provide_context(cx, auth_session.clone());
-            provide_context(cx, app_state.pool.clone());
+        let response = handle_server_fns_with_context(path, headers, raw_query, move || {
+            provide_context(auth_session.clone());
+            provide_context(app_state.pool.clone());
         }, request).await.into_response();
 
         response
@@ -55,9 +55,9 @@ if #[cfg(feature = "ssr")] {
             path,
             headers,
             raw_query,
-            move |cx| {
-                provide_context(cx, auth_session.clone());
-                provide_context(cx, app_state.pool.clone());
+            move || {
+                provide_context(auth_session.clone());
+                provide_context(app_state.pool.clone());
             },
             request
         ).await.into_response()
@@ -73,11 +73,11 @@ if #[cfg(feature = "ssr")] {
 
         let handler = leptos_axum::render_app_to_stream_with_context(
             app_state.leptos_options.clone(),
-            move |cx| {
-                provide_context(cx, auth_session.clone());
-                provide_context(cx, app_state.pool.clone());
+            move || {
+                provide_context(auth_session.clone());
+                provide_context(app_state.pool.clone());
             },
-            |cx| view! { cx, <App/> }
+            || view!{ <App/> }
         );
 
         match (authenticated, uncontrolled_route) {
@@ -128,7 +128,7 @@ if #[cfg(feature = "ssr")] {
         let conf = get_configuration(None).await.unwrap();
         let leptos_options = conf.leptos_options;
         let addr = leptos_options.site_addr;
-        let routes = generate_route_list(|cx| view! { cx, <App/> }).await;
+        let routes = generate_route_list(|| view!{ <App/> });
 
         let app_state = AppState{
             leptos_options,
@@ -147,7 +147,7 @@ if #[cfg(feature = "ssr")] {
             .with_state(app_state);
 
         // Run App
-        log!("listening on http://{}", &addr);
+        // log!("listening on http://{}", &addr);
         axum::Server::bind(&addr)
             .serve(app.into_make_service())
             .await

@@ -11,64 +11,59 @@ use crate::{
 };
 
 #[component]
-pub fn Admin(cx: Scope) -> impl IntoView {
+pub fn Admin() -> impl IntoView {
 	let user = create_resource(
-		cx,
 		|| (),
 		move |_| async move {
-			has_permission(cx, "owner".into()).await.unwrap_or(false)
+			has_permission("owner".into()).await.unwrap_or(false)
 		}
 	);
 
-	view!{cx,
+	view!{
 		<Suspense fallback=|| "Loading user data">
-			{move || match user.read(cx) {
-				Some(true) => AdminVerified(cx).into_view(cx),
-				Some(false) => view! { cx, <Redirect path="/"/> }.into_view(cx),
-				None => ().into_view(cx),
+			{move || match user.get() {
+				Some(true) => AdminVerified().into_view(),
+				Some(false) => view! { <Redirect path="/"/> }.into_view(),
+				None => ().into_view(),
 			}}
 		</Suspense>
 	}
 }
 
 #[component]
-pub fn AdminVerified(cx: Scope) -> impl IntoView {
-	let (user, user_selector) = create_signal(cx, None);
+pub fn AdminVerified() -> impl IntoView {
+	let (user, user_selector) = create_signal(None);
 
-	let make_admin = create_server_action::<MakeAdmin>(cx);
+	let make_admin = create_server_action::<MakeAdmin>();
 
-	view! {cx,
+	view! {
 		<h1>"You must be important"</h1>
 		<UserSelect user_selector/>
 		{move ||
 			match user.get() {
-				Some(user) => view! {cx,
+				Some(user) => view! {
 					<h3>"You chose "{user.username}</h3>
 					<ActionForm action=make_admin>
 						<input type="hidden" name="id" value={user.id}/>
 						<input type="submit" value="Add admin rights"/>
 					</ActionForm>
 					<button on:click=move |_| {user_selector.set(None)}>"Deselect"</button>
-				}.into_view(cx),
-				None => ().into_view(cx)
+				}.into_view(),
+				None => ().into_view()
 			}
 		}
 	}
 }
 
 #[component]
-pub fn UserSelect(
-    cx: Scope,
-	user_selector: WriteSignal<Option<FrontendUser>>
-) -> impl IntoView {
-	let (query, set_query) = create_signal::<Option<String>>(cx, None);
+pub fn UserSelect(user_selector: WriteSignal<Option<FrontendUser>>) -> impl IntoView {
+	let (query, set_query) = create_signal::<Option<String>>(None);
 
 	let users = create_resource(
-		cx,
 		move || query.get(),
 		move |_| async move {
 			if let Some(query) = query.get_untracked() {
-				search_user(cx, query).await
+				search_user(query).await
 			} else {
 				Ok(Vec::new())
 			}
@@ -76,9 +71,8 @@ pub fn UserSelect(
 	);
 
     view! {
-        cx,
         <div>
-			<input type="text" class="border border-black bg-green-300" on:input=move |ev|{
+			<input type="text" class="bg-green-300 border border-black" on:input=move |ev|{
 				let new_query = event_target_value(&ev);
 				 if new_query.len() == 0 {
 					set_query.set(None);
@@ -86,27 +80,26 @@ pub fn UserSelect(
 					set_query.set(Some(new_query));
 				}
 			}/>
-			<Transition fallback=move || view! {cx, <p>"Loading..."</p> }>
+			<Transition fallback=move || view! { <p>"Loading..."</p> }>
                 {move || {
                     let users_list_items = {
                         move || {
-                            users.read(cx)
+                            users.get()
                                 .map(move |users| match users {
                                     Err(e) => {
-                                        view! { cx, <pre class="error">"Server Error: " {e.to_string()}</pre>}.into_view(cx)
+                                        view! { <pre class="error">"Server Error: " {e.to_string()}</pre>}.into_view()
                                     }
                                     Ok(users) => {
                                         if users.is_empty() {
-                                            ().into_view(cx)
+                                            ().into_view()
                                         } else {
                                             users
                                                 .into_iter()
                                                 .map(move |user| {
 													let user_select = user.clone();
                                                     view! {
-                                                        cx,
                                                         <li>
-															<button class="border border-black bg-gray-50 rounded-md m-1"
+															<button class="m-1 border border-black rounded-md bg-gray-50"
 																on:click=move |_| {
 																	set_query.set(None);
 																	user_selector.set(Some(user_select.clone()))
@@ -116,7 +109,7 @@ pub fn UserSelect(
                                                         </li>
                                                     }
                                                 })
-                                                .collect_view(cx)
+                                                .collect_view()
                                         }
                                     }
                                 }
@@ -125,7 +118,6 @@ pub fn UserSelect(
                     };
 
                     view! {
-                        cx,
                         <ul>
                             {users_list_items}
                         </ul>

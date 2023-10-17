@@ -4,13 +4,10 @@ use leptos_router::ActionForm;
 use crate::server::Login;
 
 #[component]
-pub fn Login(
-    cx: Scope,
-) -> impl IntoView {
-    let login = create_server_action::<Login>(cx);
+pub fn Login() -> impl IntoView {
+    let login = create_server_action::<Login>();
 
-    view! {
-        cx,
+    view!{
         <div class="flex flex-col items-center justify-center pt-10">
             <div class="w-full max-w-xs">
                 <ActionForm action=login class="px-8 pt-6 pb-8 mb-4 bg-white rounded shadow-md">
