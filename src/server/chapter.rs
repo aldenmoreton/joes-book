@@ -459,9 +459,10 @@ pub async fn get_chapter_table(cx: Scope, chapter_id: i64) -> Result<String, Ser
 						let description: String = match &event.contents {
 							EventContent::SpreadGroup(spreads) =>
 								format!(
-									"{} vs {}",
+									"{} at {}({:+})",
+									teams.get(&spreads.away_id).unwrap().name,
 									teams.get(&spreads.home_id).unwrap().name,
-									teams.get(&spreads.away_id).unwrap().name
+									spreads.home_spread
 								),
 							EventContent::UserInput(input) =>
 								input.question.clone()
@@ -495,7 +496,8 @@ pub async fn get_chapter_table(cx: Scope, chapter_id: i64) -> Result<String, Ser
 			WHERE picks.chapter_id = $1 AND picks.correct
 			GROUP BY user_id
 		) AS p
-		ON u.id = p.user_id"#,
+		ON u.id = p.user_id
+		ORDER BY week_total DESC, username"#,
 		chapter_id
 	)
 		.fetch_all(&pool)
@@ -538,14 +540,24 @@ pub async fn get_chapter_table(cx: Scope, chapter_id: i64) -> Result<String, Ser
 							match ty.as_str() {
 								"SpreadGroup" => {
 									let event_idx = events.iter().position(|x| x.id == event_id);
-									let choice = if let Some(idx) = event_idx {
+									let inner_text = if let Some(idx) = event_idx {
 										let event = match &events[idx].contents {
 											EventContent::SpreadGroup(spread) => spread,
 											_ => panic!()
 										};
 										match choice.as_str() {
-											"Home" => teams.get(&event.home_id).unwrap().name.clone(),
-											"Away" => teams.get(&event.away_id).unwrap().name.clone(),
+											"Home" =>
+												format!(
+													"{}\n{}",
+													teams.get(&event.home_id).unwrap().name.clone(),
+													wager
+												),
+											"Away" =>
+												format!(
+													"{}\n{}",
+													teams.get(&event.away_id).unwrap().name.clone(),
+													wager
+												),
 											_ => "None".into()
 										}
 									} else {
@@ -555,26 +567,20 @@ pub async fn get_chapter_table(cx: Scope, chapter_id: i64) -> Result<String, Ser
 										if correct {
 											view!{cx,
 												<td class="bg-green-300">
-													<p>{choice}</p>
-													<br/>
-													<p>{wager}</p>
+													<p class="whitespace-pre-wrap">{inner_text}</p>
 												</td>
 											}
 										} else {
 											view!{cx,
 												<td class="bg-red-300">
-													<p>{choice}</p>
-													<br/>
-													<p>{wager}</p>
+													<p class="whitespace-pre-wrap">{inner_text}</p>
 												</td>
 											}
 										}
 									} else {
 										view!{cx,
 											<td>
-												<p>{choice}</p>
-												<br/>
-												<p>{wager}</p>
+												<p class="whitespace-pre-wrap">{inner_text}</p>
 											</td>
 										}
 									}
@@ -600,8 +606,8 @@ pub async fn get_chapter_table(cx: Scope, chapter_id: i64) -> Result<String, Ser
 	}
 
 	let table = view!{cx,
-		<div class="picktable">
-			<table>
+		<div class="h-screen overflow-auto border border-black">
+			<table class="picktable">
 				{table_header}
 				{user_rows}
 			</table>

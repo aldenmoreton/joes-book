@@ -22,17 +22,19 @@ pub fn ChapterTable(cx: Scope) -> impl IntoView {
 				_ => ().into_view(cx)
 			}}
 		</Await>
-		<Transition fallback=move || "Loaading".into_view(cx)>
-			{move ||
-				table_fetcher
-					.read(cx)
-					.map(|table|
-						table
-							.map(|table|
-								view!{cx, <div inner_html=table/>}
-							)
-					)
-			}
+		<Transition fallback=move || "Loading".into_view(cx)>
+			<div>
+				{move ||
+					table_fetcher
+						.read(cx)
+						.map(|table|
+							table
+								.map(|table|
+									view!{cx, <div inner_html=table/>}
+								)
+						)
+				}
+			</div>
 		</Transition>
 	}
 }
