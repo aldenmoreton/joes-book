@@ -151,7 +151,7 @@ pub async fn set_open(cx:Scope, chapter_id: i64, new_status: bool) -> Result<(),
 	sqlx::query(r#"
 		UPDATE chapters
 		SET is_open = $1
-		WHERE chapter_id = $2
+		WHERE id = $2
 	"#)
 		.bind(new_status)
 		.bind(chapter_id)

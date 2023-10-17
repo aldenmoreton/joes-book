@@ -1,7 +1,7 @@
 use leptos::*;
 use leptos_router::{use_params_map, Redirect};
 
-use crate::{server::{get_picks, get_spread_teams, save_picks, is_open}, objects::{Event, Pick, EventContent}};
+use crate::{server::{get_picks, get_spread_teams, save_picks, is_open, set_open, get_book}, objects::{Event, Pick, EventContent, BookRole, BookSubscription}};
 
 
 #[component]
@@ -21,7 +21,15 @@ pub fn Chapter(cx: Scope) -> impl IntoView {
 		move |_| get_picks(cx, chapter_id)
 	);
 
+	let chapter_closer = create_action(cx, move |_| set_open(cx, chapter_id, false));
+
 	view!{cx,
+		<Await future=move |_| get_book(cx, book_id) bind:subscription>
+			{match subscription {
+				Ok(BookSubscription{role: BookRole::Owner, ..}) => view!{cx, <button class="bg-green-200 border border-black rounded-md" on:click=move |_| chapter_closer.dispatch(cx)>"Close Chapter"</button>}.into_view(cx),
+				_ => ().into_view(cx)
+			}}
+		</Await>
 		<Transition fallback=|| "Loading...">
 			{move ||
 				status_fetcher.read(cx).map(|status| match status {
