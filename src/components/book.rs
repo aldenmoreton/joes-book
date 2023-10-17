@@ -11,7 +11,7 @@ use crate::{
 		PromoteAdmin,
 		DemoteAdmin,
 		DeleteBook,
-		get_chapters
+		get_chapters, get_book_table
 	},
 	objects::{
 		BookRole,
@@ -62,6 +62,8 @@ pub fn VerifiedView(cx: Scope) -> impl IntoView {
 	let params = use_params_map(cx);
 	let book_id:i64 = params.with_untracked(|params| params.get("book_id").cloned()).unwrap().parse::<i64>().unwrap();
 
+	let book_table = create_resource(cx, || (), move |_| get_book_table(cx, book_id));
+
 	let chapters = create_resource(cx, || (),
 		move |_| get_chapters(cx, book_id)
 	);
@@ -78,6 +80,24 @@ pub fn VerifiedView(cx: Scope) -> impl IntoView {
 				}
 			}
 		</Await>
+		<details>
+			<summary>"Leaderboard"</summary>
+			<Transition fallback=||"Loading...">
+				<div class="flex justify-center">
+					{move||
+						book_table.read(cx).map(|book_table| match book_table {
+							Ok(book_table) => view!{cx,
+									// <div class="content-center">
+										<div inner_html=book_table/>
+									// </div>
+								}.into_view(cx),
+							Err(e) => format!("{:?}", e).into_view(cx)
+						}
+						)
+					}
+				</div>
+			</Transition>
+		</details>
 		<div class="flex flex-col items-center justify-center">
 		<Transition fallback=|| "Loading...">
 			<ul class="items-center self-center justify-center">

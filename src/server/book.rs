@@ -80,3 +80,69 @@ pub async fn add_book(cx: Scope, name: String) -> Result<i64, ServerFnError> {
 
 	Ok(result.book_id)
 }
+
+#[server(GetBookTable, "/secure")]
+pub async fn get_book_table(cx: Scope, book_id: i64) -> Result<String, ServerFnError> {
+	let book_subscription = get_book(cx, book_id).await?;
+	match book_subscription.role {
+		BookRole::Unauthorized => return Err(ServerFnError::Request("You aren't in this book".into())),
+		_ => ()
+	}
+
+	let pool = pool(cx)?;
+	let user_points: Vec<(_, _, _)> = sqlx::query!(r#"
+		SELECT u.id AS id, u.username AS username, CAST(COALESCE(p.total, 0) AS INTEGER) AS book_total
+		FROM (
+			SELECT users.id, users.username
+			FROM chapters
+			INNER JOIN subscriptions ON subscriptions.book_id = chapters.book_id
+			INNER JOIN users ON users.id = subscriptions.user_id
+			WHERE chapters.book_id = $1
+			GROUP BY users.id, users.username
+		) AS u
+		LEFT JOIN (
+			SELECT user_id, SUM(picks.wager) AS total
+			FROM picks
+			WHERE picks.book_id = $1 AND picks.correct
+			GROUP BY user_id
+		) AS p
+		ON u.id = p.user_id
+		ORDER BY book_total DESC, username"#,
+		book_id
+	)
+		.fetch_all(&pool)
+		.await?
+		.into_iter()
+		.map(|row| {
+			(row.id, row.username, row.book_total.unwrap_or(0))
+		})
+		.collect();
+
+	Ok(
+		view!{cx,
+			<table class="bg-white rounded-md">
+				<tr>
+					<th>"Rank"</th>
+					<th>"Member"</th>
+					<th>"Points"</th>
+				</tr>
+				{
+					user_points
+						.into_iter()
+						.enumerate()
+						.map(|(i, (_, username, total))| view!{cx,
+							<tr>
+								<td><p>{i + 1}</p></td>
+								<td><p>{username}</p></td>
+								<td><p>{total}</p></td>
+							</tr>
+						})
+						.collect_view(cx)
+				}
+			</table>
+		}
+			.into_view(cx)
+			.render_to_string(cx)
+			.to_string()
+	)
+}
