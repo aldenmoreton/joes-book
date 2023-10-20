@@ -77,7 +77,7 @@ pub async fn get_chapters(book_id: i64) -> Result<Vec<Chapter>, ServerFnError> {
 
 	let chapters = sqlx::query_as_unchecked!(
 		Chapter,
-		r#"	SELECT id AS chapter_id, book_id, title, is_open, TO_CHAR(closing_time, 'YYYY-MM-DD"T"HH24:MI:SS.MSZ') as closing_time
+		r#"	SELECT id AS chapter_id, book_id, title, is_open
 			FROM chapters
 			WHERE book_id = $1
 			ORDER BY created_at DESC
@@ -110,7 +110,7 @@ pub async fn get_chapter(chapter_id: i64) -> Result<Chapter, ServerFnError> {
 
 	let chapter = sqlx::query_as_unchecked!(
 		Chapter,
-		r#"	SELECT id AS chapter_id, book_id, title, is_open, TO_CHAR(closing_time, 'YYYY-MM-DD"T"HH24:MI:SS.MSZ') AS closing_time
+		r#"	SELECT id AS chapter_id, book_id, title, is_open
 			FROM chapters
 			WHERE id = $1
 		"#,
@@ -211,7 +211,7 @@ pub async fn get_events(chapter_id: i64) -> Result<Vec<Event>, ServerFnError> {
 
 
 	let events = sqlx::query_as::<_, Event>(
-		r#"	SELECT id, book_id, chapter_id, contents, event_type, is_open, TO_CHAR(closing_time, 'YYYY-MM-DD"T"HH24:MI:SS.MSZ') AS closing_time
+		r#"	SELECT id, book_id, chapter_id, contents, event_type, is_open
 			FROM events
 			WHERE chapter_id = $1
 			ORDER BY event_type, id
@@ -244,7 +244,7 @@ pub async fn get_pick(event_id: i64) -> Result<Pick, ServerFnError> {
 		Some(pick) => pick,
 		None => {
 			let event = sqlx::query_as::<_, Event>(
-				r#"	SELECT id, book_id, chapter_id, contents, event_type, is_open, TO_CHAR(closing_time, 'YYYY-MM-DD"T"HH24:MI:SS.MSZ') AS closing_time
+				r#"	SELECT id, book_id, chapter_id, contents, event_type, is_open
 					FROM events
 					WHERE id = $1
 				"#

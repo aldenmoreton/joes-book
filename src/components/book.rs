@@ -112,17 +112,13 @@ pub fn VerifiedView() -> impl IntoView {
 									chapters
 										.into_iter()
 										.map(move |chapter| {
-											let gods_time: String = {
-												let utc = chrono::DateTime::parse_from_rfc3339(&chapter.closing_time).unwrap();
-												let local = utc + chrono::Duration::hours(-6);
-												format!("{}", local.format("%B %d, %Y %H:%M%p"))
-											};
 											view!{
 												<li class="p-3 h-30 w-60">
 													<a href=format!("/books/{book_id}/chapters/{}", chapter.chapter_id)>
 														<div class="content-center justify-center max-w-sm overflow-hidden bg-white rounded-lg shadow-lg">
+															<br/>
 															<p>{chapter.title}</p>
-															<p>"Deadline:"<br/>{gods_time}</p>
+															<br/>
 														</div>
 													</a>
 												</li>

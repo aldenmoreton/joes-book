@@ -6,6 +6,5 @@ CREATE TABLE IF NOT EXISTS events (
 	event_type		TEXT NOT NULL,
 	contents		TEXT NOT NULL,
 	answer			TEXT DEFAULT NULL,
-	closing_time	TIMESTAMPTZ DEFAULT NULL,
 	created_at 		TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

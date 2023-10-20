@@ -11,8 +11,7 @@ pub struct Chapter {
 	pub chapter_id: i64,
 	pub book_id: i64,
 	pub is_open: bool,
-	pub title: String,
-	pub closing_time: String
+	pub title: String
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -22,8 +21,7 @@ pub struct Event {
 	pub chapter_id: i64,
 	pub is_open: bool,
 	pub event_type: String,
-	pub contents: EventContent,
-	pub closing_time: String
+	pub contents: EventContent
 }
 
 cfg_if! {
@@ -44,7 +42,6 @@ cfg_if! {
 					chapter_id: row.try_get("chapter_id")?,
 					is_open: row.try_get("is_open")?,
 					event_type: row.try_get("event_type")?,
-					closing_time: row.try_get("closing_time")?,
 					contents
 				})
 			}
