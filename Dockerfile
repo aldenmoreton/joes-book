@@ -1,4 +1,5 @@
 FROM rust:alpine3.18 AS builder
+
 WORKDIR /build
 
 RUN apk update && \
@@ -8,6 +9,7 @@ RUN apk update && \
 # RUN rustup default nightly
 RUN rustup target add wasm32-unknown-unknown
 
+# RUN curl --proto '=https' --tlsv1.2 -LsSf https://github.com/leptos-rs/cargo-leptos/releases/download/0.2.0/cargo-leptos-installer.sh | sh
 RUN cargo install --locked cargo-leptos
 
 COPY . .
@@ -16,6 +18,7 @@ RUN cargo leptos build --release -vv
 
 
 FROM alpine:3.18 AS runner
+
 WORKDIR /var/www/app
 
 RUN addgroup -S server && \

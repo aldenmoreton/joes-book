@@ -115,8 +115,9 @@ if #[cfg(feature = "ssr")] {
         sqlx::query_file!("migrations/picks.sql").execute(&pool).await.ok();
 
         let auth_config = AuthConfig::<i64>::default();
-        let session_store = SessionStore::<SessionPgPool>::new(Some(pool.clone().into()), session_config);
-        session_store.initiate().await.unwrap();
+        let session_store = SessionStore::<SessionPgPool>::new(Some(pool.clone().into()), session_config)
+            .await
+            .expect("Could not create session store");
 
         BackendUser::add_to_db(
             std::env::var("OWNER_USERNAME").expect("Unable to read OWNER_USERNAME env var"),

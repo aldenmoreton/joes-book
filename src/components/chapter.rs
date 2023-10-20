@@ -141,7 +141,7 @@ pub fn ChapterEvents(initial_values: Vec<(String, Vec<(Event, Pick)>)>) -> impl 
 							}.into_view()
 						},
 						None => {
-							view!{c
+							view!{
 								<a href={format!("/books/{}", book_id)}>
 									<button class="bg-green-500 border border-black rounded-md">
 										<h1>"Current Picks are Saved"</h1>

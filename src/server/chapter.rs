@@ -32,13 +32,12 @@ pub async fn add_chapter(book_id: i64, title: String, closing_time: String, even
 
 	let pool = pool()?;
 	let chapter_id = sqlx::query!(
-		r#"	INSERT INTO chapters (title, book_id, is_open, closing_time)
-			VALUES ($1, $2, $3, $4)
+		r#"	INSERT INTO chapters (title, book_id, is_open)
+			VALUES ($1, $2, $3)
 			RETURNING id"#,
 			title,
 			book_id,
-			true,
-			closing_time
+			true
 	)
 		.fetch_one(&pool)
 		.await?.id;
@@ -50,8 +49,8 @@ pub async fn add_chapter(book_id: i64, title: String, closing_time: String, even
 			EventContent::UserInput(_) => "UserInput"
 		};
 		sqlx::query(
-			r#"	INSERT INTO events (book_id, chapter_id, is_open, event_type, contents, closing_time)
-				VALUES ($1, $2, $3, $4, $5, $6)
+			r#"	INSERT INTO events (book_id, chapter_id, is_open, event_type, contents)
+				VALUES ($1, $2, $3, $4, $5)
 			"#
 		)
 			.bind(book_id)
@@ -59,7 +58,6 @@ pub async fn add_chapter(book_id: i64, title: String, closing_time: String, even
 			.bind(true)
 			.bind(event_type)
 			.bind(contents)
-			.bind(closing_time)
 			.execute(&pool)
 			.await?;
 	}
