@@ -14,7 +14,7 @@ cfg_if! {
 	}
 }
 
-#[server(MakeAdmin, "/secure")]
+#[server(MakeAdmin, "/secure", "Url", "make_admin")]
 pub async fn make_admin(id: i64) -> Result<bool, ServerFnError> {
 	let auth = auth()?;
 	match auth.current_user {

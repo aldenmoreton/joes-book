@@ -151,6 +151,8 @@ cfg_if! {
                 self.permissions.contains(perm)
             }
         }
+
+        #[inline(always)]
         pub fn auth() -> Result<AuthSession, ServerFnError> {
 			use_context::<AuthSession>()
 				.ok_or("Auth session missing.")

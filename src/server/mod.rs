@@ -20,6 +20,7 @@ cfg_if! {
 
 		use crate::objects::BackendUser;
 
+		#[inline(always)]
 		pub fn pool() -> Result<PgPool, ServerFnError> {
 		   use_context::<PgPool>()
 				.ok_or("Pool missing.")

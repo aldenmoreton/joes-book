@@ -16,7 +16,7 @@ cfg_if! {
 	}
 }
 
-#[server(GetBook, "/secure")]
+#[server(GetBook, "/secure", "Url", "get_book")]
 pub async fn get_book(book_id: i64) -> Result<BookSubscription, ServerFnError> {
 	let user = auth()?.current_user.unwrap();
 	let pool = pool()?;
@@ -37,7 +37,7 @@ pub async fn get_book(book_id: i64) -> Result<BookSubscription, ServerFnError> {
 	Ok(result)
 }
 
-#[server(GetBooks, "/secure")]
+#[server(GetBooks, "/secure", "Url", "get_books")]
 pub async fn get_books() -> Result<Vec<BookSubscription>, ServerFnError> {
 	let user = auth()?.current_user.unwrap();
 	let pool = pool()?;
@@ -57,7 +57,7 @@ pub async fn get_books() -> Result<Vec<BookSubscription>, ServerFnError> {
 	Ok(result)
 }
 
-#[server(AddBook, "/secure")]
+#[server(AddBook, "/secure", "Url", "add_book")]
 pub async fn add_book(name: String) -> Result<i64, ServerFnError> {
 	if !has_permission("admin".into()).await? { return Err(ServerFnError::Request("Not permitted to create books".into())) }
 
@@ -81,7 +81,7 @@ pub async fn add_book(name: String) -> Result<i64, ServerFnError> {
 	Ok(result.book_id)
 }
 
-#[server(GetBookTable, "/secure")]
+#[server(GetBookTable, "/secure", "Url", "get_book_table")]
 pub async fn get_book_table(book_id: i64) -> Result<String, ServerFnError> {
 	let book_subscription = get_book(book_id).await?;
 	match book_subscription.role {

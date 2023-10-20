@@ -17,7 +17,7 @@ cfg_if! {
 	}
 }
 
-#[server(Signup, "/api")]
+#[server(Signup, "/api", "Url", "signup")]
 pub async fn signup(
     username: String,
     password: String,
@@ -55,7 +55,7 @@ pub async fn signup(
     Ok(())
 }
 
-#[server(Login, "/api")]
+#[server(Login, "/api", "Url", "login")]
 pub async fn login(
     username: String,
     password: String,
@@ -84,7 +84,7 @@ pub async fn login(
     }
 }
 
-#[server(Logout, "/secure")]
+#[server(Logout, "/secure", "Url", "logout")]
 pub async fn logout() -> Result<(), ServerFnError> {
     let auth = auth()?;
 
@@ -94,7 +94,7 @@ pub async fn logout() -> Result<(), ServerFnError> {
     Ok(())
 }
 
-#[server(SearchUser, "/secure")]
+#[server(SearchUser, "/secure", "Url", "search_user")]
 pub async fn search_user(username: String) -> Result<Vec<FrontendUser>, ServerFnError> {
 	let pool = pool()?;
 
@@ -112,28 +112,28 @@ pub async fn search_user(username: String) -> Result<Vec<FrontendUser>, ServerFn
 	Ok(result)
 }
 
-#[server(GetUser, "/secure")]
+#[server(GetUser, "/secure", "Url", "get_user")]
 pub async fn get_user() -> Result<FrontendUser, ServerFnError> {
     let auth = auth()?;
     let BackendUser{ id, username, .. } = auth.current_user.unwrap();
     Ok(FrontendUser{ id, username })
 }
 
-#[server(GetUsername, "/secure")]
+#[server(GetUsername, "/secure", "Url", "get_username")]
 pub async fn get_username() -> Result<String, ServerFnError> {
     let auth = auth()?;
 
     Ok(auth.current_user.unwrap().username)
 }
 
-#[server(GetUserID, "/secure")]
+#[server(GetUserID, "/secure", "Url", "get_user_id")]
 pub async fn get_user_id() -> Result<i64, ServerFnError> {
     let auth = auth()?;
 
     Ok(auth.current_user.unwrap().id)
 }
 
-#[server(HasPermission, "/secure")]
+#[server(HasPermission, "/secure", "Url", "has_permission")]
 pub async fn has_permission(permission: String) -> Result<bool, ServerFnError> {
     match auth()? {
         AuthSession{current_user: Some(user), ..} => {
@@ -143,7 +143,7 @@ pub async fn has_permission(permission: String) -> Result<bool, ServerFnError> {
     }
 }
 
-#[server(GetPermissions, "/secure")]
+#[server(GetPermissions, "/secure", "Url", "get_permissions")]
 pub async fn get_permissions() -> Result<Vec<String>, ServerFnError> {
     match auth()? {
         AuthSession{current_user: Some(user), ..} => {

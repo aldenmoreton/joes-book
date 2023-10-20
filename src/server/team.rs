@@ -9,7 +9,7 @@ cfg_if! {
 	}
 }
 
-#[server(GetTeam, "/secure")]
+#[server(GetTeam, "/secure", "Url", "get_team")]
 pub async fn get_team(id: i64) -> Result<Team, ServerFnError> {
     let pool = pool()?;
 
@@ -25,12 +25,12 @@ pub async fn get_team(id: i64) -> Result<Team, ServerFnError> {
     Ok(result)
 }
 
-#[server(GetSpreadTeams, "/secure")]
+#[server(GetSpreadTeams, "/secure", "Url", "get_spread_teams")]
 pub async fn get_spread_teams(home_id: i64, away_id: i64) -> Result<(Team, Team), ServerFnError> {
     Ok((get_team(home_id).await?, get_team(away_id).await?))
 }
 
-#[server(SearchTeam, "/secure")]
+#[server(SearchTeam, "/secure", "Url", "search_team")]
 pub async fn search_team(name: String) -> Result<Vec<Team>, ServerFnError> {
     let pool = pool()?;
 

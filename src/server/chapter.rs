@@ -15,7 +15,7 @@ cfg_if! {
 	}
 }
 
-#[server(AddChapter, "/secure")]
+#[server(AddChapter, "/secure", "Url", "add_chapter")]
 pub async fn add_chapter(book_id: i64, title: String, closing_time: String, events: Vec<EventContent>) -> Result<i64, ServerFnError> {
 	let book_sub = get_book(book_id).await?;
 
@@ -65,7 +65,7 @@ pub async fn add_chapter(book_id: i64, title: String, closing_time: String, even
 	Ok(chapter_id)
 }
 
-#[server(GetChapters, "/secure")]
+#[server(GetChapters, "/secure", "Url", "get_chapters")]
 pub async fn get_chapters(book_id: i64) -> Result<Vec<Chapter>, ServerFnError> {
 	let book_subscription = get_book(book_id).await?;
 	match book_subscription.role {
@@ -91,7 +91,7 @@ pub async fn get_chapters(book_id: i64) -> Result<Vec<Chapter>, ServerFnError> {
 	Ok(chapters)
 }
 
-#[server(GetChapter, "/secure")]
+#[server(GetChapter, "/secure", "Url", "get_chapter")]
 pub async fn get_chapter(chapter_id: i64) -> Result<Chapter, ServerFnError> {
 	let pool = pool()?;
 
@@ -129,7 +129,7 @@ pub async fn get_chapter(chapter_id: i64) -> Result<Chapter, ServerFnError> {
 	Ok(chapter)
 }
 
-#[server(SetOpen, "/secure")]
+#[server(SetOpen, "/secure", "Url", "set_open")]
 pub async fn set_open(chapter_id: i64, new_status: bool) -> Result<(), ServerFnError> {
 	let pool = pool()?;
 
@@ -159,7 +159,7 @@ pub async fn set_open(chapter_id: i64, new_status: bool) -> Result<(), ServerFnE
 	Ok(())
 }
 
-#[server(IsOpen, "/secure")]
+#[server(IsOpen, "/secure", "Url", "is_open")]
 pub async fn is_open(chapter_id: i64) -> Result<bool, ServerFnError> {
 	let pool = pool()?;
 
@@ -187,7 +187,7 @@ pub async fn is_open(chapter_id: i64) -> Result<bool, ServerFnError> {
 	Ok(status)
 }
 
-#[server(GetEvents, "/secure")]
+#[server(GetEvents, "/secure", "Url", "get_events")]
 pub async fn get_events(chapter_id: i64) -> Result<Vec<Event>, ServerFnError> {
 	let pool = pool()?;
 
@@ -224,7 +224,7 @@ pub async fn get_events(chapter_id: i64) -> Result<Vec<Event>, ServerFnError> {
 	Ok(events)
 }
 
-#[server(GetPick, "/secure")]
+#[server(GetPick, "/secure", "Url", "get_pick")]
 pub async fn get_pick(event_id: i64) -> Result<Pick, ServerFnError> {
 	let user = auth()?.current_user.unwrap();
 	let pool = pool()?;
@@ -275,7 +275,7 @@ pub async fn get_pick(event_id: i64) -> Result<Pick, ServerFnError> {
 	Ok(pick)
 }
 
-#[server(GetPicks, "/secure")]
+#[server(GetPicks, "/secure", "Url", "get_picks")]
 pub async fn get_picks(chapter_id: i64) -> Result<Vec<(String, Vec<(Event, Pick)>)>, ServerFnError> {
 	let events = get_events(chapter_id)
 		.await
@@ -369,7 +369,7 @@ cfg_if! {
 	}
 }
 
-#[server(SavePicks, "/secure")]
+#[server(SavePicks, "/secure", "Url", "save_picks")]
 pub async fn save_picks(picks: Vec<Pick>) -> Result<(), ServerFnError> {
 	for pick in picks {
 		if pick.id.is_some() {
@@ -382,7 +382,7 @@ pub async fn save_picks(picks: Vec<Pick>) -> Result<(), ServerFnError> {
 	Ok(())
 }
 
-#[server(GetUserInputs, "/secure")]
+#[server(GetUserInputs, "/secure", "Url", "get_user_inputs")]
 pub async fn get_user_inputs(event_id: i64) -> Result<Vec<String>, ServerFnError> {
 	let pool = pool()?;
 
@@ -416,7 +416,7 @@ pub async fn get_user_inputs(event_id: i64) -> Result<Vec<String>, ServerFnError
 	)
 }
 
-#[server(SaveAnswers, "/secure")]
+#[server(SaveAnswers, "/secure", "Url", "save_answers")]
 pub async fn save_answers(picks: Vec<(i64, Vec<String>)>) -> Result<(), ServerFnError> {
 	let pool = pool()?;
 
@@ -451,7 +451,7 @@ pub async fn save_answers(picks: Vec<(i64, Vec<String>)>) -> Result<(), ServerFn
 	Ok(())
 }
 
-#[server(GetChapterTable, "/secure")]
+#[server(GetChapterTable, "/secure", "Url", "get_chapter_table")]
 pub async fn get_chapter_table(chapter_id: i64) -> Result<String, ServerFnError> {
 	if is_open(chapter_id).await? {
 		return Err(ServerFnError::Request("The chapter isn't closed yet! You can't see everyone's picks!".into()))
