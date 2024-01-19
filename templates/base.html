@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>{% block title %}{{ title }}{% endblock %}</title>
+	<link rel="icon" type_="image/ico" href="/public/favicon.ico"/>
+	<link rel="manifest" href="/public/manifest.json"/>
+	<link rel="stylesheet" id="tailwind" href="/public/output.css"/>
+    {% block head %}{% endblock %}
+  </head>
+  <body class="justify-center text-center bg-green-50">
+    <div id="content">
+      {% block content %}<p>Placeholder content</p>{% endblock %}
+    </div>
+  </body>
+</html>

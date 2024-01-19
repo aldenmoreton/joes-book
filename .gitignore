@@ -23,3 +23,8 @@ migration.ipynb
 .env
 objects.ipynb
 fly.toml
+
+
+# Added by cargo
+
+/target
