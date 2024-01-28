@@ -15,7 +15,7 @@ pub struct AppState {
 #[tokio::main]
 async fn main() {
     dotenvy::dotenv().expect("Could not get ENV VARS using dotenvy");
-    let database_url = std::env::var("DATABASE_URL").expect("Unable to read DATABASE_URL ENV VAR");
+    let database_url = std::env::var("DATABASE_URL").expect("Unable to read DATABASE_URL ENV");
 
     let pool = PgPoolOptions::new()
         .connect(&database_url)
@@ -29,11 +29,10 @@ async fn main() {
     let backend = BackendPgDB(pool.clone());
     println!("Adding root user");
     let res = backend.signup("owner", "123").await;
-    println!("{res:?}");
     if res.is_ok() {
-        println!("Root user already added")
-    } else {
         println!("Root user added successfully")
+    } else {
+        println!("Root user already added")
     }
 
     let session_store = PostgresStore::new(pool);

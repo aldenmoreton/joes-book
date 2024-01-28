@@ -5,15 +5,15 @@ use serde::Deserialize;
 
 #[derive(Clone, Debug)]
 pub struct BackendUser {
-	id: i64,
-	username: String,
-	pw_hash: String
+	pub id: i64,
+	pub username: String,
+	pub pw_hash: String
 }
 
 #[derive(Deserialize)]
 pub struct LoginCreds {
-    username: String,
-    password: String
+    pub username: String,
+    pub password: String
 }
 
 impl AuthUser for BackendUser {
@@ -115,8 +115,8 @@ pub mod authz {
     use axum::{extract::Request, middleware::Next, response::IntoResponse};
 
 	pub async fn is_member(
-		request: Request,
-		next: Next
+		_request: Request,
+		_next: Next
 	) -> impl IntoResponse {
 		todo!()
 	}

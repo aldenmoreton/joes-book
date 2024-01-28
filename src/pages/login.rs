@@ -14,8 +14,14 @@ pub fn router() -> Router {
 #[template(path = "login.html")]
 struct Login;
 
-async fn login_page() -> impl IntoResponse {
-	Login{}
+async fn login_page(
+	auth_session: AuthSession<BackendPgDB>
+) -> impl IntoResponse {
+	if auth_session.user.is_some() {
+		return Redirect::to("/").into_response()
+	}
+
+	Login{}.into_response()
 }
 
 #[derive(Debug, Deserialize)]
