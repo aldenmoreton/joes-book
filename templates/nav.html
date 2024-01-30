@@ -1,5 +1,6 @@
-{% extends "base.html" %}
-
-{% block content %}
+<nav>
 	<p>This is the nav bar</p>
-{% endblock %}
+	<button hx-post="/logout">Logout</button>
+	<p hx-get="/nav/user" hx-target="this" hx-trigger="load">Sample</p>
+	<hr/>
+</nav>

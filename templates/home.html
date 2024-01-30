@@ -1,8 +1,8 @@
-{% extends "nav.html" %}
+{% extends "base.html" %}
 
 {% block title %}Login{% endblock %}
 
 {% block content %}
-	{% call super() %}
+	{% include "nav.html" %}
 	<p>I am the home page</p>
 {% endblock %}

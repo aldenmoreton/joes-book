@@ -1,5 +1,5 @@
-use axum::async_trait;
-use axum_login::{AuthnBackend, UserId, AuthUser};
+use axum::{async_trait, response::IntoResponse};
+use axum_login::{AuthSession, AuthUser, AuthnBackend, UserId};
 use sqlx::PgPool;
 use serde::Deserialize;
 
@@ -109,6 +109,13 @@ impl AuthnBackend for BackendPgDB {
                 )
             )
     }
+}
+
+pub async fn logout(mut auth_session: AuthSession<BackendPgDB>) -> impl IntoResponse {
+    let res = auth_session.logout().await;
+    println!("{res:?}");
+
+    [("HX-Redirect", "/login")]
 }
 
 pub mod authz {

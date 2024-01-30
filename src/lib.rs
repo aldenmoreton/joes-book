@@ -6,3 +6,7 @@ pub mod pages {
 	pub mod signup;
 	pub mod book;
 }
+
+pub mod components {
+	pub mod nav;
+}

@@ -1,5 +1,5 @@
 use askama::Template;
-use axum::{Router, routing::get, response::IntoResponse};
+use axum::{response::IntoResponse, routing::get, Router};
 
 pub fn router() -> Router {
 	Router::new()
@@ -10,6 +10,6 @@ pub fn router() -> Router {
 #[template(path = "home.html")]
 struct Home;
 
-async fn home() -> impl IntoResponse {
+pub async fn home() -> impl IntoResponse {
 	Home{}
 }
