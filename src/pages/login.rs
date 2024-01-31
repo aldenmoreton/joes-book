@@ -1,9 +1,8 @@
 use askama::Template;
 use serde::Deserialize;
-use axum_login::AuthSession;
 use axum::{response::{IntoResponse, Redirect}, Router, routing::get, extract::Query, Form, http::{HeaderMap, Uri, StatusCode}};
 
-use crate::auth::{BackendPgDB, LoginCreds};
+use crate::auth::{AuthSession, LoginCreds};
 
 pub fn router() -> Router {
 	Router::new()
@@ -15,7 +14,7 @@ pub fn router() -> Router {
 struct Login;
 
 async fn login_page(
-	auth_session: AuthSession<BackendPgDB>
+	auth_session: AuthSession
 ) -> impl IntoResponse {
 	if auth_session.user.is_some() {
 		return Redirect::to("/").into_response()
@@ -32,7 +31,7 @@ struct RedirectPath {
 type RedirectQuery = Query<RedirectPath>;
 
 async fn login_form(
-	mut auth_session: AuthSession<BackendPgDB>,
+	mut auth_session: AuthSession,
 	headers: HeaderMap,
 	Form(creds): Form<LoginCreds>,
 ) -> impl IntoResponse {

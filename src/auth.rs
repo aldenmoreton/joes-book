@@ -1,7 +1,9 @@
 use axum::{async_trait, response::IntoResponse};
-use axum_login::{AuthSession, AuthUser, AuthnBackend, UserId};
+use axum_login::{AuthSession as AxumLoginAuthSession, AuthUser, AuthnBackend, UserId};
 use sqlx::PgPool;
 use serde::Deserialize;
+
+pub type AuthSession = AxumLoginAuthSession<BackendPgDB>;
 
 #[derive(Clone, Debug)]
 pub struct BackendUser {
@@ -111,7 +113,7 @@ impl AuthnBackend for BackendPgDB {
     }
 }
 
-pub async fn logout(mut auth_session: AuthSession<BackendPgDB>) -> impl IntoResponse {
+pub async fn logout(mut auth_session: self::AuthSession) -> impl IntoResponse {
     let res = auth_session.logout().await;
     println!("{res:?}");
 
@@ -119,12 +121,29 @@ pub async fn logout(mut auth_session: AuthSession<BackendPgDB>) -> impl IntoResp
 }
 
 pub mod authz {
-    use axum::{extract::Request, middleware::Next, response::IntoResponse};
+    use axum::{extract::{Path, Request}, http::StatusCode, middleware::Next, response::IntoResponse};
+
+    use crate::objects::book::{get_book, BookRole, BookSubscription};
+
+    use super::{AuthSession, BackendPgDB};
 
 	pub async fn is_member(
-		_request: Request,
-		_next: Next
+        Path(book_id): Path<i64>,
+		auth_session: AuthSession,
+        request: Request,
+		next: Next
 	) -> impl IntoResponse {
-		todo!()
+        let Some(user) = auth_session.user else {
+            return StatusCode::UNAUTHORIZED.into_response()
+        };
+        let BackendPgDB(pool) = auth_session.backend;
+
+        match get_book(user, book_id, &pool).await {
+            Ok(BookSubscription{role: BookRole::Unauthorized, ..}) => return StatusCode::UNAUTHORIZED.into_response(),
+            Err(_) => return StatusCode::NOT_FOUND.into_response(),
+            _ => ()
+        }
+
+        next.run(request).await.into_response()
 	}
 }

@@ -4,6 +4,7 @@ use maud::html;
 
 use crate::auth::BackendPgDB;
 
+// TODO: Change this, put it somewhere else
 pub fn router() -> Router {
 	Router::new()
 		.route("/user", get(user))
