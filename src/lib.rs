@@ -9,4 +9,5 @@ pub mod pages {
 
 pub mod components {
 	pub mod nav;
+	pub mod book_list;
 }

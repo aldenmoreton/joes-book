@@ -5,4 +5,6 @@
 {% block content %}
 	{% include "nav.html" %}
 	<p>I am the home page</p>
+	<h3>Your Books</h3>
+	<div hx-get="/home/books" hx-trigger="load" hx-target="this"></div>
 {% endblock %}

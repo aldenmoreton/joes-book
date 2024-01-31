@@ -21,19 +21,19 @@ async fn main() {
         .connect(&database_url)
         .await
         .expect("Could not make pool.");
-    println!("Migrating DB...");
-    migrate(&pool).await;
-    println!("DB Migrated");
+    // println!("Migrating DB...");
+    // migrate(&pool).await;
+    // println!("DB Migrated");
 
 
     let backend = BackendPgDB(pool.clone());
-    println!("Adding root user");
-    let res = backend.signup("owner", "123").await;
-    if res.is_ok() {
-        println!("Root user added successfully")
-    } else {
-        println!("Root user already added")
-    }
+    // println!("Adding root user");
+    // let res = backend.signup("owner", "123").await;
+    // if res.is_ok() {
+    //     println!("Root user added successfully")
+    // } else {
+    //     println!("Root user already added")
+    // }
 
     let session_store = PostgresStore::new(pool);
     session_store.migrate().await.expect("Could not migrate database");
