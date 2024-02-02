@@ -1,6 +1,7 @@
 <nav>
-	<p>This is the nav bar</p>
+	<a href="/"><p>Home</p></a>
 	<button hx-post="/logout">Logout</button>
-	<p hx-get="/nav/user" hx-target="this" hx-trigger="load">Sample</p>
+	<p>{{ username }}</p>
+	<!-- <p hx-get="/nav/user" hx-target="this" hx-trigger="load">{{ username }}</p> -->
 	<hr/>
 </nav>

@@ -4,7 +4,7 @@ use axum::response::IntoResponse;
 use crate::{auth::{AuthSession, BackendPgDB}, objects::book::{get_books, BookSubscription}};
 
 #[derive(Template)]
-#[template(path = "book_list.html")]
+#[template(path = "components/book_list.html")]
 pub struct BookList {
 	books: Vec<BookSubscription>
 }

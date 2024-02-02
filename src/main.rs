@@ -44,7 +44,7 @@ async fn main() {
         .build();
 
     let app = Router::new()
-        .nest("/book/:id", pages::book::router())
+        .nest("/book", pages::book::router())
         .route_layer(middleware::from_fn(authz::is_member))
         .nest("/nav", components::nav::router())
         .nest("/home", pages::home::router())
@@ -68,7 +68,7 @@ async fn main() {
     ()
 }
 
-async fn migrate(pool: &PgPool) {
+async fn _migrate(pool: &PgPool) {
     sqlx::query_file!("migrations/users.sql").execute(pool).await.ok();
     sqlx::query_file!("migrations/user_permissions.sql").execute(pool).await.ok();
     sqlx::query_file!("migrations/todos.sql").execute(pool).await.ok();

@@ -10,7 +10,7 @@ pub fn router() -> Router {
 }
 
 #[derive(Template)]
-#[template(path = "login.html")]
+#[template(path = "pages/login.html")]
 struct Login;
 
 async fn login_page(

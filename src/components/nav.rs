@@ -1,21 +1,22 @@
+use askama::Template;
 use axum::{response::IntoResponse, routing::get, Router};
-use axum_login::AuthSession;
-use maud::html;
 
-use crate::auth::BackendPgDB;
+use crate::auth::AuthSession;
 
 // TODO: Change this, put it somewhere else
 pub fn router() -> Router {
 	Router::new()
-		.route("/user", get(user))
+		.route("/", get(user))
 }
 
-async fn user(auth_session: AuthSession<BackendPgDB>) -> impl IntoResponse {
+#[derive(Template)]
+#[template(path = "nav.html")]
+struct Nav {
+	username: String
+}
+
+async fn user(auth_session: AuthSession) -> impl IntoResponse {
 	let username = auth_session.user.unwrap().username;
 
-	html!{
-		p {
-			(username)
-		}
-	}
+	Nav { username }
 }
