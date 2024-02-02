@@ -44,6 +44,7 @@ async fn main() {
         .build();
 
     let app = Router::new()
+        .nest("/book/:book_id/chapter", pages::chapter::router())
         .nest("/book", pages::book::router())
         .route_layer(middleware::from_fn(authz::is_member))
         .nest("/nav", components::nav::router())

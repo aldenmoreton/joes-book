@@ -121,6 +121,8 @@ pub async fn logout(mut auth_session: self::AuthSession) -> impl IntoResponse {
 }
 
 pub mod authz {
+    use std::collections::HashMap;
+
     use axum::{extract::{Path, Request}, http::StatusCode, middleware::Next, response::IntoResponse};
 
     use crate::objects::book::{get_book, BookRole, BookSubscription};
@@ -128,15 +130,20 @@ pub mod authz {
     use super::{AuthSession, BackendPgDB};
 
 	pub async fn is_member(
-        Path(book_id): Path<i64>,
+        Path(path): Path<HashMap<String, String>>,
 		auth_session: AuthSession,
         request: Request,
 		next: Next
 	) -> impl IntoResponse {
+        println!("{path:?}");
         let Some(user) = auth_session.user else {
             return StatusCode::UNAUTHORIZED.into_response()
         };
         let BackendPgDB(pool) = auth_session.backend;
+
+        let Some(Ok(book_id)) = path.get("book_id").map(|id| id.parse()) else {
+            return StatusCode::BAD_REQUEST.into_response()
+        };
 
         match get_book(user, book_id, &pool).await {
             Ok(BookSubscription{role: BookRole::Unauthorized, ..}) => return StatusCode::UNAUTHORIZED.into_response(),
