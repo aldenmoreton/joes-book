@@ -1,7 +1,7 @@
 use askama::Template;
 use axum::{extract::Path, response::IntoResponse, routing::{Router, get}};
 
-use crate::{auth::AuthSession, objects::chapter::Chapter};
+use crate::{auth::{AuthSession, BackendPgDB}, objects::chapter::{get_chapters, Chapter}};
 
 pub fn router() -> Router {
 	Router::new()
@@ -15,12 +15,17 @@ struct Book {
 	chapters: Vec<Chapter>
 }
 
-async fn book(auth_session: AuthSession, Path(_book_id): Path<i64>) -> impl IntoResponse {
+async fn book(auth_session: AuthSession, Path(book_id): Path<i64>) -> impl IntoResponse {
+	let user = auth_session.user.unwrap();
+	let BackendPgDB(pool) = auth_session.backend;
 
-	let username = auth_session.user.unwrap().username;
-	let chapters = vec![
-		Chapter { name: "Week 1".to_string(), chapter_id: 1234 }
-	];
+	let username = user.username;
+	let user_id = user.id;
 
-	Book { username, chapters }
+	let chapters = match get_chapters(user_id, book_id, &pool).await {
+		Ok(c) => c,
+		Err(e) => return e.into_response()
+	};
+
+	Book { username, chapters }.into_response()
 }

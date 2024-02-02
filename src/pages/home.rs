@@ -18,10 +18,10 @@ struct Home {
 
 pub async fn home(session: AuthSession) -> impl IntoResponse {
 	let user = session.user.unwrap();
-	let username = user.username.clone();
+	let username = user.username;
 
 	let crate::auth::BackendPgDB(pool) = session.backend;
-	let books = get_books(user, &pool).await.unwrap();
+	let books = get_books(user.id, &pool).await.unwrap();
 
 	Home{ username, books }
 }

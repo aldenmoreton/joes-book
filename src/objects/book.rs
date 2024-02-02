@@ -1,8 +1,6 @@
+use axum::http::StatusCode;
 use serde::{Serialize, Deserialize};
 use sqlx::PgPool;
-
-use crate::auth::BackendUser;
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum BookRole {
@@ -23,13 +21,13 @@ impl From<String> for BookRole {
 	}
 }
 
-impl Into<String> for BookRole {
-	fn into(self) -> String {
-		match self {
-			Self::Owner => "owner",
-			Self::Admin => "admin",
-			Self::Participant => "participant",
-			Self::Unauthorized => "unauthorized"
+impl From<BookRole> for String {
+	fn from(val: BookRole) -> Self {
+		match val {
+			BookRole::Owner => "owner",
+			BookRole::Admin => "admin",
+			BookRole::Participant => "participant",
+			BookRole::Unauthorized => "unauthorized"
 		}.to_string()
 	}
 }
@@ -44,7 +42,7 @@ pub struct BookSubscription {
 	pub role: BookRole
 }
 
-pub async fn get_books(user: BackendUser, pool: &PgPool) -> Result<Vec<BookSubscription>, sqlx::Error> {
+pub async fn get_books(user_id: i64, pool: &PgPool) -> Result<Vec<BookSubscription>, StatusCode> {
     let result = sqlx::query_as::<_, BookSubscription>(
 		r#"	SELECT b.id, b.name, s.role, s.user_id
 			FROM books AS b
@@ -52,14 +50,15 @@ pub async fn get_books(user: BackendUser, pool: &PgPool) -> Result<Vec<BookSubsc
 			WHERE s.user_id = $1
 		"#
 	)
-        .bind(user.id)
+        .bind(user_id)
         .fetch_all(pool)
-        .await?;
+        .await
+		.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
 	Ok(result)
 }
 
-pub async fn get_book(user: BackendUser, book_id: i64, pool: &PgPool) -> Result<BookSubscription, sqlx::Error> {
+pub async fn get_book(user_id: i64, book_id: i64, pool: &PgPool) -> Result<BookSubscription, StatusCode> {
 	sqlx::query_as::<_, BookSubscription>(
 		r#"	SELECT b.id, b.name, s.role, s.user_id
 			FROM books AS b
@@ -67,8 +66,9 @@ pub async fn get_book(user: BackendUser, book_id: i64, pool: &PgPool) -> Result<
 			WHERE s.user_id = $1 AND b.id = $2
 		"#
 	)
-        .bind(user.id)
+        .bind(user_id)
 		.bind(book_id)
         .fetch_one(pool)
         .await
+		.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }

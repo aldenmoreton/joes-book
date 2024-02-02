@@ -15,7 +15,7 @@ pub async fn book_list(auth_session: AuthSession) -> impl IntoResponse {
 		return "No books".into_response()
 	};
 
-	let Ok(books) = get_books(user, &pool).await else {
+	let Ok(books) = get_books(user.id, &pool).await else {
 		return "Error Getting Books".into_response()
 	};
 

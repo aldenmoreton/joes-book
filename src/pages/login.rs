@@ -49,9 +49,9 @@ async fn login_form(
 
 	let desired_redirect = headers
 		.get("referer")
-		.and_then(|referer| Some(referer.to_str().unwrap().parse::<Uri>().unwrap()))
+		.and_then(|referer| referer.to_str().unwrap().parse::<Uri>().ok())
 		.and_then(|uri| RedirectQuery::try_from_uri(&uri).ok())
-		.and_then(|query: RedirectQuery| Some(query.0.next))
+		.map(|query: RedirectQuery| query.0.next)
 		.unwrap_or("/".to_string());
 
 	Redirect::to(&desired_redirect).into_response()

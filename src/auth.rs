@@ -145,7 +145,7 @@ pub mod authz {
             return StatusCode::BAD_REQUEST.into_response()
         };
 
-        match get_book(user, book_id, &pool).await {
+        match get_book(user.id, book_id, &pool).await {
             Ok(BookSubscription{role: BookRole::Unauthorized, ..}) => return StatusCode::UNAUTHORIZED.into_response(),
             Err(_) => return StatusCode::NOT_FOUND.into_response(),
             _ => ()
