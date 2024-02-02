@@ -1,0 +1,9 @@
+{% extends "authenticated.html" %}
+
+{% block title %}Book{% endblock %}
+
+{% block content %}
+	{% call super() %}
+	<p>I am the book page (I need to implement admin settings)</p>
+	{% include "components/component_list.html" %}
+{% endblock %}

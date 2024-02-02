@@ -10,7 +10,7 @@ pub fn router() -> Router {
 }
 
 #[derive(Template)]
-#[template(path = "nav.html")]
+#[template(path = "components/nav.html")]
 struct Nav {
 	username: String
 }

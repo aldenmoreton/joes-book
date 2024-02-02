@@ -1,9 +1,9 @@
-{% extends "base.html" %}
+{% extends "authenticated.html" %}
 
 {% block title %}Home{% endblock %}
 
 {% block content %}
-	{% include "nav.html" %}
+	{% call super() %}
 	<p>I am the home page (I need to implement admin settings)</p>
 	<h3 class="h-3"><b>Your Books</b></h3>
 	<!-- <div hx-get="/home/books" hx-trigger="load" hx-target="this"></div> -->

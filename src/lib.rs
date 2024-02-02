@@ -5,6 +5,7 @@ pub mod pages {
 	pub mod login;
 	pub mod signup;
 	pub mod book;
+	pub mod chapter;
 }
 
 pub mod components {
@@ -14,4 +15,5 @@ pub mod components {
 
 pub mod objects {
 	pub mod book;
+	pub mod chapter;
 }
