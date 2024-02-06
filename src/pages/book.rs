@@ -10,7 +10,7 @@ pub fn router() -> Router {
 
 #[derive(Template)]
 #[template(path = "pages/book.html")]
-struct Book {
+struct BookPage {
 	username: String,
 	chapters: Vec<Chapter>
 }
@@ -27,5 +27,5 @@ async fn book(auth_session: AuthSession, Path(book_id): Path<i64>) -> impl IntoR
 		Err(e) => return e.into_response()
 	};
 
-	Book { username, chapters }.into_response()
+	BookPage { username, chapters }.into_response()
 }

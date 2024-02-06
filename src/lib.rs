@@ -16,4 +16,7 @@ pub mod components {
 pub mod objects {
 	pub mod book;
 	pub mod chapter;
+	pub mod event;
+	pub mod spread;
+	pub mod user_input;
 }

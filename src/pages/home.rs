@@ -11,7 +11,7 @@ pub fn router() -> Router {
 
 #[derive(Template)]
 #[template(path = "pages/home.html")]
-struct Home {
+struct HomePage {
 	username: String,
 	books: Vec<BookSubscription>
 }
@@ -23,5 +23,5 @@ pub async fn home(session: AuthSession) -> impl IntoResponse {
 	let crate::auth::BackendPgDB(pool) = session.backend;
 	let books = get_books(user.id, &pool).await.unwrap();
 
-	Home{ username, books }
+	HomePage { username, books }
 }

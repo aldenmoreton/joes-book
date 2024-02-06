@@ -26,7 +26,7 @@ pub async fn get_chapters(user_id: i64, book_id: i64, pool: &PgPool) -> Result<V
 	)
 		.fetch_all(pool)
 		.await
-		.map_err(|e| { println!("{e:?}"); StatusCode::INTERNAL_SERVER_ERROR })?;
+		.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
 	Ok(
 		result
@@ -40,4 +40,18 @@ pub async fn get_chapters(user_id: i64, book_id: i64, pool: &PgPool) -> Result<V
 			})
 			.collect::<Vec<_>>()
 	)
+}
+
+pub async fn get_chapter(chapter_id: i64, pool: &PgPool) -> Result<Chapter, StatusCode> {
+	sqlx::query_as_unchecked!(
+		Chapter,
+		r#"	SELECT id AS chapter_id, book_id, title, is_open, TO_CHAR(closing_time, 'YYYY-MM-DD"T"HH24:MI:SS.MSZ') AS closing_time
+			FROM chapters
+			WHERE id = $1
+		"#,
+		chapter_id
+	)
+		.fetch_one(pool)
+		.await
+		.map_err(|_| StatusCode::NOT_FOUND)
 }

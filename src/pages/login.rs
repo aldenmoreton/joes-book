@@ -11,7 +11,7 @@ pub fn router() -> Router {
 
 #[derive(Template)]
 #[template(path = "pages/login.html")]
-struct Login;
+struct LoginPage;
 
 async fn login_page(
 	auth_session: AuthSession
@@ -20,7 +20,7 @@ async fn login_page(
 		return Redirect::to("/").into_response()
 	}
 
-	Login{}.into_response()
+	LoginPage {}.into_response()
 }
 
 #[derive(Debug, Deserialize)]
@@ -36,7 +36,7 @@ async fn login_form(
 	Form(creds): Form<LoginCreds>,
 ) -> impl IntoResponse {
 	let auth = auth_session.authenticate(creds).await;
-	println!("{auth:?}");
+
 	let user = match auth {
         Ok(Some(user)) => user,
         Ok(None) => return StatusCode::UNAUTHORIZED.into_response(),

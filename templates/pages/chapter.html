@@ -1,0 +1,14 @@
+{% extends "authenticated.html" %}
+
+{% block title %}{{ meta.title }}{% endblock %}
+
+{% block content %}
+	{% call super() %}
+	<p>This is the chapter Page (need to implement admin section)</p>
+	{% for event in events %}
+		<p>Event</p>
+		<p>{{ "{:?}"|format(event.contents) }}</p>
+	{% else %}
+		<p>No Events in this Chapter</p>
+	{% endfor %}
+{% endblock %}

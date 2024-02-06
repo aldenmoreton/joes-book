@@ -1,4 +1,4 @@
-use axum::{async_trait, response::IntoResponse};
+use axum::{async_trait, http::StatusCode, response::IntoResponse};
 use axum_login::{AuthSession as AxumLoginAuthSession, AuthUser, AuthnBackend, UserId};
 use sqlx::PgPool;
 use serde::Deserialize;
@@ -115,9 +115,11 @@ impl AuthnBackend for BackendPgDB {
 
 pub async fn logout(mut auth_session: self::AuthSession) -> impl IntoResponse {
     let res = auth_session.logout().await;
-    println!("{res:?}");
 
-    [("HX-Redirect", "/login")]
+    match res {
+        Ok(_) => [("HX-Redirect", "/login")].into_response(),
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response()
+    }
 }
 
 pub mod authz {
@@ -135,7 +137,6 @@ pub mod authz {
         request: Request,
 		next: Next
 	) -> impl IntoResponse {
-        println!("{path:?}");
         let Some(user) = auth_session.user else {
             return StatusCode::UNAUTHORIZED.into_response()
         };

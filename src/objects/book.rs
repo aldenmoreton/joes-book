@@ -2,7 +2,7 @@ use axum::http::StatusCode;
 use serde::{Serialize, Deserialize};
 use sqlx::PgPool;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum BookRole {
 	Owner,
 	Admin,
@@ -70,5 +70,5 @@ pub async fn get_book(user_id: i64, book_id: i64, pool: &PgPool) -> Result<BookS
 		.bind(book_id)
         .fetch_one(pool)
         .await
-		.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+		.map_err(|_| StatusCode::NOT_FOUND)
 }
