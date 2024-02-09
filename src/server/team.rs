@@ -38,7 +38,7 @@ pub async fn search_team(name: String) -> Result<Vec<Team>, ServerFnError> {
         .bind(name)
         .fetch_all(&pool)
         .await
-        .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
 
 	Ok(result)
 }

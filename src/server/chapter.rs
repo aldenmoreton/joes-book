@@ -24,7 +24,7 @@ pub async fn add_chapter(book_id: i64, title: String, closing_time: String, even
 		_ => return Err(ServerFnError::Request("You can't make chapters on someone else's book".into()))
 	}
 	let closing_time = chrono::DateTime::parse_from_rfc3339(&closing_time)
-		.map_err(|e| ServerFnError::Args(format!("Could not parse closing time: {e}")))?;
+		.map_err(|e| ServerFnError::new(format!("Could not parse closing time: {e}")))?;
 	let closing_time: chrono::DateTime<chrono::Utc> = closing_time.into();
 	if closing_time <= chrono::Utc::now() {
 		return Err(ServerFnError::Args("Your closing time can't be in the past".into()))
@@ -118,7 +118,7 @@ pub async fn get_chapter(chapter_id: i64) -> Result<Chapter, ServerFnError> {
 	)
 		.fetch_one(&pool)
 		.await
-		.map_err(|err| ServerFnError::Request(format!("Could not find chapter: {err}")))?;
+		.map_err(|err| ServerFnError::new(format!("Could not find chapter: {err}")))?;
 
 	let book_subscription = get_book(chapter.book_id).await?;
 	match book_subscription.role {
@@ -207,7 +207,7 @@ pub async fn get_events(chapter_id: i64) -> Result<Vec<Event>, ServerFnError> {
 
 	get_chapter(chapter_id)
 		.await
-		.map_err(|err| ServerFnErrorErr::Request(format!("Could not get chapter: {err}")))?;
+		.map_err(|err| ServerFnError::new(format!("Could not get chapter: {err}")))?;
 
 
 	let events = sqlx::query_as::<_, Event>(
@@ -238,7 +238,7 @@ pub async fn get_pick(event_id: i64) -> Result<Pick, ServerFnError> {
 		.bind(user.id)
 		.fetch_optional(&pool)
 		.await
-		.map_err(|err| ServerFnError::Args(format!("Could not find pick: {err}")))?;
+		.map_err(|err| ServerFnError::new(format!("Could not find pick: {err}")))?;
 
 	let pick = match pick {
 		Some(pick) => pick,
@@ -253,7 +253,7 @@ pub async fn get_pick(event_id: i64) -> Result<Pick, ServerFnError> {
 				.bind(user.id)
 				.fetch_one(&pool)
 				.await
-				.map_err(|err| ServerFnError::Args(format!("Could not build event: {err}")))?;
+				.map_err(|err| ServerFnError::new(format!("Could not build event: {err}")))?;
 
 			let book_subscription = get_book(event.book_id).await?;
 			match book_subscription.role {
@@ -279,7 +279,7 @@ pub async fn get_pick(event_id: i64) -> Result<Pick, ServerFnError> {
 pub async fn get_picks(chapter_id: i64) -> Result<Vec<(String, Vec<(Event, Pick)>)>, ServerFnError> {
 	let events = get_events(chapter_id)
 		.await
-		.map_err(|err| ServerFnErrorErr::Request(format!("Could not get events: {err}")))?;
+		.map_err(|err| ServerFnError::new(format!("Could not get events: {err}")))?;
 
 	let mut picks = Vec::new();
 	for event in events.iter() {
@@ -424,9 +424,9 @@ pub async fn save_answers(picks: Vec<(i64, Vec<String>)>) -> Result<(), ServerFn
 		SELECT book_id
 		FROM picks
 		WHERE event_id = $1
-	"#, picks.get(0).ok_or(ServerFnError::Args("List of picks must not be empty".into()))?.0)
+	"#, picks.get(0).ok_or(ServerFnError::new("List of picks must not be empty"))?.0)
 		.fetch_one(&pool)
-		.await.map_err(|_| ServerFnError::ServerError("Could not get book id".into()))?.book_id;
+		.await.map_err(|_| ServerFnError::new("Could not get book id"))?.book_id;
 	let book_sub = get_book(book_id).await?;
 	match book_sub.role {
 		BookRole::Owner => (),
@@ -451,193 +451,193 @@ pub async fn save_answers(picks: Vec<(i64, Vec<String>)>) -> Result<(), ServerFn
 	Ok(())
 }
 
-#[server(GetChapterTable, "/secure", "Url", "get_chapter_table")]
-pub async fn get_chapter_table(chapter_id: i64) -> Result<String, ServerFnError> {
-	if is_open(chapter_id).await? {
-		return Err(ServerFnError::Request("The chapter isn't closed yet! You can't see everyone's picks!".into()))
-	}
+// #[server(GetChapterTable, "/secure", "Url", "get_chapter_table")]
+// pub async fn get_chapter_table(chapter_id: i64) -> Result<String, ServerFnError> {
+// 	if is_open(chapter_id).await? {
+// 		return Err(ServerFnError::Request("The chapter isn't closed yet! You can't see everyone's picks!".into()))
+// 	}
 
-	let events = get_events(chapter_id).await?;
-	let mut teams: HashMap<i64, Team> = HashMap::new();
+// 	let events = get_events(chapter_id).await?;
+// 	let mut teams: HashMap<i64, Team> = HashMap::new();
 
-	for event in events.iter() {
-		match &event.contents {
-			EventContent::SpreadGroup(spreads) => {
-				let (home, away) = super::get_spread_teams(spreads.home_id, spreads.away_id).await?;
-				teams.insert(spreads.home_id, home);
-				teams.insert(spreads.away_id, away);
-			},
-			_ => ()
-		}
-	}
+// 	for event in events.iter() {
+// 		match &event.contents {
+// 			EventContent::SpreadGroup(spreads) => {
+// 				let (home, away) = super::get_spread_teams(spreads.home_id, spreads.away_id).await?;
+// 				teams.insert(spreads.home_id, home);
+// 				teams.insert(spreads.away_id, away);
+// 			},
+// 			_ => ()
+// 		}
+// 	}
 
-	let table_header = view!{
-		<tr>
-			<th></th>
-			{
-				events
-					.iter()
-					.map(|event| {
-						let description: String = match &event.contents {
-							EventContent::SpreadGroup(spreads) =>
-								format!(
-									"{} at {}({:+})",
-									teams.get(&spreads.away_id).unwrap().name,
-									teams.get(&spreads.home_id).unwrap().name,
-									spreads.home_spread
-								),
-							EventContent::UserInput(input) =>
-								input.question.clone()
-						};
-						view!{
-							<th>
-								<h1>{description}</h1>
-							</th>
-						}
-					}
-					)
-					.collect_view()
-			}
-		</tr>
-	};
+// 	let table_header = view!{
+// 		<tr>
+// 			<th></th>
+// 			{
+// 				events
+// 					.iter()
+// 					.map(|event| {
+// 						let description: String = match &event.contents {
+// 							EventContent::SpreadGroup(spreads) =>
+// 								format!(
+// 									"{} at {}({:+})",
+// 									teams.get(&spreads.away_id).unwrap().name,
+// 									teams.get(&spreads.home_id).unwrap().name,
+// 									spreads.home_spread
+// 								),
+// 							EventContent::UserInput(input) =>
+// 								input.question.clone()
+// 						};
+// 						view!{
+// 							<th>
+// 								<h1>{description}</h1>
+// 							</th>
+// 						}
+// 					}
+// 					)
+// 					.collect_view()
+// 			}
+// 		</tr>
+// 	};
 
-	let pool = pool()?;
-	let user_points: Vec<(_, _, _)> = sqlx::query!(r#"
-		SELECT u.id AS id, u.username AS username, CAST(COALESCE(p.total, 0) AS INTEGER) AS week_total
-		FROM (
-			SELECT users.id, users.username
-			FROM chapters
-			INNER JOIN subscriptions ON subscriptions.book_id = chapters.book_id
-			INNER JOIN users ON users.id = subscriptions.user_id
-			WHERE chapters.id = $1
-			GROUP BY users.id, users.username
-		) AS u
-		LEFT JOIN (
-			SELECT user_id, SUM(picks.wager) AS total
-			FROM picks
-			WHERE picks.chapter_id = $1 AND picks.correct
-			GROUP BY user_id
-		) AS p
-		ON u.id = p.user_id
-		ORDER BY week_total DESC, username"#,
-		chapter_id
-	)
-		.fetch_all(&pool)
-		.await?
-		.into_iter()
-		.map(|row| {
-			(row.id, row.username, row.week_total.unwrap_or(0))
-		})
-		.collect();
+// 	let pool = pool()?;
+// 	let user_points: Vec<(_, _, _)> = sqlx::query!(r#"
+// 		SELECT u.id AS id, u.username AS username, CAST(COALESCE(p.total, 0) AS INTEGER) AS week_total
+// 		FROM (
+// 			SELECT users.id, users.username
+// 			FROM chapters
+// 			INNER JOIN subscriptions ON subscriptions.book_id = chapters.book_id
+// 			INNER JOIN users ON users.id = subscriptions.user_id
+// 			WHERE chapters.id = $1
+// 			GROUP BY users.id, users.username
+// 		) AS u
+// 		LEFT JOIN (
+// 			SELECT user_id, SUM(picks.wager) AS total
+// 			FROM picks
+// 			WHERE picks.chapter_id = $1 AND picks.correct
+// 			GROUP BY user_id
+// 		) AS p
+// 		ON u.id = p.user_id
+// 		ORDER BY week_total DESC, username"#,
+// 		chapter_id
+// 	)
+// 		.fetch_all(&pool)
+// 		.await?
+// 		.into_iter()
+// 		.map(|row| {
+// 			(row.id, row.username, row.week_total.unwrap_or(0))
+// 		})
+// 		.collect();
 
-	let mut user_rows: Vec<View> = Vec::new();
-	for (user_id, username, week_total) in user_points {
-		let picks: Vec<_> = sqlx::query!(r#"
-			SELECT picks.choice, picks.wager, picks.correct, events.event_type, picks.event_id
-			FROM picks
-			JOIN events ON picks.event_id = events.id
-			WHERE picks.chapter_id = $1 AND picks.user_id = $2
-			ORDER BY events.event_type, events.id"#,
-			chapter_id, user_id
-		)
-			.fetch_all(&pool)
-			.await?
-			.into_iter()
-			.map(|row|
-				(row.choice, row.wager, row.correct, row.event_type, row.event_id)
-			)
-			.collect();
+// 	let mut user_rows: Vec<View> = Vec::new();
+// 	for (user_id, username, week_total) in user_points {
+// 		let picks: Vec<_> = sqlx::query!(r#"
+// 			SELECT picks.choice, picks.wager, picks.correct, events.event_type, picks.event_id
+// 			FROM picks
+// 			JOIN events ON picks.event_id = events.id
+// 			WHERE picks.chapter_id = $1 AND picks.user_id = $2
+// 			ORDER BY events.event_type, events.id"#,
+// 			chapter_id, user_id
+// 		)
+// 			.fetch_all(&pool)
+// 			.await?
+// 			.into_iter()
+// 			.map(|row|
+// 				(row.choice, row.wager, row.correct, row.event_type, row.event_id)
+// 			)
+// 			.collect();
 
-		let view = view!{
-			<tr>
-				<td>
-					{username}
-					<br/>
-					{week_total}
-				</td>
-				{
-					picks
-						.into_iter()
-						.map(|(choice, wager, correct, ty, event_id)| {
-							match ty.as_str() {
-								"SpreadGroup" => {
-									let event_idx = events.iter().position(|x| x.id == event_id);
-									let inner_text = if let Some(idx) = event_idx {
-										let event = match &events[idx].contents {
-											EventContent::SpreadGroup(spread) => spread,
-											_ => panic!()
-										};
-										match choice.as_str() {
-											"Home" =>
-												format!(
-													"{}\n{}",
-													teams.get(&event.home_id).unwrap().name.clone(),
-													wager
-												),
-											"Away" =>
-												format!(
-													"{}\n{}",
-													teams.get(&event.away_id).unwrap().name.clone(),
-													wager
-												),
-											_ => "None".into()
-										}
-									} else {
-										"None".into()
-									};
-									if let Some(correct) = correct {
-										if correct {
-											view!{
-												<td class="bg-green-300">
-													<p class="whitespace-pre-wrap">{inner_text}</p>
-												</td>
-											}
-										} else {
-											view!{
-												<td class="bg-red-300">
-													<p class="whitespace-pre-wrap">{inner_text}</p>
-												</td>
-											}
-										}
-									} else {
-										view!{
-											<td>
-												<p class="whitespace-pre-wrap">{inner_text}</p>
-											</td>
-										}
-									}
-								},
-								"UserInput" =>
-									match correct {
-										Some(true) => view!{<td class="bg-green-300">{choice}</td>},
-										Some(false) => view!{<td class="bg-red-300">{choice}</td>},
-										None => view!{<td>{choice}</td>}
-									},
-								_ => view!{
-									<td>
-										"No table view for this pick type"
-									</td>
-								}
-							}
-						})
-						.collect_view()
-				}
-			</tr>
-		}.into_view();
-		user_rows.push(view)
-	}
+// 		let view = view!{
+// 			<tr>
+// 				<td>
+// 					{username}
+// 					<br/>
+// 					{week_total}
+// 				</td>
+// 				{
+// 					picks
+// 						.into_iter()
+// 						.map(|(choice, wager, correct, ty, event_id)| {
+// 							match ty.as_str() {
+// 								"SpreadGroup" => {
+// 									let event_idx = events.iter().position(|x| x.id == event_id);
+// 									let inner_text = if let Some(idx) = event_idx {
+// 										let event = match &events[idx].contents {
+// 											EventContent::SpreadGroup(spread) => spread,
+// 											_ => panic!()
+// 										};
+// 										match choice.as_str() {
+// 											"Home" =>
+// 												format!(
+// 													"{}\n{}",
+// 													teams.get(&event.home_id).unwrap().name.clone(),
+// 													wager
+// 												),
+// 											"Away" =>
+// 												format!(
+// 													"{}\n{}",
+// 													teams.get(&event.away_id).unwrap().name.clone(),
+// 													wager
+// 												),
+// 											_ => "None".into()
+// 										}
+// 									} else {
+// 										"None".into()
+// 									};
+// 									if let Some(correct) = correct {
+// 										if correct {
+// 											view!{
+// 												<td class="bg-green-300">
+// 													<p class="whitespace-pre-wrap">{inner_text}</p>
+// 												</td>
+// 											}
+// 										} else {
+// 											view!{
+// 												<td class="bg-red-300">
+// 													<p class="whitespace-pre-wrap">{inner_text}</p>
+// 												</td>
+// 											}
+// 										}
+// 									} else {
+// 										view!{
+// 											<td>
+// 												<p class="whitespace-pre-wrap">{inner_text}</p>
+// 											</td>
+// 										}
+// 									}
+// 								},
+// 								"UserInput" =>
+// 									match correct {
+// 										Some(true) => view!{<td class="bg-green-300">{choice}</td>},
+// 										Some(false) => view!{<td class="bg-red-300">{choice}</td>},
+// 										None => view!{<td>{choice}</td>}
+// 									},
+// 								_ => view!{
+// 									<td>
+// 										"No table view for this pick type"
+// 									</td>
+// 								}
+// 							}
+// 						})
+// 						.collect_view()
+// 				}
+// 			</tr>
+// 		}.into_view();
+// 		user_rows.push(view)
+// 	}
 
-	let table = view!{
-		<div class="h-screen overflow-auto border border-black">
-			<table class="picktable">
-				{table_header}
-				{user_rows}
-			</table>
-		</div>
-	}
-		.into_view()
-		.render_to_string()
-		.to_string();
+// 	let table = view!{
+// 		<div class="h-screen overflow-auto border border-black">
+// 			<table class="picktable">
+// 				{table_header}
+// 				{user_rows}
+// 			</table>
+// 		</div>
+// 	}
+// 		.into_view()
+// 		.render_to_string()
+// 		.to_string();
 
-	Ok(table)
-}
+// 	Ok(table)
+// }

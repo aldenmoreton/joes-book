@@ -32,7 +32,7 @@ pub async fn get_book(book_id: i64) -> Result<BookSubscription, ServerFnError> {
 		.bind(book_id)
         .fetch_one(&pool)
         .await
-        .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
 
 	Ok(result)
 }
@@ -52,7 +52,7 @@ pub async fn get_books() -> Result<Vec<BookSubscription>, ServerFnError> {
         .bind(user.id)
         .fetch_all(&pool)
         .await
-        .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
 
 	Ok(result)
 }

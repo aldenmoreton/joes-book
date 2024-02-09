@@ -40,12 +40,12 @@ pub async fn signup(
         .bind(password_hashed)
         .execute(&pool)
         .await
-        .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
 
     let user = BackendUser::get_from_username(username, &pool)
         .await
         .ok_or("Signup failed: User does not exist.")
-        .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
 
     auth.login_user(user.id);
     auth.remember_user(remember.is_some());
@@ -67,10 +67,10 @@ pub async fn login(
     let user: BackendUser = BackendUser::get_from_username(username, &pool)
         .await
         .ok_or("User does not exist.")
-        .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
 
     match bcrypt::verify(password, &user.password)
-        .map_err(|e| ServerFnError::ServerError(e.to_string()))?
+        .map_err(|e| ServerFnError::new(e.to_string()))?
     {
         true => {
             auth.login_user(user.id);
@@ -107,7 +107,7 @@ pub async fn search_user(username: String) -> Result<Vec<FrontendUser>, ServerFn
         .bind(username)
         .fetch_all(&pool)
         .await
-        .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
 
 	Ok(result)
 }

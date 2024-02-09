@@ -38,7 +38,7 @@ pub async fn delete_book(id: i64) -> Result<(), ServerFnError> {
 	)
 		.fetch_one(&pool)
 		.await
-		.map_err(|e| ServerFnError::ServerError(e.to_string()))?;
+		.map_err(|e| ServerFnError::new(e.to_string()))?;
 
 	sqlx::query!(
 		r#"	DELETE FROM subscriptions

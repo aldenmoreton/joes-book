@@ -3,7 +3,7 @@ use leptos_router::{use_params_map, Redirect};
 
 use crate::{
 	server::{get_book, add_chapter},
-	objects::{BookSubscription, BookRole, EventBuilder, Team, SpreadBuilder, EventContent, UserInputBuilder}, components::{TeamSelect, DateTimePickerTZ}
+	objects::{BookRole, BookSubscription, EventBuilder, EventContent, SpreadBuilder, Team, UserInputBuilder}, components::{TeamSelect, DateTimePickerTZ}
 };
 
 #[component]
@@ -343,7 +343,7 @@ pub fn NewSpread(spread: RwSignal<SpreadBuilder>) -> impl IntoView {
 						local_invalid_count.update(|c| *c -= 1);
 						total_invalid_count.update(|c| *c -= 1);
 					}
-					s.home_spread(new_val);
+					s.home_spread = Some(new_val);
 				}
 				Err(_) => {
 					if s.home_spread.is_some() {
@@ -363,7 +363,7 @@ pub fn NewSpread(spread: RwSignal<SpreadBuilder>) -> impl IntoView {
 			if new_notes.is_empty() {
 				s.notes = None
 			} else {
-				s.notes(Some(new_notes));
+				s.notes = Some(new_notes);
 			}
 		})
 	};

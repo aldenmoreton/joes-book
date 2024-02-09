@@ -1,7 +1,11 @@
 use leptos::*;
 use leptos_router::use_params_map;
 
-use crate::{server::{get_chapter_table, get_book, set_open}, objects::{BookSubscription, BookRole}};
+use crate::{server::{get_book, set_open}, objects::{BookSubscription, BookRole}};
+
+async fn foo() -> Option<String> {
+	Some("Bar".to_string())
+}
 
 #[component]
 pub fn ChapterTable() -> impl IntoView {
@@ -10,7 +14,8 @@ pub fn ChapterTable() -> impl IntoView {
 	let chapter_id: i64 = params.with_untracked(|params| params.get("chapter_id").cloned()).unwrap().parse::<i64>().unwrap();
 
 	let table_fetcher = create_resource(|| (),
-		move |_| get_chapter_table(chapter_id)
+		move |_| foo()
+		// move |_| get_chapter_table(chapter_id)
 	);
 
 	let chapter_opener = create_action(move |_| set_open(chapter_id, true));

@@ -14,23 +14,20 @@ if #[cfg(feature = "ssr")] {
     use joes_book::server::*;
     use joes_book::objects::*;
     use joes_book::state::AppState;
-    use joes_book::fallback::file_and_error_handler;
     use leptos_axum::{generate_route_list, LeptosRoutes, handle_server_fns_with_context};
     use leptos::{view, provide_context, get_configuration};
     use sqlx::{PgPool, postgres::PgPoolOptions};
     use axum_session::{SessionConfig, SessionLayer, SessionStore};
     use axum_session_auth::{AuthSessionLayer, AuthConfig, SessionPgPool};
 
+    #[axum::debug_handler]
     async fn server_fn_handler(
         State(app_state): State<AppState>,
         auth_session: AuthSession,
-        path: Path<String>,
-        headers: HeaderMap,
-        raw_query: RawQuery,
         request: Request<AxumBody>
     ) -> impl IntoResponse {
 
-        let response = handle_server_fns_with_context(path, headers, raw_query, move || {
+        let response = handle_server_fns_with_context(move || {
             provide_context(auth_session.clone());
             provide_context(app_state.pool.clone());
         }, request).await.into_response();
@@ -41,9 +38,6 @@ if #[cfg(feature = "ssr")] {
     async fn secure_server_fn_handler(
         State(app_state): State<AppState>,
         auth_session: AuthSession,
-        path: Path<String>,
-        headers: HeaderMap,
-        raw_query: RawQuery,
         request: Request<AxumBody>
     ) -> impl IntoResponse {
 
@@ -52,9 +46,6 @@ if #[cfg(feature = "ssr")] {
         }
 
         handle_server_fns_with_context(
-            path,
-            headers,
-            raw_query,
             move || {
                 provide_context(auth_session.clone());
                 provide_context(app_state.pool.clone());
@@ -141,7 +132,6 @@ if #[cfg(feature = "ssr")] {
             .route("/api/*fn_name", get(server_fn_handler).post(server_fn_handler))
             .route("/secure/*fn_name", get(secure_server_fn_handler).post(secure_server_fn_handler))
             .leptos_routes_with_handler(routes, get(leptos_routes_handler))
-            .fallback(file_and_error_handler)
             .layer(AuthSessionLayer::<BackendUser, i64, SessionPgPool, PgPool>::new(Some(pool.clone()))
             .with_config(auth_config))
             .layer(SessionLayer::new(session_store))
@@ -149,10 +139,8 @@ if #[cfg(feature = "ssr")] {
 
         // Run App
         // log!("listening on http://{}", &addr);
-        axum::Server::bind(&addr)
-            .serve(app.into_make_service())
-            .await
-            .unwrap();
+        let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
+        axum::serve(listener, app).await.unwrap();
     }
 }
 
