@@ -1,4 +1,6 @@
 use cfg_if::cfg_if;
+use tower::ServiceBuilder;
+use tower_http::services::ServeDir;
 
 cfg_if! {
 if #[cfg(feature = "ssr")] {
@@ -120,6 +122,7 @@ if #[cfg(feature = "ssr")] {
         let conf = get_configuration(None).await.unwrap();
         let leptos_options = conf.leptos_options;
         let addr = leptos_options.site_addr;
+        let site_root = leptos_options.site_root.clone();
         let routes = generate_route_list(|| view!{ <App/> });
 
         let app_state = AppState{
@@ -132,9 +135,15 @@ if #[cfg(feature = "ssr")] {
             .route("/api/*fn_name", get(server_fn_handler).post(server_fn_handler))
             .route("/secure/*fn_name", get(secure_server_fn_handler).post(secure_server_fn_handler))
             .leptos_routes_with_handler(routes, get(leptos_routes_handler))
-            .layer(AuthSessionLayer::<BackendUser, i64, SessionPgPool, PgPool>::new(Some(pool.clone()))
-            .with_config(auth_config))
-            .layer(SessionLayer::new(session_store))
+            .layer(
+                ServiceBuilder::new()
+                    .layer(SessionLayer::new(session_store))
+                    .layer(AuthSessionLayer::<BackendUser, i64, SessionPgPool, PgPool>::new(Some(pool.clone()))
+                        .with_config(auth_config)
+                    )
+            )
+            // .nest_service("/pkg", ServeDir::new(site_root))
+            .fallback_service(ServeDir::new(site_root)) // TODO: Add fallback page!
             .with_state(app_state);
 
         // Run App
