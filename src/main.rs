@@ -145,7 +145,7 @@ if #[cfg(feature = "ssr")] {
             )
             // .nest_service("/pkg", ServeDir::new(site_root))
             .fallback_service(
-                ServeDir::new(site_root).fallback(Html("<p>Could not find page</p>").into_service())
+                ServeDir::new(site_root).not_found_service(Html("<p>Could not find page</p>").into_service())
             )
             .with_state(app_state);
 
