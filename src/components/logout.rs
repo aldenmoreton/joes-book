@@ -7,7 +7,7 @@ use crate::server::Logout;
 pub fn Logout() -> impl IntoView {
     let logout = create_server_action::<Logout>();
 
-    view!{
+    view! {
         <div id="loginbox">
             <ActionForm action=logout>
                 <button type="submit" class="button">"Log Out"</button>

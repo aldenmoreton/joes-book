@@ -1,20 +1,14 @@
 use leptos::*;
 
-use crate::{
-    server::search_team,
-    objects::Team
-};
+use crate::{objects::Team, server::search_team};
 
 #[component]
 pub fn TeamSelect(team_selector: WriteSignal<Option<Team>>) -> impl IntoView {
-	let (query, set_query) = create_signal("-1".to_string());
+    let (query, set_query) = create_signal("-1".to_string());
 
-	let teams = create_resource(
-		move || query.get(),
-		move |_| { search_team(query.get()) }
-	);
+    let teams = create_resource(move || query.get(), move |_| search_team(query.get()));
 
-    view!{
+    view! {
         <div>
             <label for="default-search" class="mb-2 text-sm font-medium text-black sr-only dark:text-black">Search</label>
             <div class="relative">
@@ -33,7 +27,7 @@ pub fn TeamSelect(team_selector: WriteSignal<Option<Team>>) -> impl IntoView {
                         }
                     }/>
             </div>
-			<Transition fallback=move || view! { <p>"Loading..."</p> }>
+            <Transition fallback=move || view! { <p>"Loading..."</p> }>
                 {move || {
                     let teams_list_items = {
                         move || {
@@ -49,11 +43,11 @@ pub fn TeamSelect(team_selector: WriteSignal<Option<Team>>) -> impl IntoView {
                                             teams
                                                 .into_iter()
                                                 .map(move |team| {
-													let team_select = team.clone();
+                                                    let team_select = team.clone();
                                                     view!{
                                                         <li>
-															<img src=team.logo width="25" height="25"/>
-															<button on:click=move |_| {set_query.set("-1".into()); team_selector.set(Some(team_select.clone()))}>{team.name}</button>
+                                                            <img src=team.logo width="25" height="25"/>
+                                                            <button on:click=move |_| {set_query.set("-1".into()); team_selector.set(Some(team_select.clone()))}>{team.name}</button>
                                                         </li>
                                                     }
                                                 })

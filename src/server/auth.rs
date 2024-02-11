@@ -154,9 +154,9 @@ cfg_if! {
 
         #[inline(always)]
         pub fn auth() -> Result<AuthSession, ServerFnError> {
-			use_context::<AuthSession>()
-				.ok_or("Auth session missing.")
-				.map_err(|e| ServerFnError::ServerError(e.to_string()))
-		}
+            use_context::<AuthSession>()
+                .ok_or("Auth session missing.")
+                .map_err(|e| ServerFnError::ServerError(e.to_string()))
+        }
     }
 }

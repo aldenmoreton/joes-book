@@ -1,15 +1,14 @@
 use cfg_if::cfg_if;
 
+pub mod app;
 pub mod error_template;
 pub mod errors;
 pub mod fallback;
 pub mod state;
-pub mod app;
 
+pub mod components;
 pub mod objects;
 pub mod server;
-pub mod components;
-
 
 // Needs to be in lib.rs AFAIK because wasm-bindgen needs us to be compiling a lib. I may be wrong.
 cfg_if! {

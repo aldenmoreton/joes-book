@@ -8,7 +8,7 @@ use crate::server::Signup;
 pub fn Signup() -> impl IntoView {
     let signup = create_server_action::<Signup>();
 
-    view!{
+    view! {
         <div class="flex flex-col items-center justify-center pt-10">
             <div class="w-full max-w-xs">
                 <ActionForm action=signup class="px-8 pt-6 pb-8 mb-4 bg-white rounded shadow-md">

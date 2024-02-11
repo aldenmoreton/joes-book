@@ -4,17 +4,17 @@ use crate::objects::FrontendUser;
 
 use cfg_if::cfg_if;
 cfg_if! {
-	if #[cfg(feature = "ssr")] {
-		use axum_session_auth::AuthSession;
+    if #[cfg(feature = "ssr")] {
+        use axum_session_auth::AuthSession;
         use bcrypt::{hash, DEFAULT_COST};
-		use crate::{
-			server::{
-				auth,
-				pool
-			},
-			objects::BackendUser
-		};
-	}
+        use crate::{
+            server::{
+                auth,
+                pool
+            },
+            objects::BackendUser
+        };
+    }
 }
 
 #[server(Signup, "/api", "Url", "signup")]
@@ -69,9 +69,7 @@ pub async fn login(
         .ok_or("User does not exist.")
         .map_err(|e| ServerFnError::new(e.to_string()))?;
 
-    match bcrypt::verify(password, &user.password)
-        .map_err(|e| ServerFnError::new(e.to_string()))?
-    {
+    match bcrypt::verify(password, &user.password).map_err(|e| ServerFnError::new(e.to_string()))? {
         true => {
             auth.login_user(user.id);
             auth.remember_user(remember.is_some());
@@ -96,27 +94,27 @@ pub async fn logout() -> Result<(), ServerFnError> {
 
 #[server(SearchUser, "/secure", "Url", "search_user")]
 pub async fn search_user(username: String) -> Result<Vec<FrontendUser>, ServerFnError> {
-	let pool = pool()?;
+    let pool = pool()?;
 
-	let result = sqlx::query_as::<_, FrontendUser>(
-		r#"	SELECT id, username
+    let result = sqlx::query_as::<_, FrontendUser>(
+        r#"	SELECT id, username
 			FROM users
 			WHERE LOWER(username) LIKE '%' || LOWER($1) || '%'
-			ORDER BY username LIMIT 5"#
-	)
-        .bind(username)
-        .fetch_all(&pool)
-        .await
-        .map_err(|e| ServerFnError::new(e.to_string()))?;
+			ORDER BY username LIMIT 5"#,
+    )
+    .bind(username)
+    .fetch_all(&pool)
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))?;
 
-	Ok(result)
+    Ok(result)
 }
 
 #[server(GetUser, "/secure", "Url", "get_user")]
 pub async fn get_user() -> Result<FrontendUser, ServerFnError> {
     let auth = auth()?;
-    let BackendUser{ id, username, .. } = auth.current_user.unwrap();
-    Ok(FrontendUser{ id, username })
+    let BackendUser { id, username, .. } = auth.current_user.unwrap();
+    Ok(FrontendUser { id, username })
 }
 
 #[server(GetUsername, "/secure", "Url", "get_username")]
@@ -136,19 +134,21 @@ pub async fn get_user_id() -> Result<i64, ServerFnError> {
 #[server(HasPermission, "/secure", "Url", "has_permission")]
 pub async fn has_permission(permission: String) -> Result<bool, ServerFnError> {
     match auth()? {
-        AuthSession{current_user: Some(user), ..} => {
-            Ok(user.permissions.contains(&permission))
-        },
-        _ => Ok(false)
+        AuthSession {
+            current_user: Some(user),
+            ..
+        } => Ok(user.permissions.contains(&permission)),
+        _ => Ok(false),
     }
 }
 
 #[server(GetPermissions, "/secure", "Url", "get_permissions")]
 pub async fn get_permissions() -> Result<Vec<String>, ServerFnError> {
     match auth()? {
-        AuthSession{current_user: Some(user), ..} => {
-            Ok(user.permissions.into_iter().collect())
-        },
-        _ => Ok(Vec::new())
+        AuthSession {
+            current_user: Some(user),
+            ..
+        } => Ok(user.permissions.into_iter().collect()),
+        _ => Ok(Vec::new()),
     }
 }
