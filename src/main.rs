@@ -1,5 +1,6 @@
+use axum::{handler::HandlerWithoutStateExt, response::Html};
 use cfg_if::cfg_if;
-use tower::ServiceBuilder;
+use tower::{Service, ServiceBuilder};
 use tower_http::services::ServeDir;
 
 cfg_if! {
@@ -143,7 +144,9 @@ if #[cfg(feature = "ssr")] {
                     )
             )
             // .nest_service("/pkg", ServeDir::new(site_root))
-            .fallback_service(ServeDir::new(site_root)) // TODO: Add fallback page!
+            .fallback_service(
+                ServeDir::new(site_root).fallback(Html("<p>Could not find page</p>").into_service())
+            )
             .with_state(app_state);
 
         // Run App
