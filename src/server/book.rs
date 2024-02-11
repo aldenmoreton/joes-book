@@ -7,7 +7,7 @@ cfg_if! {
     if #[cfg(feature = "ssr")] {
         use crate::{
             server::{
-                auth,
+                auth::auth,
                 pool,
                 has_permission
             },

@@ -1,27 +1,29 @@
-use axum::{handler::HandlerWithoutStateExt, response::Html};
 use cfg_if::cfg_if;
-use tower::{Service, ServiceBuilder};
-use tower_http::services::ServeDir;
 
 cfg_if! {
 if #[cfg(feature = "ssr")] {
     use axum::{
-        response::{Response, IntoResponse, Redirect},
+        response::{Response, IntoResponse, Redirect, Html},
         routing::get,
-        extract::{Path, State, RawQuery},
-        http::{Request, header::HeaderMap, StatusCode},
+        extract::State,
+        http::{Request, StatusCode},
         body::Body as AxumBody,
         Router,
+        handler::HandlerWithoutStateExt
     };
-    use joes_book::app::*;
-    use joes_book::server::*;
-    use joes_book::objects::*;
-    use joes_book::state::AppState;
+    use tower::ServiceBuilder;
+    use tower_http::services::ServeDir;
+
     use leptos_axum::{generate_route_list, LeptosRoutes, handle_server_fns_with_context};
     use leptos::{view, provide_context, get_configuration};
     use sqlx::{PgPool, postgres::PgPoolOptions};
     use axum_session::{SessionConfig, SessionLayer, SessionStore};
     use axum_session_auth::{AuthSessionLayer, AuthConfig, SessionPgPool};
+
+    use joes_book::app::*;
+    use joes_book::server::*;
+    use joes_book::objects::*;
+    use joes_book::state::AppState;
 
     #[axum::debug_handler]
     async fn server_fn_handler(
@@ -143,14 +145,12 @@ if #[cfg(feature = "ssr")] {
                         .with_config(auth_config)
                     )
             )
-            // .nest_service("/pkg", ServeDir::new(site_root))
             .fallback_service(
                 ServeDir::new(site_root).not_found_service(Html("<p>Could not find page</p>").into_service())
             )
             .with_state(app_state);
 
         // Run App
-        // log!("listening on http://{}", &addr);
         let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
         axum::serve(listener, app).await.unwrap();
     }

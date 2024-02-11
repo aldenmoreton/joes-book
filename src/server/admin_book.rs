@@ -6,7 +6,7 @@ use crate::objects::BookSubscription;
 cfg_if! {
     if #[cfg(feature = "ssr")] {
         use crate::server::{
-            auth,
+            auth::auth,
             pool,
             get_book
         };

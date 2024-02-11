@@ -6,11 +6,10 @@ use crate::objects::{Chapter, Event, EventContent, Pick};
 cfg_if! {
     if #[cfg(feature = "ssr")] {
         use itertools::Itertools;
-        use std::collections::HashMap;
         use sqlx::Row;
         use crate::{
-            server::{pool, get_book, auth},
-            objects::{ BookRole, Team }
+            server::{pool, get_book, auth::auth},
+            objects::BookRole
         };
     }
 }

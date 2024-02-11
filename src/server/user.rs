@@ -9,7 +9,7 @@ cfg_if! {
         use bcrypt::{hash, DEFAULT_COST};
         use crate::{
             server::{
-                auth,
+                auth::auth,
                 pool
             },
             objects::BackendUser
