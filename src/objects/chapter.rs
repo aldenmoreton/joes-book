@@ -81,7 +81,7 @@ impl EventBuilder {
                 for (_, spread) in spreads.get() {
                     match spread.get().build() {
                         Ok(spread) => spread_groups.push(EventContent::SpreadGroup(spread)),
-                        Err(e) => return Err(format!("Could not build Spread: {:?}", e).into()),
+                        Err(e) => return Err(format!("Could not build Spread: {:?}", e)),
                     }
                 }
                 Ok(spread_groups)
@@ -89,8 +89,8 @@ impl EventBuilder {
             EventBuilder::UserInput(input) => Ok(vec![input
                 .get()
                 .build()
-                .map(|input| EventContent::UserInput(input))
-                .ok_or(format!("Could not build user input"))?]),
+                .map(EventContent::UserInput)
+                .ok_or("Could not build user input".to_string())?]),
         }
     }
 }

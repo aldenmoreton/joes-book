@@ -97,8 +97,7 @@ pub fn ChapterEvents(events: Vec<Event>) -> impl IntoView {
         let picks: Vec<(i64, Vec<String>)> = global_answers
             .get()
             .into_iter()
-            .map(|answer| answer.get())
-            .flatten()
+            .filter_map(|answer| answer.get())
             .map(|answer| (answer.0, answer.1))
             .collect();
         save_answers(picks).await
@@ -111,8 +110,7 @@ pub fn ChapterEvents(events: Vec<Event>) -> impl IntoView {
             global_answers
                 .get()
                 .into_iter()
-                .map(|answer| answer.get())
-                .flatten()
+                .filter_map(|answer| answer.get())
                 .map(|answer| format!("{}-{:?}<br/>", answer.0, answer.1))
                 .collect::<Vec<_>>()
         }
@@ -218,7 +216,7 @@ pub fn UserInputGrade(id: i64, question: UserInput) -> impl IntoView {
             (false, Some(Some(i))) => {
                 input_answers.update(|answers| {
                     answers.as_mut().unwrap().1.remove(i);
-                    if answers.as_ref().unwrap().1.len() == 0 {
+                    if answers.as_ref().unwrap().1.is_empty() {
                         *answers = None;
                     };
                 });
@@ -232,7 +230,7 @@ pub fn UserInputGrade(id: i64, question: UserInput) -> impl IntoView {
     view! {
         <div class="p-3">
             <div class="content-center justify-center max-w-sm overflow-hidden bg-white rounded-lg shadow-lg">
-                <h1 class="mt-1">{format!("{}", question_str.get())}</h1>
+                <h1 class="mt-1">{question_str.get().to_string()}</h1>
                 <Suspense fallback=move || view!{<p>"Loading..."</p>}>
                     {move ||
                         inputs_getter.get().map(|inputs| {

@@ -110,7 +110,7 @@ pub fn ChapterEvents(initial_values: Vec<(String, Vec<(Event, Pick)>)>) -> impl 
             <div class="grid items-center justify-center h-16">
                 <div class="content-center self-center justify-center w-32 h-full text-center">
                     {move || match discrepancies.get() {
-                        Some(discrepancies) if discrepancies == 0 => {
+                        Some(0) => {
                             match (pick_submission.pending().get(), pick_submission.value().get()) {
                                 (false, None) => {
                                     view!{
@@ -195,7 +195,7 @@ pub fn SpreadGroupPick(initial_values: Vec<(Event, Pick)>) -> impl IntoView {
 
     let spread_setter = move |pick: RwSignal<Pick>, choice: &str| {
         pick.update(|pick| {
-            if let Some(_) = &pick.choice {
+            if pick.choice.is_some() {
                 global_discrepancies.update(|d| *d = Some(d.unwrap_or(0)))
             } else {
                 global_discrepancies.update(|d| *d = Some(d.unwrap_or(1) - 1))
@@ -211,8 +211,9 @@ pub fn SpreadGroupPick(initial_values: Vec<(Event, Pick)>) -> impl IntoView {
             if let Some(old_wager) = pick.wager {
                 let old_wager_wrong = wager_trackers.get()[old_wager as usize - 1] > 1;
                 if old_wager == new_wager {
-                    ()
-                } else if old_wager_wrong && new_wager_right {
+                    return
+                }
+                if old_wager_wrong && new_wager_right {
                     global_discrepancies.update(|d| *d = Some(d.unwrap_or(1) - 1))
                 } else if !old_wager_wrong && !new_wager_right {
                     global_discrepancies.update(|d| *d = Some(d.unwrap_or(0) + 1))
@@ -251,7 +252,7 @@ pub fn SpreadGroupPick(initial_values: Vec<(Event, Pick)>) -> impl IntoView {
                                                     <div class="grid grid-flow-col grid-cols-2 gap-4 p-5">
                                                         <div class="col-span-1">
                                                             <h1>"Home"</h1>
-                                                            <input on:click=move |_| spread_setter(pick, "Home") type="radio" id={format!("{}", &home_team.id)} name={format!("{}-{}", &home_team.id, &away_team.id)} value="home" class="hidden peer" checked={if &old_pick.choice == &Some("Home".into()) {true} else {false}}/>
+                                                            <input on:click=move |_| spread_setter(pick, "Home") type="radio" id={format!("{}", &home_team.id)} name={format!("{}-{}", &home_team.id, &away_team.id)} value="home" class="hidden peer" checked={old_pick.choice == Some("Home".into())}/>
                                                             <label for={format!("{}", &home_team.id)} class="inline-grid w-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100">
                                                                 <img src=&home_team.logo class="w-full"/>
                                                                 <h2>{&home_team.name}</h2>
@@ -260,7 +261,7 @@ pub fn SpreadGroupPick(initial_values: Vec<(Event, Pick)>) -> impl IntoView {
                                                         </div>
                                                         <div class="col-span-1">
                                                             <h1>"Away"</h1>
-                                                            <input on:click=move |_| spread_setter(pick, "Away") type="radio" id={format!("{}", &away_team.id)} name={format!("{}-{}", &home_team.id, &away_team.id)} value="away" class="hidden peer" checked={if &old_pick.choice == &Some("Away".into()) {true} else {false}}/>
+                                                            <input on:click=move |_| spread_setter(pick, "Away") type="radio" id={format!("{}", &away_team.id)} name={format!("{}-{}", &home_team.id, &away_team.id)} value="away" class="hidden peer" checked={old_pick.choice == Some("Away".into())}/>
                                                             <label for={format!("{}", &away_team.id)} class="inline-grid w-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100">
                                                                 <img src=&away_team.logo class="w-full"/>
                                                                 <h2>{&away_team.name}</h2>
@@ -278,7 +279,7 @@ pub fn SpreadGroupPick(initial_values: Vec<(Event, Pick)>) -> impl IntoView {
                                             .map(|i| {
                                                 view!{
                                                     <li class="inline-flex items-center p-1">
-                                                        <input on:click=move |_| wager_setter(pick, i) type="radio" id={format!("{}-{}-{}-wager", i, spread.home_id, spread.away_id)} name={format!("{}-{}-wager", spread.home_id, spread.away_id)} value="home" class="hidden peer" checked={if old_pick.wager == Some(i as i64) {true} else {false}}/>
+                                                        <input on:click=move |_| wager_setter(pick, i) type="radio" id={format!("{}-{}-{}-wager", i, spread.home_id, spread.away_id)} name={format!("{}-{}-wager", spread.home_id, spread.away_id)} value="home" class="hidden peer" checked={old_pick.wager == Some(i as i64)}/>
                                                         <label for={format!("{}-{}-{}-wager", i, spread.home_id, spread.away_id)} class="inline-grid w-5 h-5 p-5 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100">
                                                             <p class="text-center">{i}</p>
                                                         </label>

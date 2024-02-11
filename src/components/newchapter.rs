@@ -107,8 +107,8 @@ pub fn VerifiedNewChapter() -> impl IntoView {
         title.update(|t| {
             let new_title = event_target_value(&ev);
 
-            let old_empty = t.len() == 0;
-            let new_empty = new_title.len() == 0;
+            let old_empty = t.is_empty();
+            let new_empty = new_title.is_empty();
 
             if old_empty && !new_empty {
                 untracked_changes.update(|changes| *changes -= 1)

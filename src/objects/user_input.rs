@@ -6,7 +6,7 @@ pub struct UserInput {
     pub points: i64,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct UserInputBuilder {
     pub question: Option<String>,
     pub points: Option<i64>,
@@ -14,10 +14,7 @@ pub struct UserInputBuilder {
 
 impl UserInputBuilder {
     pub fn new() -> Self {
-        UserInputBuilder {
-            question: None,
-            points: None,
-        }
+        Default::default()
     }
 
     pub fn build(self) -> Option<UserInput> {

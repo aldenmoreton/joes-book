@@ -68,7 +68,7 @@ pub fn UserSelect(user_selector: WriteSignal<Option<FrontendUser>>) -> impl Into
         <div>
             <input type="text" class="bg-green-300 border border-black" on:input=move |ev|{
                 let new_query = event_target_value(&ev);
-                 if new_query.len() == 0 {
+                 if new_query.is_empty() {
                     set_query.set(None);
                 } else {
                     set_query.set(Some(new_query));

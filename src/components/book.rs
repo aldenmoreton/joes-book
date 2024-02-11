@@ -153,7 +153,7 @@ pub fn AdminView(book_id: i64) -> impl IntoView {
                 }
             } else {
                 view!{
-                    <button class="bg-green-200 border border-green-500 rounded-md hover:bg-green-700 hover:text-white hover:border-black" on:click=move |_| dialog_show.update(|d| *d=!*d)>"Admin Settings"</button>
+                    <button class="bg-green-200 border border-green-500 rounded-md hover:bg-green-700 hover:text-white hover:border-black" on:click=move |_| dialog_show.update(|d| *d = !*d)>"Admin Settings"</button>
                 }
             }
         }

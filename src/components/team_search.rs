@@ -22,7 +22,7 @@ pub fn TeamSelect(team_selector: WriteSignal<Option<Team>>) -> impl IntoView {
                         let new_query = event_target_value(&ev);
                         if new_query.len() >= 3 {
                             set_query.set(new_query);
-                        } else if new_query.len() == 0 {
+                        } else if new_query.is_empty() {
                             set_query.set("-1".into());
                         }
                     }/>
