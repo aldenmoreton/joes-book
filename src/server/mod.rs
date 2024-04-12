@@ -21,7 +21,7 @@ cfg_if! {
     if #[cfg(feature = "ssr")] {
 
         use leptos::{ ServerFnError, use_context };
-        pub type AuthSession = axum_session_auth::AuthSession<BackendUser, i64, SessionPgPool, PgPool>;
+        pub type AuthSession = axum_session_auth::AuthSession<BackendUser, i32, SessionPgPool, PgPool>;
         use axum_session_auth::SessionPgPool;
         use sqlx::PgPool;
 

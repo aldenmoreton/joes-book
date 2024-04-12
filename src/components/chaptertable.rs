@@ -13,15 +13,15 @@ async fn foo() -> Option<String> {
 #[component]
 pub fn ChapterTable() -> impl IntoView {
     let params = use_params_map();
-    let book_id: i64 = params
+    let book_id: i32 = params
         .with_untracked(|params| params.get("book_id").cloned())
         .unwrap()
-        .parse::<i64>()
+        .parse::<i32>()
         .unwrap();
-    let chapter_id: i64 = params
+    let chapter_id: i32 = params
         .with_untracked(|params| params.get("chapter_id").cloned())
         .unwrap()
-        .parse::<i64>()
+        .parse::<i32>()
         .unwrap();
 
     let table_fetcher = create_resource(

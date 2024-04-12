@@ -90,7 +90,7 @@ if #[cfg(feature = "ssr")] {
         simple_logger::init_with_level(log::Level::Info).expect("couldn't initialize logging");
 
         let database_url = std::env::var("DATABASE_URL").expect("Unable to read DATABASE_URL env var");
-
+        println!("{database_url}");
         let pool = PgPoolOptions::new()
             .connect(&database_url)
             .await
@@ -100,17 +100,21 @@ if #[cfg(feature = "ssr")] {
         let session_config = SessionConfig::default().with_table_name("axum_sessions");
 
         println!("Attempting Migration");
-        // sqlx::migrate!(migrations);
-        sqlx::query_file!("migrations/users.sql").execute(&pool).await.ok();
-        sqlx::query_file!("migrations/user_permissions.sql").execute(&pool).await.ok();
-        sqlx::query_file!("migrations/todos.sql").execute(&pool).await.ok();
-        sqlx::query_file!("migrations/books.sql").execute(&pool).await.ok();
-        sqlx::query_file!("migrations/subscriptions.sql").execute(&pool).await.ok();
-        sqlx::query_file!("migrations/chapters.sql").execute(&pool).await.ok();
-        sqlx::query_file!("migrations/events.sql").execute(&pool).await.ok();
-        sqlx::query_file!("migrations/picks.sql").execute(&pool).await.ok();
+        println!("{:?}", std::env::current_dir());
+        sqlx::migrate!()
+            .run(&pool)
+            .await
+            .ok();
+        // sqlx::query_file!("migrations/users.sql").execute(&pool).await.ok();
+        // sqlx::query_file!("migrations/user_permissions.sql").execute(&pool).await.ok();
+        // sqlx::query_file!("migrations/todos.sql").execute(&pool).await.ok();
+        // sqlx::query_file!("migrations/books.sql").execute(&pool).await.ok();
+        // sqlx::query_file!("migrations/subscriptions.sql").execute(&pool).await.ok();
+        // sqlx::query_file!("migrations/chapters.sql").execute(&pool).await.ok();
+        // sqlx::query_file!("migrations/events.sql").execute(&pool).await.ok();
+        // sqlx::query_file!("migrations/picks.sql").execute(&pool).await.ok();
 
-        let auth_config = AuthConfig::<i64>::default();
+        let auth_config = AuthConfig::<i32>::default();
         let session_store = SessionStore::<SessionPgPool>::new(Some(pool.clone().into()), session_config)
             .await
             .expect("Could not create session store");
@@ -126,7 +130,7 @@ if #[cfg(feature = "ssr")] {
         let leptos_options = conf.leptos_options;
         let addr = leptos_options.site_addr;
         let site_root = leptos_options.site_root.clone();
-        let routes = generate_route_list(|| view!{ <App/> });
+        let routes = generate_route_list(App);
 
         let app_state = AppState{
             leptos_options,
@@ -141,7 +145,7 @@ if #[cfg(feature = "ssr")] {
             .layer(
                 ServiceBuilder::new()
                     .layer(SessionLayer::new(session_store))
-                    .layer(AuthSessionLayer::<BackendUser, i64, SessionPgPool, PgPool>::new(Some(pool.clone()))
+                    .layer(AuthSessionLayer::<BackendUser, i32, SessionPgPool, PgPool>::new(Some(pool.clone()))
                         .with_config(auth_config)
                     )
             )

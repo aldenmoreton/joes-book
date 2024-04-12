@@ -13,10 +13,10 @@ use crate::{
 #[component]
 pub fn NewChapter() -> impl IntoView {
     let params = use_params_map();
-    let book_id: i64 = params
+    let book_id: i32 = params
         .with_untracked(|params| params.get("book_id").cloned())
         .unwrap()
-        .parse::<i64>()
+        .parse::<i32>()
         .unwrap();
     let user_subscription = create_resource(|| (), move |_| async move { get_book(book_id).await });
 
@@ -34,14 +34,14 @@ pub fn NewChapter() -> impl IntoView {
 #[component]
 pub fn VerifiedNewChapter() -> impl IntoView {
     let params = use_params_map();
-    let book_id: i64 = params
+    let book_id: i32 = params
         .with_untracked(|params| params.get("book_id").cloned())
         .unwrap()
-        .parse::<i64>()
+        .parse::<i32>()
         .unwrap();
 
     let title = create_rw_signal(String::new());
-    let events = create_rw_signal::<Vec<(i64, EventBuilder)>>(Vec::new());
+    let events = create_rw_signal::<Vec<(i32, EventBuilder)>>(Vec::new());
 
     let initial_datetime = {
         let current = chrono::Utc::now();
@@ -224,7 +224,7 @@ pub fn NewUserInput(input: RwSignal<UserInputBuilder>) -> impl IntoView {
 }
 
 #[component]
-pub fn NewSpreadGroup(spreads: RwSignal<Vec<(i64, RwSignal<SpreadBuilder>)>>) -> impl IntoView {
+pub fn NewSpreadGroup(spreads: RwSignal<Vec<(i32, RwSignal<SpreadBuilder>)>>) -> impl IntoView {
     let add_spread = move |_| {
         spreads.update(|spreads| {
             let new_id = if let Some(spread) = spreads.last() {

@@ -8,7 +8,7 @@ cfg_if! {
         use async_trait::async_trait;
         use sqlx::PgPool;
         use axum_session_auth::{SessionPgPool, Authentication, HasPermission as HasPerm};
-        pub type AuthSession = axum_session_auth::AuthSession<BackendUser, i64, SessionPgPool, PgPool>;
+        pub type AuthSession = axum_session_auth::AuthSession<BackendUser, i32, SessionPgPool, PgPool>;
 
         impl BackendUser {
             pub async fn add_to_db(username: String, password: String, permissions: Vec<String>, pool: PgPool) -> anyhow::Result<Self> {
@@ -54,7 +54,7 @@ cfg_if! {
                 })
             }
 
-            pub async fn get(id: i64, pool: &PgPool) -> Option<Self> {
+            pub async fn get(id: i32, pool: &PgPool) -> Option<Self> {
                 let user_fields = sqlx::query!(
                     r#"SELECT id, username, password
                     FROM users
@@ -123,8 +123,8 @@ cfg_if! {
         }
 
         #[async_trait]
-        impl Authentication<BackendUser, i64, PgPool> for BackendUser {
-            async fn load_user(userid: i64, pool: Option<&PgPool>) -> Result<BackendUser, anyhow::Error> {
+        impl Authentication<BackendUser, i32, PgPool> for BackendUser {
+            async fn load_user(userid: i32, pool: Option<&PgPool>) -> Result<BackendUser, anyhow::Error> {
                 let pool = pool.unwrap();
 
                 BackendUser::get(userid, pool)

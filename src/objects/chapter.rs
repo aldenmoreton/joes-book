@@ -8,17 +8,17 @@ use crate::objects::*;
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 pub struct Chapter {
     #[cfg_attr(feature = "ssr", sqlx(rename = "id"))]
-    pub chapter_id: i64,
-    pub book_id: i64,
+    pub chapter_id: i32,
+    pub book_id: i32,
     pub is_open: bool,
     pub title: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Event {
-    pub id: i64,
-    pub book_id: i64,
-    pub chapter_id: i64,
+    pub id: i32,
+    pub book_id: i32,
+    pub chapter_id: i32,
     pub is_open: bool,
     pub event_type: String,
     pub contents: EventContent,
@@ -58,18 +58,18 @@ pub enum EventContent {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 pub struct Pick {
-    pub id: Option<i64>,
-    pub book_id: i64,
-    pub chapter_id: i64,
-    pub event_id: i64,
-    pub wager: Option<i64>,
+    pub id: Option<i32>,
+    pub book_id: i32,
+    pub chapter_id: i32,
+    pub event_id: i32,
+    pub wager: Option<i32>,
     pub choice: Option<String>,
     pub correct: Option<bool>,
 }
 
 #[derive(Clone, Debug)]
 pub enum EventBuilder {
-    SpreadGroup(RwSignal<Vec<(i64, RwSignal<SpreadBuilder>)>>),
+    SpreadGroup(RwSignal<Vec<(i32, RwSignal<SpreadBuilder>)>>),
     UserInput(RwSignal<UserInputBuilder>),
 }
 

@@ -15,7 +15,7 @@ cfg_if! {
 }
 
 #[server(DeleteBook, "/secure", "Url", "delete_book")]
-pub async fn delete_book(id: i64) -> Result<(), ServerFnError> {
+pub async fn delete_book(id: i32) -> Result<(), ServerFnError> {
     let user = auth()?.current_user.unwrap();
     let pool = pool()?;
 
@@ -66,7 +66,7 @@ pub async fn delete_book(id: i64) -> Result<(), ServerFnError> {
 }
 
 #[server(AddUser, "/secure", "Url", "add_user")]
-pub async fn add_user(user_id: i64, book_id: i64) -> Result<bool, ServerFnError> {
+pub async fn add_user(user_id: i32, book_id: i32) -> Result<bool, ServerFnError> {
     let owner = get_book(book_id).await?;
     match owner {
         BookSubscription {
@@ -110,7 +110,7 @@ pub async fn add_user(user_id: i64, book_id: i64) -> Result<bool, ServerFnError>
 }
 
 #[server(RemoveUser, "/secure", "Url", "remove_user")]
-pub async fn remove_user(user_id: i64, book_id: i64) -> Result<bool, ServerFnError> {
+pub async fn remove_user(user_id: i32, book_id: i32) -> Result<bool, ServerFnError> {
     let owner = get_book(book_id).await?;
     match owner {
         BookSubscription {
@@ -154,7 +154,7 @@ pub async fn remove_user(user_id: i64, book_id: i64) -> Result<bool, ServerFnErr
 }
 
 #[server(PromoteAdmin, "/secure", "Url", "promote_admin")]
-pub async fn promote_admin(user_id: i64, book_id: i64) -> Result<bool, ServerFnError> {
+pub async fn promote_admin(user_id: i32, book_id: i32) -> Result<bool, ServerFnError> {
     let owner = get_book(book_id).await?;
     match owner {
         BookSubscription {
@@ -199,7 +199,7 @@ pub async fn promote_admin(user_id: i64, book_id: i64) -> Result<bool, ServerFnE
 }
 
 #[server(DemoteAdmin, "/secure", "Url", "demote_admin")]
-pub async fn demote_admin(user_id: i64, book_id: i64) -> Result<bool, ServerFnError> {
+pub async fn demote_admin(user_id: i32, book_id: i32) -> Result<bool, ServerFnError> {
     let owner = get_book(book_id).await?;
     match owner {
         BookSubscription {
@@ -231,8 +231,8 @@ pub async fn demote_admin(user_id: i64, book_id: i64) -> Result<bool, ServerFnEr
 
 #[server(GetSubscription, "/secure", "Url", "get_subsciption")]
 pub async fn get_subsciption(
-    user_id: i64,
-    book_id: i64,
+    user_id: i32,
+    book_id: i32,
 ) -> Result<BookSubscription, ServerFnError> {
     let pool = pool()?;
 

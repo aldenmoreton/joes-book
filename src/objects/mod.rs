@@ -17,7 +17,7 @@ cfg_if! {
 
         #[derive(Clone, Debug, PartialEq, Eq)]
         pub struct BackendUser {
-            pub id: i64,
+            pub id: i32,
             pub username: String,
             pub password: String,
             pub permissions: HashSet<String>,
@@ -28,6 +28,6 @@ cfg_if! {
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 pub struct FrontendUser {
-    pub id: i64,
+    pub id: i32,
     pub username: String,
 }

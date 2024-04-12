@@ -5,7 +5,7 @@
 // #[component]
 // pub fn BookEvents(
 //     cx: Scope,
-// 	book_id: i64
+// 	book_id: i32
 // ) -> impl IntoView {
 // 	view! {cx,
 // 		<h1>"Events"</h1>
@@ -16,7 +16,7 @@
 // #[component]
 // fn BookEventCard(
 // 	cx: Scope,
-// 	event_id: i64
+// 	event_id: i32
 // ) -> impl IntoView {
 // 	view! {cx,
 // 		<h3>"Event Card"</h3>

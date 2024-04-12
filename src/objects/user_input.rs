@@ -3,13 +3,13 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub struct UserInput {
     pub question: String,
-    pub points: i64,
+    pub points: i32,
 }
 
 #[derive(Debug, Clone, Default)]
 pub struct UserInputBuilder {
     pub question: Option<String>,
-    pub points: Option<i64>,
+    pub points: Option<i32>,
 }
 
 impl UserInputBuilder {
@@ -28,7 +28,7 @@ impl UserInputBuilder {
         self.question = Some(q);
         self
     }
-    pub fn points(&mut self, p: i64) -> &mut Self {
+    pub fn points(&mut self, p: i32) -> &mut Self {
         self.points = Some(p);
         self
     }

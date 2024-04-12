@@ -12,8 +12,8 @@ pub enum BookRole {
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 pub struct BookSubscription {
     #[cfg_attr(feature = "ssr", sqlx(rename = "id"))]
-    pub book_id: i64,
-    pub user_id: i64,
+    pub book_id: i32,
+    pub user_id: i32,
     pub name: String,
     #[cfg_attr(feature = "ssr", sqlx(try_from = "String"))]
     pub role: BookRole,

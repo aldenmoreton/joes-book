@@ -10,7 +10,7 @@ cfg_if! {
 }
 
 #[server(GetTeam, "/secure", "Url", "get_team")]
-pub async fn get_team(id: i64) -> Result<Team, ServerFnError> {
+pub async fn get_team(id: i32) -> Result<Team, ServerFnError> {
     let pool = pool()?;
 
     let result = sqlx::query_as::<_, Team>(
@@ -26,7 +26,7 @@ pub async fn get_team(id: i64) -> Result<Team, ServerFnError> {
 }
 
 #[server(GetSpreadTeams, "/secure", "Url", "get_spread_teams")]
-pub async fn get_spread_teams(home_id: i64, away_id: i64) -> Result<(Team, Team), ServerFnError> {
+pub async fn get_spread_teams(home_id: i32, away_id: i32) -> Result<(Team, Team), ServerFnError> {
     Ok((get_team(home_id).await?, get_team(away_id).await?))
 }
 

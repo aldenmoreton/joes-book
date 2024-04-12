@@ -13,10 +13,10 @@ use crate::{
 #[component]
 pub fn Book() -> impl IntoView {
     let params = use_params_map();
-    let book_id: i64 = params
+    let book_id: i32 = params
         .with_untracked(|params| params.get("book_id").cloned())
         .unwrap()
-        .parse::<i64>()
+        .parse::<i32>()
         .unwrap();
 
     let book = create_resource(|| (), move |_| async move { get_book(book_id).await });
@@ -46,10 +46,10 @@ pub fn Book() -> impl IntoView {
 #[component]
 pub fn VerifiedView() -> impl IntoView {
     let params = use_params_map();
-    let book_id: i64 = params
+    let book_id: i32 = params
         .with_untracked(|params| params.get("book_id").cloned())
         .unwrap()
-        .parse::<i64>()
+        .parse::<i32>()
         .unwrap();
 
     let book_table = create_resource(|| (), move |_| get_book_table(book_id));
@@ -129,7 +129,7 @@ pub fn VerifiedView() -> impl IntoView {
 }
 
 #[component]
-pub fn AdminView(book_id: i64) -> impl IntoView {
+pub fn AdminView(book_id: i32) -> impl IntoView {
     let (user, user_selector) = create_signal(None);
 
     let delete_book = create_server_action::<DeleteBook>();

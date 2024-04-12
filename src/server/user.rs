@@ -125,7 +125,7 @@ pub async fn get_username() -> Result<String, ServerFnError> {
 }
 
 #[server(GetUserID, "/secure", "Url", "get_user_id")]
-pub async fn get_user_id() -> Result<i64, ServerFnError> {
+pub async fn get_user_id() -> Result<i32, ServerFnError> {
     let auth = auth()?;
 
     Ok(auth.current_user.unwrap().id)

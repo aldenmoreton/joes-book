@@ -9,15 +9,15 @@ use crate::{
 #[component]
 pub fn Chapter() -> impl IntoView {
     let params = use_params_map();
-    let book_id: i64 = params
+    let book_id: i32 = params
         .with_untracked(|params| params.get("book_id").cloned())
         .unwrap()
-        .parse::<i64>()
+        .parse::<i32>()
         .unwrap();
-    let chapter_id: i64 = params
+    let chapter_id: i32 = params
         .with_untracked(|params| params.get("chapter_id").cloned())
         .unwrap()
-        .parse::<i64>()
+        .parse::<i32>()
         .unwrap();
 
     let new_picks: RwSignal<bool> = create_rw_signal(false);
@@ -66,10 +66,10 @@ pub fn Chapter() -> impl IntoView {
 #[component]
 pub fn ChapterEvents(initial_values: Vec<(String, Vec<(Event, Pick)>)>) -> impl IntoView {
     let params = use_params_map();
-    let book_id: i64 = params
+    let book_id: i32 = params
         .with_untracked(|params| params.get("book_id").cloned())
         .unwrap()
-        .parse::<i64>()
+        .parse::<i32>()
         .unwrap();
 
     let discrepancies: RwSignal<Option<i32>> = create_rw_signal(None);
@@ -211,7 +211,7 @@ pub fn SpreadGroupPick(initial_values: Vec<(Event, Pick)>) -> impl IntoView {
             if let Some(old_wager) = pick.wager {
                 let old_wager_wrong = wager_trackers.get()[old_wager as usize - 1] > 1;
                 if old_wager == new_wager {
-                    return
+                    return;
                 }
                 if old_wager_wrong && new_wager_right {
                     global_discrepancies.update(|d| *d = Some(d.unwrap_or(1) - 1))
@@ -228,7 +228,7 @@ pub fn SpreadGroupPick(initial_values: Vec<(Event, Pick)>) -> impl IntoView {
                 }
                 t[wager - 1] += 1
             });
-            pick.wager = Some(wager as i64)
+            pick.wager = Some(wager as i32)
         })
     };
 
@@ -279,7 +279,7 @@ pub fn SpreadGroupPick(initial_values: Vec<(Event, Pick)>) -> impl IntoView {
                                             .map(|i| {
                                                 view!{
                                                     <li class="inline-flex items-center p-1">
-                                                        <input on:click=move |_| wager_setter(pick, i) type="radio" id={format!("{}-{}-{}-wager", i, spread.home_id, spread.away_id)} name={format!("{}-{}-wager", spread.home_id, spread.away_id)} value="home" class="hidden peer" checked={old_pick.wager == Some(i as i64)}/>
+                                                        <input on:click=move |_| wager_setter(pick, i) type="radio" id={format!("{}-{}-{}-wager", i, spread.home_id, spread.away_id)} name={format!("{}-{}-wager", spread.home_id, spread.away_id)} value="home" class="hidden peer" checked={old_pick.wager == Some(i as i32)}/>
                                                         <label for={format!("{}-{}-{}-wager", i, spread.home_id, spread.away_id)} class="inline-grid w-5 h-5 p-5 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100">
                                                             <p class="text-center">{i}</p>
                                                         </label>

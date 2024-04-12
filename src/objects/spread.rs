@@ -4,16 +4,16 @@ use super::Pick;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Spread {
-    pub home_id: i64,
-    pub away_id: i64,
+    pub home_id: i32,
+    pub away_id: i32,
     pub home_spread: f64,
     pub notes: Option<String>,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct SpreadBuilder {
-    pub home_id: Option<i64>,
-    pub away_id: Option<i64>,
+    pub home_id: Option<i32>,
+    pub away_id: Option<i32>,
     pub home_spread: Option<f64>,
     pub notes: Option<String>,
 }

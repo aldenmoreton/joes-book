@@ -9,10 +9,10 @@ use crate::{
 #[component]
 pub fn GradeChapter() -> impl IntoView {
     let params = use_params_map();
-    let book_id: i64 = params
+    let book_id: i32 = params
         .with_untracked(|params| params.get("book_id").cloned())
         .unwrap()
-        .parse::<i64>()
+        .parse::<i32>()
         .unwrap();
     let user_subscription = create_resource(|| (), move |_| async move { get_book(book_id).await });
 
@@ -33,10 +33,10 @@ pub fn GradeChapter() -> impl IntoView {
 #[component]
 pub fn VerifiedGradeChapter() -> impl IntoView {
     let params = use_params_map();
-    let chapter_id: i64 = params
+    let chapter_id: i32 = params
         .with_untracked(|params| params.get("chapter_id").cloned())
         .unwrap()
-        .parse::<i64>()
+        .parse::<i32>()
         .unwrap();
 
     let events_fetcher = create_resource(move || (), move |_| get_events(chapter_id));
@@ -64,18 +64,18 @@ pub fn VerifiedGradeChapter() -> impl IntoView {
 #[component]
 pub fn ChapterEvents(events: Vec<Event>) -> impl IntoView {
     let params = use_params_map();
-    let book_id: i64 = params
+    let book_id: i32 = params
         .with_untracked(|params| params.get("book_id").cloned())
         .unwrap()
-        .parse::<i64>()
+        .parse::<i32>()
         .unwrap();
-    let chapter_id: i64 = params
+    let chapter_id: i32 = params
         .with_untracked(|params| params.get("chapter_id").cloned())
         .unwrap()
-        .parse::<i64>()
+        .parse::<i32>()
         .unwrap();
 
-    let global_answers: RwSignal<Vec<ReadSignal<Option<(i64, Vec<String>)>>>> =
+    let global_answers: RwSignal<Vec<ReadSignal<Option<(i32, Vec<String>)>>>> =
         create_rw_signal(Vec::new());
     provide_context(global_answers);
 
@@ -94,7 +94,7 @@ pub fn ChapterEvents(events: Vec<Event>) -> impl IntoView {
         .collect_view();
 
     let pick_submission = create_action(move |_| async move {
-        let picks: Vec<(i64, Vec<String>)> = global_answers
+        let picks: Vec<(i32, Vec<String>)> = global_answers
             .get()
             .into_iter()
             .filter_map(|answer| answer.get())
@@ -131,11 +131,11 @@ pub fn ChapterEvents(events: Vec<Event>) -> impl IntoView {
 }
 
 #[component]
-pub fn SpreadGroupGrade(id: i64, spread: Spread) -> impl IntoView {
-    let global_answers = use_context::<RwSignal<Vec<ReadSignal<Option<(i64, Vec<String>)>>>>>()
+pub fn SpreadGroupGrade(id: i32, spread: Spread) -> impl IntoView {
+    let global_answers = use_context::<RwSignal<Vec<ReadSignal<Option<(i32, Vec<String>)>>>>>()
         .expect("You should have access to the picks");
 
-    let spread_answer: RwSignal<Option<(i64, Vec<String>)>> = create_rw_signal(None);
+    let spread_answer: RwSignal<Option<(i32, Vec<String>)>> = create_rw_signal(None);
     global_answers.update(|answers| answers.push(spread_answer.read_only()));
 
     let answer_setter = move |choice: &str| match choice {
@@ -194,11 +194,11 @@ pub fn SpreadGroupGrade(id: i64, spread: Spread) -> impl IntoView {
 }
 
 #[component]
-pub fn UserInputGrade(id: i64, question: UserInput) -> impl IntoView {
-    let global_answers = use_context::<RwSignal<Vec<ReadSignal<Option<(i64, Vec<String>)>>>>>()
+pub fn UserInputGrade(id: i32, question: UserInput) -> impl IntoView {
+    let global_answers = use_context::<RwSignal<Vec<ReadSignal<Option<(i32, Vec<String>)>>>>>()
         .expect("You should have access to the picks");
 
-    let input_answers: RwSignal<Option<(i64, Vec<String>)>> = create_rw_signal(None);
+    let input_answers: RwSignal<Option<(i32, Vec<String>)>> = create_rw_signal(None);
     global_answers.update(|answers| answers.push(input_answers.read_only()));
 
     let answer_setter = move |add: bool, choice: &str| {
