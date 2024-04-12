@@ -34,6 +34,17 @@ impl AuthUser for BackendUser {
 pub struct BackendPgDB(pub PgPool);
 
 impl BackendPgDB {
+    pub async fn init_admin(&self) -> Result<Option<BackendUser>, sqlx::Error> {
+        let Ok(username) = std::env::var("OWNER_USERNAME") else {
+            return Ok(None);
+        };
+        let Ok(password) = std::env::var("OWNER_PASSWORD") else {
+            return Ok(None);
+        };
+
+        self.signup(&username, &password).await.map(|u| Some(u))
+    }
+
     pub async fn signup(&self, username: &str, password: &str) -> Result<BackendUser, sqlx::Error> {
         let password_hashed = bcrypt::hash(password, bcrypt::DEFAULT_COST).unwrap();
 
