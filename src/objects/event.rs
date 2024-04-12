@@ -109,13 +109,14 @@ pub async fn get_picks(
 }
 
 pub async fn get_pick(user_id: i32, event_id: i32, pool: &PgPool) -> Result<Pick, StatusCode> {
-    let pick = sqlx::query_as::<_, Pick>(
-        r#" SELECT *
-				FROM picks
-				WHERE event_id = $1 AND user_id = $2"#,
+    let pick = sqlx::query_as!(
+        Pick,
+        r#" SELECT id AS "id?", book_id, chapter_id, event_id, wager AS "wager?", choice AS "choice?", correct AS "correct?"
+			FROM picks
+			WHERE event_id = $1 AND user_id = $2"#,
+        event_id,
+        user_id
     )
-    .bind(event_id)
-    .bind(user_id)
     .fetch_optional(pool)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;

@@ -160,7 +160,7 @@ pub mod authz {
                 role: BookRole::Unauthorized,
                 ..
             }) => return StatusCode::UNAUTHORIZED.into_response(),
-            Err(_) => return StatusCode::NOT_FOUND.into_response(),
+            Err(_) => return (StatusCode::NOT_FOUND, "Where'd your book go?").into_response(), // TODO: Add funny 404 page
             _ => (),
         }
 

@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS picks (
 	"event_id"		SERIAL NOT NULL REFERENCES events(id),
 	"user_id"		SERIAL NOT NULL REFERENCES users(id),
 	"choice"		TEXT NOT NULL,
-	"wager"			INT8 NOT NULL,
+	"wager"			INT4 NOT NULL,
 	"correct"		BOOLEAN
 );
 

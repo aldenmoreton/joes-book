@@ -60,8 +60,7 @@ async fn main() {
         .nest("/signup", pages::signup::router())
         .nest("/login", pages::login::router())
         .layer(auth_layer)
-        .fallback(get(|| async { "Could not find your route" }));
-    // .with_state(AppState{db: pool});
+        .fallback(get(|| async { "Could not find your route" })); // TODO: Add funny status page
 
     println!();
     println!("Starting server at http://localhost:3000");

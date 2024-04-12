@@ -44,14 +44,15 @@ pub struct BookSubscription {
 }
 
 pub async fn get_books(user_id: i32, pool: &PgPool) -> Result<Vec<BookSubscription>, StatusCode> {
-    let result = sqlx::query_as::<_, BookSubscription>(
-        r#"	SELECT b.id, b.name, s.role, s.user_id
+    let result = sqlx::query_as!(
+        BookSubscription,
+        r#"	SELECT b.id AS book_id, b.name, s.role, s.user_id
 			FROM books AS b
 			INNER JOIN subscriptions AS s ON s.book_id=b.id
 			WHERE s.user_id = $1
 		"#,
+        user_id
     )
-    .bind(user_id)
     .fetch_all(pool)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -64,15 +65,16 @@ pub async fn get_book(
     book_id: i32,
     pool: &PgPool,
 ) -> Result<BookSubscription, StatusCode> {
-    sqlx::query_as::<_, BookSubscription>(
-        r#"	SELECT b.id, b.name, s.role, s.user_id
+    sqlx::query_as!(
+        BookSubscription,
+        r#"	SELECT b.id AS book_id, b.name, s.role, s.user_id
 			FROM books AS b
 			INNER JOIN subscriptions AS s ON s.book_id=b.id
 			WHERE s.user_id = $1 AND b.id = $2
 		"#,
+        user_id,
+        book_id
     )
-    .bind(user_id)
-    .bind(book_id)
     .fetch_one(pool)
     .await
     .map_err(|_| StatusCode::NOT_FOUND)
