@@ -42,7 +42,7 @@ impl BackendPgDB {
             return Ok(None);
         };
 
-        self.signup(&username, &password).await.map(|u| Some(u))
+        self.signup(&username, &password).await.map(Some)
     }
 
     pub async fn signup(&self, username: &str, password: &str) -> Result<BackendUser, sqlx::Error> {

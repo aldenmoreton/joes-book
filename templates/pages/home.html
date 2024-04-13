@@ -4,6 +4,9 @@
 
 {% block content %}
 	{% call super() %}
+	{% if admin %}
+		<form action="/" method="post"></form>
+	{% endif %}
 	<p>I am the home page (I need to implement admin settings)</p>
 	<h3 class="h-3"><b>Your Books</b></h3>
 	<!-- <div hx-get="/home/books" hx-trigger="load" hx-target="this"></div> -->

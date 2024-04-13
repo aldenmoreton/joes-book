@@ -1,22 +1,22 @@
 pub mod auth;
 
-pub mod pages {
-	pub mod home;
-	pub mod login;
-	pub mod signup;
-	pub mod book;
-	pub mod chapter;
+pub mod routes {
+    pub mod book;
+    pub mod chapter;
+    pub mod home;
+    pub mod login;
+    pub mod signup;
 }
 
 pub mod components {
-	pub mod nav;
-	pub mod book_list;
+    pub mod book_list;
+    pub mod nav;
 }
 
 pub mod objects {
-	pub mod book;
-	pub mod chapter;
-	pub mod event;
-	pub mod spread;
-	pub mod user_input;
+    pub mod book;
+    pub mod chapter;
+    pub mod event;
+    pub mod spread;
+    pub mod user_input;
 }

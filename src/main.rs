@@ -15,7 +15,7 @@ use tower_sessions::PostgresStore;
 
 use joes_book::{
     auth::{authz, BackendPgDB},
-    components, pages,
+    components, routes,
 };
 
 #[derive(Clone)]
@@ -47,18 +47,18 @@ async fn main() {
     let auth_layer = AuthManagerLayerBuilder::new(backend, session_layer).build();
 
     let app = Router::new()
-        .nest("/book/:book_id/chapter", pages::chapter::router())
-        .nest("/book", pages::book::router())
+        .nest("/book/:book_id/chapter", routes::chapter::router())
+        .nest("/book", routes::book::router())
         .route_layer(middleware::from_fn(authz::is_member))
         .nest("/nav", components::nav::router())
-        .nest("/home", pages::home::router())
-        .route("/", get(pages::home::home))
+        .nest("/home", routes::home::router())
+        .route("/", get(routes::home::handler))
         .nest_service("/assets", ServeDir::new("assets"))
         .route("/logout", post(joes_book::auth::logout))
         .route_layer(login_required!(BackendPgDB, login_url = "/login"))
         .nest_service("/public", ServeDir::new("public"))
-        .nest("/signup", pages::signup::router())
-        .nest("/login", pages::login::router())
+        .nest("/signup", routes::signup::router())
+        .nest("/login", routes::login::router())
         .layer(auth_layer)
         .fallback(get(|| async { "Could not find your route" })); // TODO: Add funny status page
 

@@ -1,18 +1,10 @@
 use askama::Template;
-use axum::{
-    extract::Path,
-    response::IntoResponse,
-    routing::{get, Router},
-};
+use axum::{extract::Path, response::IntoResponse};
 
 use crate::{
     auth::{AuthSession, BackendPgDB},
     objects::chapter::{get_chapters, Chapter},
 };
-
-pub fn router() -> Router {
-    Router::new().route("/:book_id/", get(book))
-}
 
 #[derive(Template)]
 #[template(path = "pages/book.html")]
@@ -21,7 +13,7 @@ struct BookPage {
     chapters: Vec<Chapter>,
 }
 
-async fn book(auth_session: AuthSession, Path(book_id): Path<i32>) -> impl IntoResponse {
+pub async fn handler(auth_session: AuthSession, Path(book_id): Path<i32>) -> impl IntoResponse {
     let user = auth_session.user.unwrap();
     let BackendPgDB(pool) = auth_session.backend;
 
