@@ -1,8 +1,4 @@
-use axum::{
-    middleware,
-    routing::{get, post},
-    Router,
-};
+use axum::{routing::get, Router};
 
 use axum_login::{
     login_required,
@@ -13,10 +9,7 @@ use sqlx::{postgres::PgPoolOptions, PgPool};
 use tower_http::services::ServeDir;
 use tower_sessions::PostgresStore;
 
-use joes_book::{
-    auth::{authz, BackendPgDB},
-    components, routes,
-};
+use joes_book::{auth::BackendPgDB, routes};
 
 #[derive(Clone)]
 pub struct AppState {
@@ -47,14 +40,15 @@ async fn main() {
     let auth_layer = AuthManagerLayerBuilder::new(backend, session_layer).build();
 
     let app = Router::new()
-        .nest("/book/:book_id/chapter", routes::chapter::router())
+        // Site Admin Routes
+        // ------------------
+        // Book Member Routes
         .nest("/book", routes::book::router())
-        .route_layer(middleware::from_fn(authz::is_member))
-        .nest("/nav", components::nav::router())
-        .nest("/home", routes::home::router())
-        .route("/", get(routes::home::handler))
+        // ------------------
+        // Logged in Routes
+        .nest("", routes::home::router())
+        // ------------------
         .nest_service("/assets", ServeDir::new("assets"))
-        .route("/logout", post(joes_book::auth::logout))
         .route_layer(login_required!(BackendPgDB, login_url = "/login"))
         .nest_service("/public", ServeDir::new("public"))
         .nest("/signup", routes::signup::router())

@@ -2,7 +2,7 @@ use askama::Template;
 use axum::{response::IntoResponse, routing::get, Router};
 
 use crate::{
-    auth::AuthSession,
+    auth::{authz::has_perm, AuthSession},
     objects::book::{get_books, BookSubscription},
 };
 
@@ -26,8 +26,10 @@ pub async fn handler(session: AuthSession) -> impl IntoResponse {
     let crate::auth::BackendPgDB(pool) = session.backend;
     let books = get_books(user.id, &pool).await.unwrap();
 
+    let admin = has_perm("admin", user.id, &pool).await.unwrap_or(false);
+
     HomePage {
-        admin: false,
+        admin,
         username,
         books,
     }
