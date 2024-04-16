@@ -3,6 +3,8 @@ use axum_login::{AuthSession as AxumLoginAuthSession, AuthUser, AuthnBackend, Us
 use serde::Deserialize;
 use sqlx::PgPool;
 
+use crate::auth::authz::add_perm;
+
 pub type AuthSession = AxumLoginAuthSession<BackendPgDB>;
 
 #[derive(Clone, Debug)]
@@ -42,7 +44,10 @@ impl BackendPgDB {
             return Ok(None);
         };
 
-        self.signup(&username, &password).await.map(Some)
+        let user = self.signup(&username, &password).await?;
+        add_perm(user.id, "admin", &self.0).await?;
+
+        Ok(Some(user))
     }
 
     pub async fn signup(&self, username: &str, password: &str) -> Result<BackendUser, sqlx::Error> {
@@ -135,10 +140,39 @@ pub mod authz {
         middleware::Next,
         response::IntoResponse,
     };
+    use sqlx::PgPool;
 
     use crate::objects::book::{get_book, BookRole, BookSubscription};
 
     use super::{AuthSession, BackendPgDB};
+
+    pub async fn add_perm(user_id: i32, perm: &str, pool: &PgPool) -> Result<bool, sqlx::Error> {
+        let result = sqlx::query!(
+            "INSERT INTO user_permissions (user_id, token)
+            VALUES ($1, $2)
+            ON CONFLICT (user_id, token) DO NOTHING",
+            user_id,
+            perm
+        )
+        .fetch_optional(pool)
+        .await;
+
+        result.map(|r| r.is_some())
+    }
+
+    pub async fn has_perm(perm: &str, user_id: i32, pool: &PgPool) -> Result<bool, sqlx::Error> {
+        let result = sqlx::query!(
+            "SELECT token
+            FROM user_permissions
+            WHERE user_id = $1 AND token = $2",
+            user_id,
+            perm
+        )
+        .fetch_optional(pool)
+        .await;
+
+        result.map(|r| r.is_some())
+    }
 
     pub async fn is_member(
         Path(path): Path<HashMap<String, String>>,

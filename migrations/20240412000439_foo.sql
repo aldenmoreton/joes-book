@@ -51,5 +51,6 @@ CREATE TABLE IF NOT EXISTS subscriptions (
 
 CREATE TABLE IF NOT EXISTS user_permissions (
 	"user_id"     SERIAL NOT NULL REFERENCES users(id),
-	"token"       TEXT NOT NULL
+	"token"       TEXT NOT NULL,
+	PRIMARY KEY ("user_id", "token")
 );
