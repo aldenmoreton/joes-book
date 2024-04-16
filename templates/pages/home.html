@@ -5,7 +5,13 @@
 {% block content %}
 	{% call super() %}
 	{% if admin %}
-		<form action="/" method="post"></form>
+		<form action="/book/create" method="post">
+			<label>
+				Create New Book
+				<input type="text" placeholder="New Book" maxlength="32" name="book-name"/>
+			</label>
+			<button type="submit" class="button">Create</button>
+		</form>
 	{% endif %}
 	<p>I am the home page (I need to implement admin settings)</p>
 	<h3 class="h-3"><b>Your Books</b></h3>
