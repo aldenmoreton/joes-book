@@ -1,4 +1,4 @@
-mod endpoints;
+mod create;
 mod page;
 
 use axum::{
@@ -9,5 +9,5 @@ use axum::{
 pub fn router() -> Router {
     Router::new()
         .route("/:chapter_id", get(page::handler))
-        .route("/create", post(endpoints::create::handler))
+        .route("/create", post(create::handler))
 }
