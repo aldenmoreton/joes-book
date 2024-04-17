@@ -177,7 +177,7 @@ pub mod authz {
     pub async fn is_member(
         Path(path): Path<HashMap<String, String>>,
         auth_session: AuthSession,
-        request: Request,
+        mut request: Request,
         next: Next,
     ) -> impl IntoResponse {
         let Some(user) = auth_session.user else {
@@ -189,15 +189,16 @@ pub mod authz {
             return StatusCode::BAD_REQUEST.into_response();
         };
 
-        match get_book(user.id, book_id, &pool).await {
+        let book_subscription = match get_book(user.id, book_id, &pool).await {
             Ok(BookSubscription {
                 role: BookRole::Unauthorized,
                 ..
             }) => return StatusCode::UNAUTHORIZED.into_response(),
             Err(_) => return (StatusCode::NOT_FOUND, "Where'd your book go?").into_response(), // TODO: Add funny 404 page
-            _ => (),
-        }
+            Ok(user) => user,
+        };
 
+        request.extensions_mut().insert(book_subscription);
         next.run(request).await.into_response()
     }
 }

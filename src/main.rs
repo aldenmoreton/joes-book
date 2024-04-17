@@ -46,7 +46,7 @@ async fn main() {
         .nest("/book", routes::book::router())
         // ------------------
         // Logged in Routes
-        .nest("", routes::home::router())
+        .merge(routes::home::router())
         // ------------------
         .nest_service("/assets", ServeDir::new("assets"))
         .route_layer(login_required!(BackendPgDB, login_url = "/login"))
