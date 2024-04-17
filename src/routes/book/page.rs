@@ -4,7 +4,7 @@ use axum::{response::IntoResponse, Extension};
 use crate::{
     auth::{AuthSession, BackendPgDB},
     objects::{
-        book::BookSubscription,
+        book::{BookRole, BookSubscription},
         chapter::{get_chapters, Chapter},
     },
 };
@@ -12,6 +12,7 @@ use crate::{
 #[derive(Template)]
 #[template(path = "pages/book.html")]
 struct BookPage {
+    book_subscription: BookSubscription,
     username: String,
     chapters: Vec<Chapter>,
 }
@@ -31,5 +32,10 @@ pub async fn handler(
         Err(e) => return e.into_response(),
     };
 
-    BookPage { username, chapters }.into_response()
+    BookPage {
+        book_subscription,
+        username,
+        chapters,
+    }
+    .into_response()
 }

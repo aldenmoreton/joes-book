@@ -1,9 +1,17 @@
 {% extends "authenticated.html" %}
 
-{% block title %}Book{% endblock %}
+{% block title %}{{book_subscription.name}}{% endblock %}
 
 {% block content %}
 	{% call super() %}
-	<p>I am the book page (I need to implement admin settings)</p>
+	{% if book_subscription.role == BookRole::Admin %}
+		<form method="post" action="/book/{{book_subscription.book_id}}/chapter/create">
+			<label>
+				Create New Chapter
+				<input type="text" placeholder="New Chapter" maxlength="32" name="chapter-name"/>
+			</label>
+			<button type="submit" class="button">Create</button>
+		</form>
+	{% endif %}
 	{% include "components/chapter_list.html" %}
 {% endblock %}

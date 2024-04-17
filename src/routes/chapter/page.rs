@@ -1,5 +1,5 @@
 use askama::Template;
-use axum::{extract::Path, http::StatusCode, routing::get, Router};
+use axum::{extract::Path, http::StatusCode};
 
 use crate::{
     auth::{AuthSession, BackendPgDB},
@@ -9,19 +9,15 @@ use crate::{
     },
 };
 
-pub fn router() -> Router {
-    Router::new().route("/:chapter_id", get(chapter))
-}
-
 #[derive(Template)]
 #[template(path = "pages/chapter.html")]
-struct ChapterPage {
+pub struct ChapterPage {
     username: String,
     meta: Chapter,
     events: Vec<Event>,
 }
 
-async fn chapter(
+pub async fn handler(
     auth_session: AuthSession,
     Path((_book_id, chapter_id)): Path<(i32, i32)>,
 ) -> Result<ChapterPage, StatusCode> {

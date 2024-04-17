@@ -13,5 +13,5 @@ pub fn router() -> Router {
         .nest("/:book_id/chapter", crate::routes::chapter::router())
         .route("/:book_id", get(page::handler))
         .route_layer(middleware::from_fn(authz::is_member))
-        .route("/create", post(endpoints::create))
+        .route("/create", post(endpoints::create_book::handler))
 }
