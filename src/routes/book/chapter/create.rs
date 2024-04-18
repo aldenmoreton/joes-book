@@ -1,7 +1,7 @@
 use axum::{http::StatusCode, response::IntoResponse, Extension};
 use thiserror::Error;
 
-use crate::objects::book::{BookRole, BookSubscription};
+use crate::objects::book::BookSubscription;
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -18,9 +18,5 @@ impl IntoResponse for Error {
 pub async fn handler(
     Extension(book_subscription): Extension<BookSubscription>,
 ) -> Result<(), Error> {
-    if book_subscription.role != BookRole::Admin {
-        return Err(Error::Unauthorized);
-    }
-
     Ok(())
 }

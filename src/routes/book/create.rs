@@ -5,7 +5,7 @@ use axum::{
 };
 use serde::Deserialize;
 
-use crate::auth::{authz::has_perm, AuthSession};
+use crate::auth::AuthSession;
 
 #[derive(Deserialize)]
 pub struct Params {
@@ -19,16 +19,11 @@ pub enum Error {
     BookName,
     #[error("Internal Error")]
     SQLX(#[from] sqlx::Error),
-    #[error("You do not have authorization to create a book")]
-    Unauthorized,
 }
 
 impl IntoResponse for Error {
     fn into_response(self) -> askama_axum::Response {
-        match self {
-            Error::Unauthorized => StatusCode::UNAUTHORIZED.into_response(),
-            _ => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()).into_response(),
-        }
+        (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()).into_response()
     }
 }
 
@@ -43,9 +38,6 @@ pub async fn handler(
     let user = auth_session.user.unwrap();
     let pool = auth_session.backend.0;
 
-    if !has_perm("admin", user.id, &pool).await? {
-        return Err(Error::Unauthorized);
-    }
     let mut transaction = pool.begin().await?;
 
     let record = sqlx::query!(
