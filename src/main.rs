@@ -41,6 +41,7 @@ async fn main() {
 
     let app = Router::new()
         // Site Admin Routes
+        .nest("/admin", routes::admin::router())
         // ------------------
         // Book Member Routes
         .nest("/book", routes::book::router())

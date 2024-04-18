@@ -1,6 +1,7 @@
 pub mod auth;
 
 pub mod routes {
+    pub mod admin;
     pub mod book;
     pub mod home;
     pub mod login;
