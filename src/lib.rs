@@ -2,7 +2,6 @@ pub mod auth;
 
 pub mod routes {
     pub mod book;
-    pub mod chapter;
     pub mod home;
     pub mod login;
     pub mod signup;
