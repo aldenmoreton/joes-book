@@ -34,5 +34,5 @@ async fn create_permissions(
             .into_response();
     }
 
-    return next.run(request).await.into_response();
+    next.run(request).await.into_response()
 }

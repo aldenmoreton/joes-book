@@ -18,7 +18,7 @@ pub enum Error {
     #[error("Book Name is Invalid")]
     BookName,
     #[error("Internal Error")]
-    SQLX(#[from] sqlx::Error),
+    Sqlx(#[from] sqlx::Error),
 }
 
 impl IntoResponse for Error {

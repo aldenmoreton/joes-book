@@ -1,5 +1,5 @@
 use askama::Template;
-use axum::{response::IntoResponse, Extension};
+use axum::{http::StatusCode, response::IntoResponse, Extension};
 
 use crate::{
     auth::{AuthSession, BackendPgDB},
@@ -29,7 +29,7 @@ pub async fn handler(
 
     let chapters = match get_chapters(user_id, book_subscription.book_id, &pool).await {
         Ok(c) => c,
-        Err(e) => return e.into_response(),
+        Err(_) => return StatusCode::INTERNAL_SERVER_ERROR.into_response(),
     };
 
     BookPage {

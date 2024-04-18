@@ -14,11 +14,11 @@ pub async fn get_chapters(
     user_id: i32,
     book_id: i32,
     pool: &PgPool,
-) -> Result<Vec<Chapter>, StatusCode> {
-    let book_subscription = get_book(user_id, book_id, pool).await?;
-    if let BookRole::Unauthorized = book_subscription.role {
-        return Err(StatusCode::UNAUTHORIZED);
-    }
+) -> Result<Vec<Chapter>, sqlx::Error> {
+    // let book_subscription = get_book(user_id, book_id, pool).await?;
+    // if let BookRole::Unauthorized = book_subscription.role {
+    //     return Err(sqlx::Error::);
+    // }
 
     let result = sqlx::query!(
         r#"	SELECT id AS chapter_id, book_id, is_open, title
@@ -28,8 +28,7 @@ pub async fn get_chapters(
         book_id
     )
     .fetch_all(pool)
-    .await
-    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    .await?;
 
     Ok(result
         .into_iter()
@@ -42,7 +41,7 @@ pub async fn get_chapters(
         .collect::<Vec<_>>())
 }
 
-pub async fn get_chapter(chapter_id: i32, pool: &PgPool) -> Result<Chapter, StatusCode> {
+pub async fn get_chapter(chapter_id: i32, pool: &PgPool) -> Result<Chapter, sqlx::Error> {
     sqlx::query_as!(
         Chapter,
         r#"	SELECT id AS chapter_id, book_id, title, is_open
@@ -53,5 +52,4 @@ pub async fn get_chapter(chapter_id: i32, pool: &PgPool) -> Result<Chapter, Stat
     )
     .fetch_one(pool)
     .await
-    .map_err(|_| StatusCode::NOT_FOUND)
 }

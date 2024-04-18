@@ -1,4 +1,3 @@
-use axum::http::StatusCode;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
@@ -43,7 +42,7 @@ pub struct BookSubscription {
     pub role: BookRole,
 }
 
-pub async fn get_books(user_id: i32, pool: &PgPool) -> Result<Vec<BookSubscription>, StatusCode> {
+pub async fn get_books(user_id: i32, pool: &PgPool) -> Result<Vec<BookSubscription>, sqlx::Error> {
     let result = sqlx::query_as!(
         BookSubscription,
         r#"	SELECT b.id AS book_id, b.name, s.role, s.user_id
@@ -54,8 +53,7 @@ pub async fn get_books(user_id: i32, pool: &PgPool) -> Result<Vec<BookSubscripti
         user_id
     )
     .fetch_all(pool)
-    .await
-    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    .await?;
 
     Ok(result)
 }
@@ -64,7 +62,7 @@ pub async fn get_book(
     user_id: i32,
     book_id: i32,
     pool: &PgPool,
-) -> Result<BookSubscription, StatusCode> {
+) -> Result<BookSubscription, sqlx::Error> {
     sqlx::query_as!(
         BookSubscription,
         r#"	SELECT b.id AS book_id, b.name, s.role, s.user_id
@@ -77,5 +75,4 @@ pub async fn get_book(
     )
     .fetch_one(pool)
     .await
-    .map_err(|_| StatusCode::NOT_FOUND)
 }

@@ -1,14 +1,9 @@
-use axum::http::StatusCode;
 use itertools::Itertools;
 
 use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgRow, FromRow, PgPool, Row};
 
-use super::{
-    book::{get_book, BookRole},
-    spread::Spread,
-    user_input::UserInput,
-};
+use super::{book::get_book, spread::Spread, user_input::UserInput};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Event {
@@ -62,7 +57,7 @@ pub struct Pick {
     pub correct: Option<bool>,
 }
 
-pub async fn get_events(chapter_id: i32, pool: &PgPool) -> Result<Vec<Event>, StatusCode> {
+pub async fn get_events(chapter_id: i32, pool: &PgPool) -> Result<Vec<Event>, sqlx::Error> {
     sqlx::query_as!(
         Event,
         r#"	SELECT id, book_id, chapter_id, contents, event_type, is_open
@@ -74,15 +69,13 @@ pub async fn get_events(chapter_id: i32, pool: &PgPool) -> Result<Vec<Event>, St
     )
     .fetch_all(pool)
     .await
-    .inspect_err(|e| println!("{e:?}"))
-    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }
 
 pub async fn get_picks(
     user_id: i32,
     chapter_id: i32,
     pool: &PgPool,
-) -> Result<Vec<(String, Vec<(Event, Pick)>)>, StatusCode> {
+) -> Result<Vec<(String, Vec<(Event, Pick)>)>, sqlx::Error> {
     let events = get_events(chapter_id, pool).await?;
 
     let mut picks = Vec::new();
@@ -108,7 +101,7 @@ pub async fn get_picks(
     Ok(data_grouped)
 }
 
-pub async fn get_pick(user_id: i32, event_id: i32, pool: &PgPool) -> Result<Pick, StatusCode> {
+pub async fn get_pick(user_id: i32, event_id: i32, pool: &PgPool) -> Result<Pick, sqlx::Error> {
     let pick = sqlx::query_as!(
         Pick,
         r#" SELECT id AS "id?", book_id, chapter_id, event_id, wager AS "wager?", choice AS "choice?", correct AS "correct?"
@@ -118,8 +111,7 @@ pub async fn get_pick(user_id: i32, event_id: i32, pool: &PgPool) -> Result<Pick
         user_id
     )
     .fetch_optional(pool)
-    .await
-    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    .await?;
 
     let pick = match pick {
         Some(pick) => pick,
@@ -133,13 +125,12 @@ pub async fn get_pick(user_id: i32, event_id: i32, pool: &PgPool) -> Result<Pick
 				.bind(event_id)
 				.bind(user_id)
 				.fetch_one(pool)
-				.await
-				.map_err(|_| StatusCode::NOT_FOUND)?;
+				.await?;
 
-            let book_subscription = get_book(user_id, event.book_id, pool).await?;
-            if book_subscription.role == BookRole::Unauthorized {
-                return Err(StatusCode::UNAUTHORIZED);
-            }
+            // let book_subscription = get_book(user_id, event.book_id, pool).await?;
+            // if book_subscription.role == BookRole::Unauthorized {
+            //     return Err(StatusCode::UNAUTHORIZED);
+            // }
 
             Pick {
                 id: None,

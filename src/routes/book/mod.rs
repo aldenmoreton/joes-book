@@ -46,5 +46,5 @@ async fn create_permissions(
         Err(_) => return StatusCode::INTERNAL_SERVER_ERROR.into_response(),
     }
 
-    return next.run(request).await;
+    next.run(request).await
 }
