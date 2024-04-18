@@ -3,7 +3,7 @@ use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgRow, FromRow, PgPool, Row};
 
-use super::{book::get_book, spread::Spread, user_input::UserInput};
+use super::{spread::Spread, user_input::UserInput};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Event {

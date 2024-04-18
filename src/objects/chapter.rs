@@ -1,7 +1,7 @@
-use axum::http::StatusCode;
+
 use sqlx::PgPool;
 
-use super::book::{get_book, BookRole};
+
 
 pub struct Chapter {
     pub chapter_id: i32,
@@ -11,7 +11,7 @@ pub struct Chapter {
 }
 
 pub async fn get_chapters(
-    user_id: i32,
+    _user_id: i32,
     book_id: i32,
     pool: &PgPool,
 ) -> Result<Vec<Chapter>, sqlx::Error> {

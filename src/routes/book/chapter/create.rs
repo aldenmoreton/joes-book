@@ -52,7 +52,6 @@ pub async fn handler(
         return Err(Error::ChapterCharacters(name_invalid_chars));
     }
 
-    let user = auth_session.user.unwrap();
     let pool = auth_session.backend.0;
     let book_id: i32 = path.get("book_id").unwrap().parse().unwrap();
 
