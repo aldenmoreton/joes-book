@@ -6,10 +6,22 @@ CREATE TABLE IF NOT EXISTS users (
 	"created_at"	TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS user_permissions (
+	"user_id"     SERIAL NOT NULL REFERENCES users(id),
+	"token"       TEXT NOT NULL,
+	PRIMARY KEY ("user_id", "token")
+);
+
 CREATE TABLE IF NOT EXISTS books (
 	"id"     			SERIAL NOT NULL PRIMARY KEY,
 	"name"       		TEXT NOT NULL,
 	"created_at" 		TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS subscriptions (
+	"user_id"	SERIAL NOT NULL REFERENCES users(id),
+	"book_id"	SERIAL NOT NULL REFERENCES books(id),
+	"role"		TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS chapters (
@@ -41,16 +53,4 @@ CREATE TABLE IF NOT EXISTS picks (
 	"choice"		TEXT NOT NULL,
 	"wager"			INT4 NOT NULL,
 	"correct"		BOOLEAN
-);
-
-CREATE TABLE IF NOT EXISTS subscriptions (
-	"user_id"	SERIAL NOT NULL REFERENCES users(id),
-	"book_id"	SERIAL NOT NULL REFERENCES books(id),
-	"role"		TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS user_permissions (
-	"user_id"     SERIAL NOT NULL REFERENCES users(id),
-	"token"       TEXT NOT NULL,
-	PRIMARY KEY ("user_id", "token")
 );

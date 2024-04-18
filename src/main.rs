@@ -5,11 +5,11 @@ use axum_login::{
     tower_sessions::{cookie::time::Duration, Expiry, SessionManagerLayer},
     AuthManagerLayerBuilder,
 };
+use joes_book::{auth::BackendPgDB, routes};
 use sqlx::{postgres::PgPoolOptions, PgPool};
+
 use tower_http::services::ServeDir;
 use tower_sessions::PostgresStore;
-
-use joes_book::{auth::BackendPgDB, routes};
 
 #[derive(Clone)]
 pub struct AppState {

@@ -1,20 +1,74 @@
-// use axum::{http::StatusCode, response::IntoResponse};
+use std::collections::HashMap;
 
-// use crate::objects::book::BookSubscription;
+use axum::{
+    extract::Path,
+    http::StatusCode,
+    response::{IntoResponse, Redirect},
+    Form,
+};
+use itertools::Itertools;
 
-// #[derive(Debug, Error)]
-// pub enum Error {
-//     #[error("You don't have permission to create chapter")]
-//     Unauthorized,
-// }
+use crate::auth::AuthSession;
 
-// impl IntoResponse for Error {
-//     fn into_response(self) -> askama_axum::Response {
-//         return (StatusCode::UNAUTHORIZED, self.to_string()).into_response();
-//     }
-// }
+#[derive(serde::Deserialize)]
+pub struct Params {
+    #[serde(rename(deserialize = "chapter-name"))]
+    chapter_name: String,
+}
 
-pub async fn handler(// Extension(book_subscription): Extension<BookSubscription>,
-) -> Result<(), ()> {
-    Ok(())
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("Chapter Name is too Long")]
+    ChapterLen,
+    #[error("Chapter Name has invalid Characters: {0}")]
+    ChapterCharacters(String),
+    #[error("Database Error")]
+    Sqlx(#[from] sqlx::Error),
+}
+
+impl IntoResponse for Error {
+    fn into_response(self) -> askama_axum::Response {
+        match self {
+            Error::Sqlx(_) => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
+            _ => (StatusCode::BAD_REQUEST, self.to_string()),
+        }
+        .into_response()
+    }
+}
+
+pub async fn handler(
+    auth_session: AuthSession,
+    Path(path): Path<HashMap<String, String>>,
+    Form(Params { chapter_name }): Form<Params>,
+) -> Result<Redirect, Error> {
+    if chapter_name.len() > 30 {
+        return Err(Error::ChapterLen);
+    }
+    let name_invalid_chars = chapter_name
+        .chars()
+        .filter(|c| !c.is_alphabetic() && *c != ' ')
+        .join(",");
+    if !name_invalid_chars.is_empty() {
+        return Err(Error::ChapterCharacters(name_invalid_chars));
+    }
+
+    let user = auth_session.user.unwrap();
+    let pool = auth_session.backend.0;
+    let book_id: i32 = path.get("book_id").unwrap().parse().unwrap();
+
+    let record = sqlx::query!(
+        "INSERT INTO chapters (title, book_id, is_open)
+        VALUES ($1, $2, false)
+        RETURNING id
+        ",
+        chapter_name,
+        book_id
+    )
+    .fetch_one(&pool)
+    .await?;
+
+    Ok(Redirect::to(&format!(
+        "/book/{book_id}/chapter/{}",
+        record.id
+    )))
 }
