@@ -1,15 +1,10 @@
 use askama::Template;
-use axum::{response::IntoResponse, routing::get, Router};
+use axum::response::IntoResponse;
 
 use crate::{
     auth::{authz::has_perm, AuthSession},
     objects::book::{get_books, BookSubscription},
 };
-
-pub fn router() -> Router {
-    Router::new().route("/", get(handler))
-    // .route("/books", get(book_list))
-}
 
 #[derive(Template)]
 #[template(path = "pages/home.html")]

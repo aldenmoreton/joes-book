@@ -1,14 +1,10 @@
-use axum::{routing::get, Router};
-
 use axum_login::{
-    login_required,
     tower_sessions::{cookie::time::Duration, Expiry, SessionManagerLayer},
     AuthManagerLayerBuilder,
 };
-use joes_book::{auth::BackendPgDB, routes};
+use joes_book::{auth::BackendPgDB, router};
 use sqlx::{postgres::PgPoolOptions, PgPool};
 
-use tower_http::services::ServeDir;
 use tower_sessions::PostgresStore;
 
 #[derive(Clone)]
@@ -39,23 +35,7 @@ async fn main() {
         .with_expiry(Expiry::OnInactivity(Duration::weeks(2)));
     let auth_layer = AuthManagerLayerBuilder::new(backend, session_layer).build();
 
-    let app = Router::new()
-        // Site Admin Routes
-        .nest("/admin", routes::admin::router())
-        // ------------------
-        // Book Member Routes
-        .nest("/book", routes::book::router())
-        // ------------------
-        // Logged in Routes
-        .merge(routes::home::router())
-        // ------------------
-        .nest_service("/assets", ServeDir::new("assets"))
-        .route_layer(login_required!(BackendPgDB, login_url = "/login"))
-        .nest_service("/public", ServeDir::new("public"))
-        .nest("/signup", routes::signup::router())
-        .nest("/login", routes::login::router())
-        .layer(auth_layer)
-        .fallback(get(|| async { "Could not find your route" })); // TODO: Add funny status page
+    let app = router(auth_layer);
 
     println!();
     println!("Starting server at http://localhost:3000");

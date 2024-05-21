@@ -1,50 +1,45 @@
-mod chapter;
-mod create;
-mod page;
+pub mod chapter;
+pub mod create;
+pub mod page;
+
+use std::collections::HashMap;
 
 use axum::{
-    extract::Request,
+    extract::{Path, Request},
     http::StatusCode,
-    middleware::{self, Next},
+    middleware::Next,
     response::IntoResponse,
-    routing::{get, post, Router},
 };
 
-use crate::auth::{
-    authz::{self, has_perm},
-    AuthSession,
+use crate::{
+    auth::{AuthSession, BackendPgDB},
+    objects::book::{get_book, BookRole, BookSubscription},
 };
 
-pub fn router() -> Router {
-    Router::new()
-        .nest("/:book_id/chapter", chapter::router())
-        .route("/:book_id", get(page::handler))
-        .route_layer(middleware::from_fn(authz::is_member))
-        .route(
-            "/create",
-            post(create::handler).layer(middleware::from_fn(create_permissions)),
-        )
-}
-
-async fn create_permissions(
+pub async fn require_member(
+    Path(path): Path<HashMap<String, String>>,
     auth_session: AuthSession,
-    request: Request,
+    mut request: Request,
     next: Next,
 ) -> impl IntoResponse {
-    let user = auth_session.user.unwrap();
-    let pool = auth_session.backend.0;
+    let Some(user) = auth_session.user else {
+        return StatusCode::UNAUTHORIZED.into_response();
+    };
+    let BackendPgDB(pool) = auth_session.backend;
 
-    match has_perm("admin", user.id, &pool).await {
-        Ok(true) => (),
-        Ok(false) => {
-            return (
-                StatusCode::UNAUTHORIZED,
-                "You do not have permission to create a book",
-            )
-                .into_response()
-        }
-        Err(_) => return StatusCode::INTERNAL_SERVER_ERROR.into_response(),
-    }
+    let Some(Ok(book_id)) = path.get("book_id").map(|id| id.parse()) else {
+        return StatusCode::BAD_REQUEST.into_response();
+    };
 
-    next.run(request).await
+    let book_subscription = match get_book(user.id, book_id, &pool).await {
+        Ok(BookSubscription {
+            role: BookRole::Unauthorized,
+            ..
+        }) => return StatusCode::UNAUTHORIZED.into_response(),
+        Err(_) => return (StatusCode::NOT_FOUND, "Where'd your book go?").into_response(), // TODO: Add funny 404 page
+        Ok(user) => user,
+    };
+
+    request.extensions_mut().insert(book_subscription);
+    next.run(request).await.into_response()
 }

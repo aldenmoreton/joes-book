@@ -1,22 +1,16 @@
 use askama::Template;
-use axum::{response::IntoResponse, routing::get, Router};
+use axum::response::IntoResponse;
 
 use crate::auth::AuthSession;
-
-// TODO: Change this, put it somewhere else
-pub fn router() -> Router {
-	Router::new()
-		.route("/", get(user))
-}
 
 #[derive(Template)]
 #[template(path = "components/nav.html")]
 struct Nav {
-	username: String
+    username: String,
 }
 
-async fn user(auth_session: AuthSession) -> impl IntoResponse {
-	let username = auth_session.user.unwrap().username;
+pub async fn user(auth_session: AuthSession) -> impl IntoResponse {
+    let username = auth_session.user.unwrap().username;
 
-	Nav { username }
+    Nav { username }
 }

@@ -1,27 +1,13 @@
-mod create;
-mod page;
+pub mod create;
+pub mod page;
 
 use axum::{
-    extract::Request,
-    http::StatusCode,
-    middleware::{self, Next},
-    response::IntoResponse,
-    routing::{get, post},
-    Extension, Router,
+    extract::Request, http::StatusCode, middleware::Next, response::IntoResponse, Extension,
 };
 
 use crate::objects::book::{BookRole, BookSubscription};
 
-pub fn router() -> Router {
-    Router::new()
-        .route("/:chapter_id", get(page::handler))
-        .route(
-            "/create",
-            post(create::handler).layer(middleware::from_fn(create_permissions)),
-        )
-}
-
-async fn create_permissions(
+pub async fn require_creator(
     Extension(book_subscription): Extension<BookSubscription>,
     request: Request,
     next: Next,

@@ -3,22 +3,17 @@ use axum::{
     extract::Query,
     http::{HeaderMap, StatusCode, Uri},
     response::{IntoResponse, Redirect},
-    routing::get,
-    Form, Router,
+    Form,
 };
 use serde::Deserialize;
 
 use crate::auth::{AuthSession, LoginCreds};
 
-pub fn router() -> Router {
-    Router::new().route("/", get(login_page).post(login_form))
-}
-
 #[derive(Template)]
 #[template(path = "pages/login.html")]
 struct LoginPage;
 
-async fn login_page(auth_session: AuthSession) -> impl IntoResponse {
+pub async fn login_page(auth_session: AuthSession) -> impl IntoResponse {
     if auth_session.user.is_some() {
         return Redirect::to("/").into_response();
     }
@@ -33,7 +28,7 @@ struct RedirectPath {
 
 type RedirectQuery = Query<RedirectPath>;
 
-async fn login_form(
+pub async fn login_form(
     mut auth_session: AuthSession,
     headers: HeaderMap,
     Form(creds): Form<LoginCreds>,
