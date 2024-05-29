@@ -4,7 +4,9 @@
 
 {% block content %}
 	{% call super() %}
-	<p>This is the chapter Page (need to implement admin section)</p>
+	{% if is_admin %}
+		<button>Go to Admin Page</button>
+	{% endif %}
 	{% for event in events %}
 		<p>Event</p>
 		<p>{{ "{:?}"|format(event.contents) }}</p>
