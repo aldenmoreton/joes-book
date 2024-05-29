@@ -1,3 +1,4 @@
+pub mod admin;
 pub mod create;
 pub mod page;
 
@@ -7,7 +8,7 @@ use axum::{
 
 use crate::objects::book::{BookRole, BookSubscription};
 
-pub async fn require_creator(
+pub async fn require_admin(
     Extension(book_subscription): Extension<BookSubscription>,
     request: Request,
     next: Next,
@@ -15,7 +16,7 @@ pub async fn require_creator(
     if book_subscription.role != BookRole::Admin {
         return (
             StatusCode::UNAUTHORIZED,
-            "You cannot create chapters for this book",
+            "You cannot edit/create chapters for this book",
         )
             .into_response();
     }

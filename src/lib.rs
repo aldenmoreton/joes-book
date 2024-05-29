@@ -54,12 +54,10 @@ pub fn router(auth_layer: AuthManagerLayer<BackendPgDB, PostgresStore>) -> Route
                 .nest(
                     "/:book_id/chapter",
                     Router::new()
-                        .route("/:chapter_id", get(book::chapter::page::handler))
-                        .route(
-                            "/create",
-                            post(book::chapter::create::handler)
-                                .layer(middleware::from_fn(book::chapter::require_creator)),
-                        ),
+                        .route("/:chapter_id/admin", get(book::chapter::admin::handler))
+                        .route("/create", post(book::chapter::create::handler))
+                        .route_layer(middleware::from_fn(book::chapter::require_admin))
+                        .route("/:chapter_id", get(book::chapter::page::handler)),
                 )
                 .route("/:book_id", get(book::page::handler))
                 .route_layer(middleware::from_fn(book::require_member))
