@@ -67,7 +67,7 @@ pub async fn handler(
     .await?;
 
     Ok(Redirect::to(&format!(
-        "/book/{book_id}/chapter/{}",
+        "/book/{book_id}/chapter/{}/",
         record.id
     )))
 }

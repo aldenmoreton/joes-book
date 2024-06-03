@@ -37,50 +37,46 @@ pub mod objects {
 }
 
 pub fn router(auth_layer: AuthManagerLayer<BackendPgDB, PostgresStore>) -> Router {
-    Router::new()
-        // v Site Admin Routes v
+    let admin_routes = Router::new().route(
+        "/",
+        get(|| async { Html("<p>You're on the admin page</p>") }),
+    );
+
+    let chapter_routes = Router::new()
+        .route("/:chapter_id/admin", get(book::chapter::admin::handler))
+        .route("/create", post(book::chapter::create::handler))
+        .route_layer(middleware::from_fn(book::chapter::require_admin))
+        .route("/:chapter_id/", get(book::chapter::page::handler));
+
+    let book_routes = Router::new()
+        .nest("/:book_id/chapter", chapter_routes)
+        .route("/:book_id", get(book::page::handler))
+        .route_layer(middleware::from_fn(book::require_member))
+        .route(
+            "/create",
+            post(book::create::handler).layer(middleware::from_fn(authz::require_site_admin)),
+        );
+
+    let home_routes = Router::new()
+        .route("/logout", post(auth::logout))
+        .nest("/nav", Router::new().route("/", get(nav::user)))
         .nest(
-            "/admin",
-            Router::new().route(
-                "/",
-                get(|| async { Html("<p>You're on the admin page</p>") }),
-            ),
-        )
-        // ^ Site Admin Routes ^
-        // v Book Member Routes v
-        .nest(
-            "/book",
-            Router::new()
-                .nest(
-                    "/:book_id/chapter",
-                    Router::new()
-                        .route("/:chapter_id/admin", get(book::chapter::admin::handler))
-                        .route("/create", post(book::chapter::create::handler))
-                        .route_layer(middleware::from_fn(book::chapter::require_admin))
-                        .route("/:chapter_id", get(book::chapter::page::handler)),
-                )
-                .route("/:book_id", get(book::page::handler))
-                .route_layer(middleware::from_fn(book::require_member))
-                .route(
-                    "/create",
-                    post(book::create::handler)
-                        .layer(middleware::from_fn(authz::require_site_admin)),
-                ),
-        )
-        // ^ Book Member Routes ^
-        // v Home Routes v
-        .merge(
+            "/home",
             Router::new()
                 .route("/logout", post(auth::logout))
-                .nest("/nav", Router::new().route("/", get(nav::user)))
-                .nest(
-                    "/home",
-                    Router::new()
-                        .route("/logout", post(auth::logout))
-                        .nest("/nav", Router::new().route("/", get(nav::user))),
-                )
-                .route("/", get(home::page::handler)),
+                .nest("/nav", Router::new().route("/", get(nav::user))),
         )
+        .route("/", get(home::page::handler));
+
+    Router::new()
+        // v Site Admin Routes v
+        .nest("/admin", admin_routes)
+        // ^ Site Admin Routes ^
+        // v Book Member Routes v
+        .nest("/book", book_routes)
+        // ^ Book Member Routes ^
+        // v Home Routes v
+        .merge(home_routes)
         // ^ Home Routes ^
         .nest_service("/assets", ServeDir::new("assets"))
         // ------------------^ Logged in Routes ^------------------

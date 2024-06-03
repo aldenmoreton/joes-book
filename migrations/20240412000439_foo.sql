@@ -37,7 +37,6 @@ CREATE TABLE IF NOT EXISTS events (
 	"id"     		SERIAL NOT NULL PRIMARY KEY,
 	"book_id"		SERIAL NOT NULL REFERENCES books(id),
 	"chapter_id"	SERIAL NOT NULL REFERENCES chapters(id),
-	"is_public"		BOOLEAN NOT NULL DEFAULT FALSE,
 	"is_open"		BOOLEAN NOT NULL DEFAULT FALSE,
 	"event_type"	TEXT NOT NULL,
 	"contents"		TEXT NOT NULL,
