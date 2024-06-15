@@ -1,6 +1,8 @@
+use std::num::ParseFloatError;
+
 use askama::Template;
 use askama_axum::IntoResponse;
-use axum::{extract::Query, http::StatusCode, response::Html, Extension};
+use axum::{extract::Query, http::StatusCode, Extension, Json};
 
 use crate::{
     auth::{AuthSession, BackendPgDB},
@@ -60,7 +62,7 @@ struct CreateChapter {
     meta: Chapter,
 }
 
-pub async fn create(
+pub async fn create_page(
     auth_session: AuthSession,
     Extension(meta): Extension<Chapter>,
 ) -> impl IntoResponse {
@@ -85,6 +87,67 @@ pub async fn add_event(Query(ty): Query<AddEventType>) -> impl IntoResponse {
     AddEvent { ty }
 }
 
-pub async fn validate_new_chapter(body: String) {
-    println!("{body}")
+#[derive(Debug, serde::Deserialize)]
+#[serde(
+    tag = "type",
+    rename_all(deserialize = "kebab-case"),
+    rename_all_fields = "kebab-case"
+)]
+pub enum EventSubmissionType {
+    Spread {
+        home_team: String,
+        away_team: String,
+        amount: String,
+    },
+    UserInput {
+        title: String,
+        description: String,
+    },
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct EventSubmissions {
+    vals: Vec<EventSubmissionType>,
+}
+
+enum ValidEvent {
+    Spread {
+        home_team: String,
+        away_team: String,
+        amount: f32,
+    },
+    UserInput {
+        title: String,
+        description: Option<String>,
+    },
+}
+
+fn validate(events: Vec<EventSubmissionType>) -> Option<Vec<ValidEvent>> {
+    let events: Result<Vec<ValidEvent>, ParseFloatError> = events
+        .into_iter()
+        .map(|curr_event| match curr_event {
+            EventSubmissionType::Spread {
+                home_team,
+                away_team,
+                amount,
+            } => {
+                let amount = amount.parse::<f32>()?;
+                Ok(ValidEvent::Spread {
+                    home_team,
+                    away_team,
+                    amount,
+                })
+            }
+            EventSubmissionType::UserInput { title, description } => {
+                let description = (!description.is_empty()).then_some(description);
+                Ok(ValidEvent::UserInput { title, description })
+            }
+        })
+        .collect();
+
+    events.ok()
+}
+
+pub async fn create(Json(EventSubmissions { vals }): Json<EventSubmissions>) {
+    let vals = validate(vals);
 }

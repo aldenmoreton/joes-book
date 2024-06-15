@@ -19,12 +19,7 @@
 	<button hx-get="add?type=spread-group" hx-target="#spread-group" hx-swap="beforeend">Add Spread</button>
 	<button hx-get="add?type=user-input" hx-target="#user-inputs" hx-swap="beforeend">Add User Input</button>
 
-	<!-- <button hx-post="update" hx-vals="js:{vals: get_forms()}" hx-ext="json-enc">Update</button> -->
-	<form id="submit-events">
-		<!-- <input type="text" style="opacity: 0; float: left; width: 0;" oninvalid="this.setCustomValidity('Missing Spread Group Team')" required>
-		<input type="text" style="opacity: 0; width: 0;" oninvalid="this.setCustomValidity('Missing Spread Group Team')" required>
-		<input type="text" style="opacity: 0; float: right; width: 0;" oninvalid="this.setCustomValidity('Missing User Input Message')" required> -->
+	<form id="submit-events" hx-post="." hx-ext="json-enc" hx-vals="js:{vals: get_forms()}" onsubmit="return validateForm()">
 		<button type="submit">Submit</button>
 	</form>
-	<button hx-post="validate" hx-ext="json-enc" hx-vals="js:{vals: get_forms()}">Send Numbers</button>
 {% endblock %}

@@ -50,16 +50,12 @@ pub fn router(auth_layer: AuthManagerLayer<BackendPgDB, PostgresStore>) -> Route
             post(book::chapter::admin::update),
         )
         .route(
-            "/:chapter_id/admin/create/validate",
-            post(book::chapter::admin::validate_new_chapter),
-        )
-        .route(
             "/:chapter_id/admin/create/add",
             get(book::chapter::admin::add_event),
         )
         .route(
             "/:chapter_id/admin/create/",
-            get(book::chapter::admin::create),
+            get(book::chapter::admin::create_page).post(book::chapter::admin::create),
         )
         .route("/:chapter_id/admin/", get(book::chapter::admin::handler))
         .route_layer(middleware::from_fn(book::chapter::require_admin))

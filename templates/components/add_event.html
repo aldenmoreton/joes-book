@@ -2,20 +2,27 @@
 	{% match ty %}
 	  {% when AddEventType::SpreadGroup %}
 		<div title="spread-container">
+			<input type="hidden" name="type" value="spread">
 			<div title="team-1" hx-target="this">
 				<p>Spread Team 1 (Home)</p>
-				<input form="submit-events" type="text" name="team-1-validate" style="opacity: 0; width: 0;" oninvalid="this.setCustomValidity('Missing Spread Team 1')" required>
+				<input type="text" name="home-team" placeholder="Home Team" form="submit-events" required>
+				<!-- <input form="submit-events" type="text" name="team-1-validate" style="opacity: 0; width: 0;" oninvalid="this.setCustomValidity('Missing Spread Team 1')" required> -->
 			</div>
 			<div title="team-2" hx-target="this">
 				<p>Spread Team 2 (Away)</p>
-				<input form="submit-events" type="text" name="team-2-validate" style="opacity: 0; width: 0;" oninvalid="this.setCustomValidity('Missing Spread Team 2')" required>
+				<input type="text" name="away-team" placeholder="Away Team" form="submit-events" required>
+				<!-- <input form="submit-events" type="text" name="team-2-validate" style="opacity: 0; width: 0;" oninvalid="this.setCustomValidity('Missing Spread Team 2')" required> -->
 			</div>
 			<div title="spread-ammount" hx-target="this">
-				<input type="number" name="amount" id="amount" required>
-				<!-- <input form="submit-events" type="text" style="opacity: 0; width: 0;" oninvalid="this.setCustomValidity('Missing Spread Amount')" required> -->
+				<input type="number" name="amount" placeholder="Home Spread Amount" form="submit-events" step="0.5" required>
 			</div>
 		</div>
 	  {% when AddEventType::UserInput %}
-		<p>New User Input</p>
+		<div title="user-input-container">
+			<h3>User Input</h3>
+			<input type="hidden" name="type" value="user-input">
+			<input type="text" name="title" placeholder="Title" form="submit-events" required>
+			<input type="text" name="description" placeholder="Description" form="submit-events">
+		</div>
 	{% endmatch %}
 </form>
