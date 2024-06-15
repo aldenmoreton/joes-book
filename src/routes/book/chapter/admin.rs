@@ -1,11 +1,11 @@
 use askama::Template;
 use askama_axum::IntoResponse;
-use axum::{extract::Path, http::StatusCode};
+use axum::{extract::Query, http::StatusCode, Extension};
 
 use crate::{
     auth::{AuthSession, BackendPgDB},
     objects::{
-        chapter::{get_chapter, Chapter},
+        chapter::Chapter,
         event::{get_events, Event},
     },
 };
@@ -35,13 +35,12 @@ impl IntoResponse for Error {
 
 pub async fn handler(
     auth_session: AuthSession,
-    Path((_, chapter_id)): Path<(i32, i32)>,
+    Extension(meta): Extension<Chapter>,
 ) -> Result<AuthChapterPage, Error> {
     let user = auth_session.user.unwrap();
     let BackendPgDB(pool) = auth_session.backend;
 
-    let meta = get_chapter(chapter_id, &pool).await?;
-    let events = get_events(chapter_id, &pool).await?;
+    let events = get_events(meta.chapter_id, &pool).await?;
 
     Ok(AuthChapterPage {
         username: user.username,
@@ -52,4 +51,29 @@ pub async fn handler(
 
 pub async fn update(body: String) {
     println!("Update body: {body}")
+}
+
+#[derive(Template)]
+#[template(path = "pages/chapter_create.html")]
+struct CreateChapter {
+    username: String,
+    meta: Chapter,
+}
+
+pub async fn create(
+    auth_session: AuthSession,
+    Extension(meta): Extension<Chapter>,
+) -> impl IntoResponse {
+    let username = auth_session.user.unwrap().username;
+    CreateChapter { username, meta }
+}
+
+#[derive(serde::Deserialize, Debug)]
+#[serde(tag = "type", rename_all(deserialize = "kebab-case"))]
+pub enum AddEventType {
+    SpreadGroup,
+}
+
+pub async fn add_event(Query(ty): Query<AddEventType>) {
+    println!("{ty:?}");
 }

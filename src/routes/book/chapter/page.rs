@@ -1,12 +1,12 @@
 use askama::Template;
 use askama_axum::IntoResponse;
-use axum::{extract::Path, http::StatusCode, Extension};
+use axum::{http::StatusCode, Extension};
 
 use crate::{
     auth::{AuthSession, BackendPgDB},
     objects::{
         book::{BookRole, BookSubscription},
-        chapter::{get_chapter, Chapter},
+        chapter::Chapter,
         event::{get_events, Event},
     },
 };
@@ -35,13 +35,12 @@ impl IntoResponse for Error {
 pub async fn handler(
     auth_session: AuthSession,
     Extension(book_subscription): Extension<BookSubscription>,
-    Path((_, chapter_id)): Path<(i32, i32)>,
+    Extension(meta): Extension<Chapter>,
 ) -> Result<ChapterPage, Error> {
     let user = auth_session.user.unwrap();
     let BackendPgDB(pool) = auth_session.backend;
 
-    let meta = get_chapter(chapter_id, &pool).await?;
-    let events = get_events(chapter_id, &pool).await?;
+    let events = get_events(meta.chapter_id, &pool).await?;
 
     Ok(ChapterPage {
         username: user.username,

@@ -1,8 +1,6 @@
-
 use sqlx::PgPool;
 
-
-
+#[derive(Debug, Clone)]
 pub struct Chapter {
     pub chapter_id: i32,
     pub book_id: i32,
