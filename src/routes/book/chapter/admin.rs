@@ -49,3 +49,7 @@ pub async fn handler(
         events,
     })
 }
+
+pub async fn update(body: String) {
+    println!("Update body: {body}")
+}

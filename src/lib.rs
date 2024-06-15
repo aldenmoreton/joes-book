@@ -1,3 +1,5 @@
+// TODO: Refactor some routes to end with / so that they can more
+// Simply route to the pages under them
 use auth::{authz, BackendPgDB};
 use axum::{
     middleware,
@@ -43,7 +45,11 @@ pub fn router(auth_layer: AuthManagerLayer<BackendPgDB, PostgresStore>) -> Route
     );
 
     let chapter_routes = Router::new()
-        .route("/:chapter_id/admin", get(book::chapter::admin::handler))
+        .route(
+            "/:chapter_id/admin/update",
+            post(book::chapter::admin::update),
+        )
+        .route("/:chapter_id/admin/", get(book::chapter::admin::handler))
         .route("/create", post(book::chapter::create::handler))
         .route_layer(middleware::from_fn(book::chapter::require_admin))
         .route("/:chapter_id/", get(book::chapter::page::handler));
