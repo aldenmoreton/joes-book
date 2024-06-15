@@ -1,12 +1,13 @@
 // TODO: Refactor some routes to end with / so that they can more
 // Simply route to the pages under them
-use auth::{authz, BackendPgDB};
+use auth::{authz, BackendPgDB, BackendUser};
 use axum::{
     middleware,
     response::Html,
     routing::{get, post},
     Router,
 };
+use axum_ctx::{RespErr, StatusCode};
 use axum_login::{login_required, AuthManagerLayer};
 use tower_http::services::ServeDir;
 use tower_sessions::PostgresStore;
@@ -36,6 +37,27 @@ pub mod objects {
     pub mod event;
     pub mod spread;
     pub mod user_input;
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum AppError {
+    #[error("No Backend User")]
+    BackendUser,
+    #[error("Database Error")]
+    Sqlx(#[from] sqlx::Error),
+}
+
+impl From<AppError> for RespErr {
+    fn from(value: AppError) -> Self {
+        match &value {
+            AppError::BackendUser => RespErr::new(StatusCode::INTERNAL_SERVER_ERROR)
+                .log_msg(value.to_string())
+                .user_msg("Could not get user account"),
+            AppError::Sqlx(err) => RespErr::new(StatusCode::INTERNAL_SERVER_ERROR)
+                .log_msg(value.to_string())
+                .user_msg("Database Error"),
+        }
+    }
 }
 
 pub fn router(auth_layer: AuthManagerLayer<BackendPgDB, PostgresStore>) -> Router {
