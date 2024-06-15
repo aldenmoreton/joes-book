@@ -1,6 +1,6 @@
 use askama::Template;
 use askama_axum::IntoResponse;
-use axum::{extract::Query, http::StatusCode, Extension};
+use axum::{extract::Query, http::StatusCode, response::Html, Extension};
 
 use crate::{
     auth::{AuthSession, BackendPgDB},
@@ -72,8 +72,19 @@ pub async fn create(
 #[serde(tag = "type", rename_all(deserialize = "kebab-case"))]
 pub enum AddEventType {
     SpreadGroup,
+    UserInput,
 }
 
-pub async fn add_event(Query(ty): Query<AddEventType>) {
-    println!("{ty:?}");
+#[derive(Template)]
+#[template(path = "components/add_event.html", whitespace = "suppress")]
+struct AddEvent {
+    ty: AddEventType,
+}
+
+pub async fn add_event(Query(ty): Query<AddEventType>) -> impl IntoResponse {
+    AddEvent { ty }
+}
+
+pub async fn validate_new_chapter(body: String) {
+    println!("{body}")
 }

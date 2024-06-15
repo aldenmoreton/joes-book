@@ -11,16 +11,20 @@
 
 {% block content%}
 	{% call super() %}
-	<button hx-get="add?type=spread-group">Add Spread Group</button>
-	<form class="eventinput">
-		<input type="radio" id="html" name="fav_language" value="HTML">
-		<label for="html">HTML</label><br>
-		<input type="radio" id="css" name="fav_language" value="CSS">
-		<label for="css">CSS</label><br>
-		<input type="radio" id="javascript" name="fav_language" value="JavaScript">
-		<label for="javascript">JavaScript</label>
+	<div id="event-spaces">
+		<div id="spread-group"></div>
+		<div id="user-inputs"></div>
+	</div>
+
+	<button hx-get="add?type=spread-group" hx-target="#spread-group" hx-swap="beforeend">Add Spread</button>
+	<button hx-get="add?type=user-input" hx-target="#user-inputs" hx-swap="beforeend">Add User Input</button>
+
+	<!-- <button hx-post="update" hx-vals="js:{vals: get_forms()}" hx-ext="json-enc">Update</button> -->
+	<form id="submit-events">
+		<!-- <input type="text" style="opacity: 0; float: left; width: 0;" oninvalid="this.setCustomValidity('Missing Spread Group Team')" required>
+		<input type="text" style="opacity: 0; width: 0;" oninvalid="this.setCustomValidity('Missing Spread Group Team')" required>
+		<input type="text" style="opacity: 0; float: right; width: 0;" oninvalid="this.setCustomValidity('Missing User Input Message')" required> -->
+		<button type="submit">Submit</button>
 	</form>
-
-	<button hx-post="update" hx-vals="js:{vals: get_forms()}" hx-ext="json-enc">Update</button>
-
+	<button hx-post="validate" hx-ext="json-enc" hx-vals="js:{vals: get_forms()}">Send Numbers</button>
 {% endblock %}

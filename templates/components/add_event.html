@@ -1,0 +1,21 @@
+<form class="eventinput">
+	{% match ty %}
+	  {% when AddEventType::SpreadGroup %}
+		<div title="spread-container">
+			<div title="team-1" hx-target="this">
+				<p>Spread Team 1 (Home)</p>
+				<input form="submit-events" type="text" name="team-1-validate" style="opacity: 0; width: 0;" oninvalid="this.setCustomValidity('Missing Spread Team 1')" required>
+			</div>
+			<div title="team-2" hx-target="this">
+				<p>Spread Team 2 (Away)</p>
+				<input form="submit-events" type="text" name="team-2-validate" style="opacity: 0; width: 0;" oninvalid="this.setCustomValidity('Missing Spread Team 2')" required>
+			</div>
+			<div title="spread-ammount" hx-target="this">
+				<input type="number" name="amount" id="amount" required>
+				<!-- <input form="submit-events" type="text" style="opacity: 0; width: 0;" oninvalid="this.setCustomValidity('Missing Spread Amount')" required> -->
+			</div>
+		</div>
+	  {% when AddEventType::UserInput %}
+		<p>New User Input</p>
+	{% endmatch %}
+</form>

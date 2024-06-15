@@ -2,13 +2,9 @@
 
 <script>
 	function get_forms() {
-		console.log("get forms");
 		var forms = document.getElementsByTagName("form");
-		console.log(forms);
-		console.log("{{class_name}}")
 		// Filter forms by the specified class name
 		var filteredForms = Array.from(forms).filter(form => form.classList.contains("{{class_name}}"));
-		console.log(filteredForms)
 		// Function to get key-value pairs from a form
 		function getFormData(form) {
 			var inputs = form.getElementsByTagName("input");
@@ -21,6 +17,7 @@
 
 		// Get key-value pairs for each filtered form
 		var allFormData = filteredForms.map(form => getFormData(form));
+		console.log(allFormData)
 		return allFormData;
 	}
 </script>
