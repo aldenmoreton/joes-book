@@ -14,7 +14,7 @@ use axum_ctx::RespErr;
 
 use crate::{
     auth::{AuthSession, BackendPgDB},
-    objects::book::{get_book, BookRole, BookSubscription},
+    db::book::{get_book, BookRole, BookSubscription},
     AppError,
 };
 
@@ -36,7 +36,7 @@ pub async fn require_member(
             role: BookRole::Unauthorized,
             ..
         }) => return Err(AppError::Unauthorized("Not a member of this book".into()).into()),
-        Err(_) => return Err(RespErr::new(StatusCode::NOT_FOUND).user_msg("Could not find book")), // TODO: Add funny 404 page
+        Err(_) => return Err(RespErr::new(StatusCode::NOT_FOUND).user_msg("Could not find book")),
         Ok(user) => user,
     };
 

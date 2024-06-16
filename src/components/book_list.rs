@@ -3,7 +3,7 @@ use axum_ctx::RespErr;
 
 use crate::{
     auth::{AuthSession, BackendPgDB},
-    objects::book::{get_books, BookSubscription},
+    db::book::{get_books, BookSubscription},
     AppError,
 };
 

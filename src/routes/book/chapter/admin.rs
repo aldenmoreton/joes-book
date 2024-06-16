@@ -1,12 +1,10 @@
-use std::num::ParseFloatError;
-
 use askama::Template;
-use axum::{extract::Query, Extension, Json};
+use axum::Extension;
 use axum_ctx::RespErr;
 
 use crate::{
     auth::{AuthSession, BackendPgDB},
-    objects::{
+    db::{
         chapter::Chapter,
         event::{get_events, Event},
     },

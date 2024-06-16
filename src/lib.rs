@@ -19,11 +19,9 @@ pub mod auth;
 
 pub mod routes {
     pub mod book;
+    pub mod home;
     pub mod login;
     pub mod signup;
-    pub mod home {
-        pub mod page;
-    }
 }
 
 pub mod components {
@@ -31,7 +29,7 @@ pub mod components {
     pub mod nav;
 }
 
-pub mod objects {
+pub mod db {
     pub mod book;
     pub mod chapter;
     pub mod event;
@@ -93,7 +91,7 @@ pub fn router(auth_layer: AuthManagerLayer<BackendPgDB, PostgresStore>) -> Route
                     get(book::chapter::create::get).post(book::chapter::create::post),
                 )
                 .route("/add", get(book::chapter::create::add_event))
-                .layer(middleware::from_fn(book::chapter::require_admin)),
+                .route_layer(middleware::from_fn(book::chapter::require_admin)),
         );
 
     let book_routes = Router::new()
@@ -114,7 +112,7 @@ pub fn router(auth_layer: AuthManagerLayer<BackendPgDB, PostgresStore>) -> Route
                 .route("/logout", post(auth::logout))
                 .nest("/nav", Router::new().route("/", get(nav::user))),
         )
-        .route("/", get(home::page::handler));
+        .route("/", get(home::handler));
 
     Router::new()
         // v Site Admin Routes v

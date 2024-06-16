@@ -3,7 +3,7 @@ use axum_ctx::RespErr;
 
 use crate::{
     auth::{authz::has_perm, AuthSession},
-    objects::book::{get_books, BookSubscription},
+    db::book::{get_books, BookSubscription},
     AppError,
 };
 

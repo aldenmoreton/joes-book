@@ -4,8 +4,8 @@ use axum::{
     body::Body,
     extract::{Path, Query},
     http::{Response, StatusCode},
-    response::{IntoResponse, Redirect},
-    Form, Json,
+    response::IntoResponse,
+    Json,
 };
 use axum_ctx::RespErr;
 use itertools::Itertools;
@@ -108,7 +108,6 @@ pub async fn post(
     Path(path): Path<HashMap<String, String>>,
     Json(EventSubmissions { chapter_name, vals }): Json<EventSubmissions>,
 ) -> Result<Response<Body>, RespErr> {
-    println!("Vals: {vals:?}");
     if chapter_name.len() > 30 {
         return Err(
             RespErr::new(StatusCode::BAD_REQUEST).user_msg("Chapter Name too long (> 30 chars)")

@@ -4,7 +4,7 @@ use axum_ctx::RespErr;
 
 use crate::{
     auth::{AuthSession, BackendPgDB},
-    objects::{
+    db::{
         book::{BookRole, BookSubscription},
         chapter::Chapter,
         event::{get_events, Event},
