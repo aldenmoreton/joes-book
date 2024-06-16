@@ -1,4 +1,4 @@
-use std::{collections::HashMap, num::ParseFloatError};
+use std::num::ParseFloatError;
 
 use axum::{
     body::Body,
@@ -8,7 +8,6 @@ use axum::{
     Json,
 };
 use axum_ctx::RespErr;
-use itertools::Itertools;
 
 use crate::{auth::AuthSession, AppError};
 
@@ -105,8 +104,8 @@ fn validate(events: Vec<EventSubmissionType>) -> Option<Vec<ValidEvent>> {
 
 pub async fn post(
     auth_session: AuthSession,
-    Path(path): Path<HashMap<String, String>>,
-    Json(EventSubmissions { chapter_name, vals }): Json<EventSubmissions>,
+    Path(book_id): Path<i32>,
+    Json(chapter_submission): Json<EventSubmissions>,
 ) -> Result<Response<Body>, RespErr> {
     if chapter_name.len() > 30 {
         return Err(
@@ -124,9 +123,6 @@ pub async fn post(
     }
 
     let pool = auth_session.backend.0;
-    let Some(Ok(book_id)): Option<Result<i32, _>> = path.get("book_id").map(|id| id.parse()) else {
-        return Err(AppError::Parse("book id".into()).into());
-    };
 
     let record = sqlx::query!(
         "INSERT INTO chapters (title, book_id, is_open)

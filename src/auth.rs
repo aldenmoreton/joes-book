@@ -140,15 +140,11 @@ pub async fn logout(mut auth_session: self::AuthSession) -> Result<Response<Body
 }
 
 pub mod authz {
-    use axum::{body::Body, extract::Request, http::Response, middleware::Next};
-    use axum_ctx::RespErr;
-    use sqlx::PgPool;
-
-    use crate::AppError;
-
-    use super::AuthSession;
-
-    pub async fn add_perm(user_id: i32, perm: &str, pool: &PgPool) -> Result<bool, sqlx::Error> {
+    pub async fn add_perm(
+        user_id: i32,
+        perm: &str,
+        pool: &sqlx::PgPool,
+    ) -> Result<bool, sqlx::Error> {
         let result = sqlx::query!(
             "INSERT INTO user_permissions (user_id, token)
             VALUES ($1, $2)
@@ -162,7 +158,11 @@ pub mod authz {
         result.map(|r| r.is_some())
     }
 
-    pub async fn has_perm(perm: &str, user_id: i32, pool: &PgPool) -> Result<bool, sqlx::Error> {
+    pub async fn has_perm(
+        perm: &str,
+        user_id: i32,
+        pool: &sqlx::PgPool,
+    ) -> Result<bool, sqlx::Error> {
         let result = sqlx::query!(
             "SELECT token
             FROM user_permissions
@@ -176,25 +176,34 @@ pub mod authz {
         result.map(|r| r.is_some())
     }
 
-    pub async fn require_site_admin(
-        auth_session: AuthSession,
-        request: Request,
-        next: Next,
-    ) -> Result<Response<Body>, RespErr> {
-        let user = auth_session.user.ok_or(AppError::BackendUser)?;
-        let pool = auth_session.backend.0;
+    pub mod mw {
+        use axum::{body::Body, extract::Request, http::Response, middleware::Next};
+        use axum_ctx::RespErr;
 
-        match has_perm("admin", user.id, &pool).await {
-            Ok(true) => (),
-            Ok(false) => {
-                return Err(AppError::Unauthorized(
-                    "You do not have permission to create a book".into(),
-                )
-                .into())
+        use crate::{auth::AuthSession, AppError};
+
+        use super::has_perm;
+
+        pub async fn require_site_admin(
+            auth_session: AuthSession,
+            request: Request,
+            next: Next,
+        ) -> Result<Response<Body>, RespErr> {
+            let user = auth_session.user.ok_or(AppError::BackendUser)?;
+            let pool = auth_session.backend.0;
+
+            match has_perm("admin", user.id, &pool).await {
+                Ok(true) => (),
+                Ok(false) => {
+                    return Err(AppError::Unauthorized(
+                        "You do not have permission to create a book".into(),
+                    )
+                    .into())
+                }
+                Err(e) => return Err(AppError::Sqlx(e).into()),
             }
-            Err(e) => return Err(AppError::Sqlx(e).into()),
-        }
 
-        Ok(next.run(request).await)
+            Ok(next.run(request).await)
+        }
     }
 }
