@@ -1,14 +1,10 @@
 use std::collections::HashMap;
 
-use axum::{
-    extract::Path,
-    http::StatusCode,
-    response::{IntoResponse, Redirect},
-    Form,
-};
+use axum::{extract::Path, http::StatusCode, response::Redirect, Form};
+use axum_ctx::RespErr;
 use itertools::Itertools;
 
-use crate::auth::AuthSession;
+use crate::{auth::AuthSession, AppError};
 
 #[derive(serde::Deserialize)]
 pub struct Params {
@@ -16,44 +12,30 @@ pub struct Params {
     chapter_name: String,
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("Chapter Name is too Long")]
-    ChapterLen,
-    #[error("Chapter Name has invalid Characters: {0}")]
-    ChapterCharacters(String),
-    #[error("Database Error")]
-    Sqlx(#[from] sqlx::Error),
-}
-
-impl IntoResponse for Error {
-    fn into_response(self) -> askama_axum::Response {
-        match self {
-            Error::Sqlx(_) => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
-            _ => (StatusCode::BAD_REQUEST, self.to_string()),
-        }
-        .into_response()
-    }
-}
-
 pub async fn handler(
     auth_session: AuthSession,
     Path(path): Path<HashMap<String, String>>,
     Form(Params { chapter_name }): Form<Params>,
-) -> Result<Redirect, Error> {
+) -> Result<Redirect, RespErr> {
     if chapter_name.len() > 30 {
-        return Err(Error::ChapterLen);
+        return Err(
+            RespErr::new(StatusCode::BAD_REQUEST).user_msg("Chapter Name too long (> 30 chars)")
+        );
     }
     let name_invalid_chars = chapter_name
         .chars()
         .filter(|c| !c.is_alphabetic() && *c != ' ')
         .join(",");
     if !name_invalid_chars.is_empty() {
-        return Err(Error::ChapterCharacters(name_invalid_chars));
+        return Err(RespErr::new(StatusCode::BAD_REQUEST).user_msg(format!(
+            "Chaper name includes invalid characters: {name_invalid_chars}"
+        )));
     }
 
     let pool = auth_session.backend.0;
-    let book_id: i32 = path.get("book_id").unwrap().parse().unwrap();
+    let Some(Ok(book_id)): Option<Result<i32, _>> = path.get("book_id").map(|id| id.parse()) else {
+        return Err(AppError::Parse("book id".into()).into());
+    };
 
     let record = sqlx::query!(
         "INSERT INTO chapters (title, book_id, is_open)
@@ -64,7 +46,8 @@ pub async fn handler(
         book_id
     )
     .fetch_one(&pool)
-    .await?;
+    .await
+    .map_err(AppError::from)?;
 
     Ok(Redirect::to(&format!(
         "/book/{book_id}/chapter/{}/",

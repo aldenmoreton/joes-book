@@ -1,8 +1,8 @@
 use std::num::ParseFloatError;
 
 use askama::Template;
-use askama_axum::IntoResponse;
-use axum::{extract::Query, http::StatusCode, Extension, Json};
+use axum::{extract::Query, Extension, Json};
+use axum_ctx::RespErr;
 
 use crate::{
     auth::{AuthSession, BackendPgDB},
@@ -10,6 +10,7 @@ use crate::{
         chapter::Chapter,
         event::{get_events, Event},
     },
+    AppError,
 };
 
 #[derive(Template)]
@@ -20,29 +21,16 @@ pub struct AuthChapterPage {
     events: Vec<Event>,
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("Database Error")]
-    Sqlx(#[from] sqlx::Error),
-}
-
-impl IntoResponse for Error {
-    fn into_response(self) -> askama_axum::Response {
-        match self {
-            Error::Sqlx(_) => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
-        }
-        .into_response()
-    }
-}
-
 pub async fn handler(
     auth_session: AuthSession,
     Extension(meta): Extension<Chapter>,
-) -> Result<AuthChapterPage, Error> {
-    let user = auth_session.user.unwrap();
+) -> Result<AuthChapterPage, RespErr> {
+    let user = auth_session.user.ok_or(AppError::BackendUser)?;
     let BackendPgDB(pool) = auth_session.backend;
 
-    let events = get_events(meta.chapter_id, &pool).await?;
+    let events = get_events(meta.chapter_id, &pool)
+        .await
+        .map_err(AppError::from)?;
 
     Ok(AuthChapterPage {
         username: user.username,
@@ -57,7 +45,7 @@ pub async fn update(body: String) {
 
 #[derive(Template)]
 #[template(path = "pages/chapter_create.html")]
-struct CreateChapter {
+pub struct CreateChapter {
     username: String,
     meta: Chapter,
 }
@@ -65,9 +53,9 @@ struct CreateChapter {
 pub async fn create_page(
     auth_session: AuthSession,
     Extension(meta): Extension<Chapter>,
-) -> impl IntoResponse {
-    let username = auth_session.user.unwrap().username;
-    CreateChapter { username, meta }
+) -> Result<CreateChapter, RespErr> {
+    let username = auth_session.user.ok_or(AppError::BackendUser)?.username;
+    Ok(CreateChapter { username, meta })
 }
 
 #[derive(serde::Deserialize, Debug)]
@@ -79,11 +67,11 @@ pub enum AddEventType {
 
 #[derive(Template)]
 #[template(path = "components/add_event.html", whitespace = "suppress")]
-struct AddEvent {
+pub struct AddEvent {
     ty: AddEventType,
 }
 
-pub async fn add_event(Query(ty): Query<AddEventType>) -> impl IntoResponse {
+pub async fn add_event(Query(ty): Query<AddEventType>) -> AddEvent {
     AddEvent { ty }
 }
 

@@ -1,6 +1,6 @@
 use askama::Template;
-use askama_axum::IntoResponse;
-use axum::{http::StatusCode, Extension};
+use axum::Extension;
+use axum_ctx::RespErr;
 
 use crate::{
     auth::{AuthSession, BackendPgDB},
@@ -9,6 +9,7 @@ use crate::{
         chapter::Chapter,
         event::{get_events, Event},
     },
+    AppError,
 };
 
 #[derive(Template)]
@@ -20,27 +21,17 @@ pub struct ChapterPage {
     is_admin: bool,
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("Database Error")]
-    Sqlx(#[from] sqlx::Error),
-}
-
-impl IntoResponse for Error {
-    fn into_response(self) -> askama_axum::Response {
-        (StatusCode::INTERNAL_SERVER_ERROR, "Cannot get chapter page").into_response()
-    }
-}
-
 pub async fn handler(
     auth_session: AuthSession,
     Extension(book_subscription): Extension<BookSubscription>,
     Extension(meta): Extension<Chapter>,
-) -> Result<ChapterPage, Error> {
-    let user = auth_session.user.unwrap();
+) -> Result<ChapterPage, RespErr> {
+    let user = auth_session.user.ok_or(AppError::BackendUser)?;
     let BackendPgDB(pool) = auth_session.backend;
 
-    let events = get_events(meta.chapter_id, &pool).await?;
+    let events = get_events(meta.chapter_id, &pool)
+        .await
+        .map_err(AppError::from)?;
 
     Ok(ChapterPage {
         username: user.username,

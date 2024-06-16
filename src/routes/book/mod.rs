@@ -5,15 +5,17 @@ pub mod page;
 use std::collections::HashMap;
 
 use axum::{
+    body::Body,
     extract::{Path, Request},
-    http::StatusCode,
+    http::{Response, StatusCode},
     middleware::Next,
-    response::IntoResponse,
 };
+use axum_ctx::RespErr;
 
 use crate::{
     auth::{AuthSession, BackendPgDB},
     objects::book::{get_book, BookRole, BookSubscription},
+    AppError,
 };
 
 pub async fn require_member(
@@ -21,25 +23,23 @@ pub async fn require_member(
     auth_session: AuthSession,
     mut request: Request,
     next: Next,
-) -> impl IntoResponse {
-    let Some(user) = auth_session.user else {
-        return StatusCode::UNAUTHORIZED.into_response();
-    };
+) -> Result<Response<Body>, RespErr> {
+    let user = auth_session.user.ok_or(AppError::BackendUser)?;
     let BackendPgDB(pool) = auth_session.backend;
 
     let Some(Ok(book_id)) = path.get("book_id").map(|id| id.parse()) else {
-        return StatusCode::BAD_REQUEST.into_response();
+        return Err(RespErr::new(StatusCode::BAD_REQUEST).user_msg("Could not find Book ID"));
     };
 
     let book_subscription = match get_book(user.id, book_id, &pool).await {
         Ok(BookSubscription {
             role: BookRole::Unauthorized,
             ..
-        }) => return StatusCode::UNAUTHORIZED.into_response(),
-        Err(_) => return (StatusCode::NOT_FOUND, "Where'd your book go?").into_response(), // TODO: Add funny 404 page
+        }) => return Err(AppError::Unauthorized("Not a member of this book".into()).into()),
+        Err(_) => return Err(RespErr::new(StatusCode::NOT_FOUND).user_msg("Could not find book")), // TODO: Add funny 404 page
         Ok(user) => user,
     };
 
     request.extensions_mut().insert(book_subscription);
-    next.run(request).await.into_response()
+    Ok(next.run(request).await)
 }

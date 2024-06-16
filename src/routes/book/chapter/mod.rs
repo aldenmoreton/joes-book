@@ -7,9 +7,9 @@ use axum::{
     extract::{Path, Request},
     http::{Response, StatusCode},
     middleware::Next,
-    response::IntoResponse,
     Extension,
 };
+use axum_ctx::RespErr;
 
 use crate::{
     auth::{AuthSession, BackendPgDB},
@@ -17,22 +17,22 @@ use crate::{
         book::{BookRole, BookSubscription},
         chapter::get_chapter,
     },
+    AppError,
 };
 
 pub async fn require_admin(
     Extension(book_subscription): Extension<BookSubscription>,
     request: Request,
     next: Next,
-) -> impl IntoResponse {
+) -> Result<Response<Body>, RespErr> {
     if book_subscription.role != BookRole::Admin {
-        return (
-            StatusCode::UNAUTHORIZED,
-            "You cannot edit/create chapters for this book",
+        return Err(AppError::Unauthorized(
+            "You do not have admin privilages for this book".into(),
         )
-            .into_response();
+        .into());
     }
 
-    next.run(request).await.into_response()
+    Ok(next.run(request).await)
 }
 
 pub async fn chapter_ext(

@@ -1,5 +1,6 @@
 use askama::Template;
-use axum::{http::StatusCode, response::IntoResponse, Extension};
+use axum::Extension;
+use axum_ctx::RespErr;
 
 use crate::{
     auth::{AuthSession, BackendPgDB},
@@ -7,11 +8,12 @@ use crate::{
         book::{BookRole, BookSubscription},
         chapter::{get_chapters, Chapter},
     },
+    AppError,
 };
 
 #[derive(Template)]
 #[template(path = "pages/book.html")]
-struct BookPage {
+pub struct BookPage {
     book_subscription: BookSubscription,
     username: String,
     chapters: Vec<Chapter>,
@@ -20,22 +22,20 @@ struct BookPage {
 pub async fn handler(
     auth_session: AuthSession,
     Extension(book_subscription): Extension<BookSubscription>,
-) -> impl IntoResponse {
-    let user = auth_session.user.unwrap();
+) -> Result<BookPage, RespErr> {
+    let user = auth_session.user.ok_or(AppError::BackendUser)?;
     let BackendPgDB(pool) = auth_session.backend;
 
     let username = user.username;
     let user_id = user.id;
 
-    let chapters = match get_chapters(user_id, book_subscription.book_id, &pool).await {
-        Ok(c) => c,
-        Err(_) => return StatusCode::INTERNAL_SERVER_ERROR.into_response(),
-    };
+    let chapters = get_chapters(user_id, book_subscription.book_id, &pool)
+        .await
+        .map_err(AppError::from)?;
 
-    BookPage {
+    Ok(BookPage {
         book_subscription,
         username,
         chapters,
-    }
-    .into_response()
+    })
 }

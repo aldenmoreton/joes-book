@@ -39,6 +39,7 @@ pub enum EventContent {
     UserInput(UserInput),
 }
 
+// TODO: This is bad
 impl From<String> for EventContent {
     fn from(value: String) -> Self {
         serde_json::from_str(&value)

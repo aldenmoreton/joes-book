@@ -1,4 +1,10 @@
-use axum::{async_trait, http::StatusCode, response::IntoResponse};
+use axum::{
+    async_trait,
+    body::Body,
+    http::{Response, StatusCode},
+    response::IntoResponse,
+};
+use axum_ctx::{RespErr, RespErrCtx, RespErrExt};
 use axum_login::{AuthSession as AxumLoginAuthSession, AuthUser, AuthnBackend, UserId};
 use serde::Deserialize;
 use sqlx::PgPool;
@@ -122,19 +128,29 @@ impl AuthnBackend for BackendPgDB {
     }
 }
 
-pub async fn logout(mut auth_session: self::AuthSession) -> impl IntoResponse {
-    let res = auth_session.logout().await;
+pub async fn logout(mut auth_session: self::AuthSession) -> Result<Response<Body>, RespErr> {
+    auth_session
+        .logout()
+        .await
+        .ctx(StatusCode::INTERNAL_SERVER_ERROR)
+        .log_msg("Could not log out user")
+        .user_msg("Logout unsuccessful")?;
 
-    match res {
-        Ok(_) => [("HX-Redirect", "/login")].into_response(),
-        Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
-    }
+    Ok([("HX-Redirect", "/login")].into_response())
 }
 
 pub mod authz {
     use askama_axum::IntoResponse;
-    use axum::{extract::Request, http::StatusCode, middleware::Next};
+    use axum::{
+        body::Body,
+        extract::Request,
+        http::{Response, StatusCode},
+        middleware::Next,
+    };
+    use axum_ctx::RespErr;
     use sqlx::PgPool;
+
+    use crate::AppError;
 
     use super::AuthSession;
 
@@ -170,22 +186,21 @@ pub mod authz {
         auth_session: AuthSession,
         request: Request,
         next: Next,
-    ) -> impl IntoResponse {
-        let user = auth_session.user.unwrap();
+    ) -> Result<Response<Body>, RespErr> {
+        let user = auth_session.user.ok_or(AppError::BackendUser)?;
         let pool = auth_session.backend.0;
 
         match has_perm("admin", user.id, &pool).await {
             Ok(true) => (),
             Ok(false) => {
-                return (
-                    StatusCode::UNAUTHORIZED,
-                    "You do not have permission to create a book",
+                return Err(AppError::Unauthorized(
+                    "You do not have permission to create a book".into(),
                 )
-                    .into_response()
+                .into())
             }
-            Err(_) => return StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+            Err(e) => return Err(AppError::Sqlx(e).into()),
         }
 
-        next.run(request).await
+        Ok(next.run(request).await)
     }
 }

@@ -1,6 +1,6 @@
 // TODO: Refactor some routes to end with / so that they can more
 // Simply route to the pages under them
-use auth::{authz, BackendPgDB, BackendUser};
+use auth::{authz, BackendPgDB};
 use axum::{
     middleware,
     response::Html,
@@ -43,6 +43,10 @@ pub mod objects {
 pub enum AppError {
     #[error("No Backend User")]
     BackendUser,
+    #[error("Unauthorized: {0}")]
+    Unauthorized(String),
+    #[error("Parsing: {0}")]
+    Parse(String),
     #[error("Database Error")]
     Sqlx(#[from] sqlx::Error),
 }
@@ -53,7 +57,13 @@ impl From<AppError> for RespErr {
             AppError::BackendUser => RespErr::new(StatusCode::INTERNAL_SERVER_ERROR)
                 .log_msg(value.to_string())
                 .user_msg("Could not get user account"),
-            AppError::Sqlx(err) => RespErr::new(StatusCode::INTERNAL_SERVER_ERROR)
+            AppError::Unauthorized(_) => RespErr::new(StatusCode::UNAUTHORIZED)
+                .user_msg(value.to_string())
+                .log_msg(value.to_string()),
+            AppError::Parse(_) => RespErr::new(StatusCode::BAD_REQUEST)
+                .user_msg(value.to_string())
+                .log_msg(value.to_string()),
+            AppError::Sqlx(_) => RespErr::new(StatusCode::INTERNAL_SERVER_ERROR)
                 .log_msg(value.to_string())
                 .user_msg("Database Error"),
         }
