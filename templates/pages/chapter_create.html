@@ -2,7 +2,7 @@
 {%- import "components/get_form_values.html" as form_values -%}
 
 
-{% block title %}{{ meta.title }}{% endblock %}
+{% block title %}Create Chapter{% endblock %}
 
 {% block head %}
 	<script src="https://unpkg.com/htmx.org@1.9.12/dist/ext/json-enc.js"></script>
@@ -11,6 +11,7 @@
 
 {% block content%}
 	{% call super() %}
+	<input type="text" name="chapter-name" placeholder="Chapter Name" form="submit-events" required>
 	<div id="event-spaces">
 		<div id="spread-group"></div>
 		<div id="user-inputs"></div>

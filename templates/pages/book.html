@@ -5,13 +5,7 @@
 {% block content %}
 	{% call super() %}
 	{% if book_subscription.role == BookRole::Admin %}
-		<form method="post" action="/book/{{book_subscription.book_id}}/chapter/create">
-			<label>
-				Create New Chapter
-				<input type="text" placeholder="New Chapter" maxlength="32" name="chapter-name"/>
-			</label>
-			<button type="submit" class="button">Create</button>
-		</form>
+		<a href="chapter/create/">Create New Chapter</a>
 	{% endif %}
 	{% include "components/chapter_list.html" %}
 {% endblock %}

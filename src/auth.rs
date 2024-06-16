@@ -140,13 +140,7 @@ pub async fn logout(mut auth_session: self::AuthSession) -> Result<Response<Body
 }
 
 pub mod authz {
-    use askama_axum::IntoResponse;
-    use axum::{
-        body::Body,
-        extract::Request,
-        http::{Response, StatusCode},
-        middleware::Next,
-    };
+    use axum::{body::Body, extract::Request, http::Response, middleware::Next};
     use axum_ctx::RespErr;
     use sqlx::PgPool;
 

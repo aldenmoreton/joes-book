@@ -1,22 +1,114 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, num::ParseFloatError};
 
-use axum::{extract::Path, http::StatusCode, response::Redirect, Form};
+use axum::{
+    body::Body,
+    extract::{Path, Query},
+    http::{Response, StatusCode},
+    response::{IntoResponse, Redirect},
+    Form, Json,
+};
 use axum_ctx::RespErr;
 use itertools::Itertools;
 
 use crate::{auth::AuthSession, AppError};
 
-#[derive(serde::Deserialize)]
-pub struct Params {
-    #[serde(rename(deserialize = "chapter-name"))]
-    chapter_name: String,
+#[derive(askama::Template)]
+#[template(path = "pages/chapter_create.html")]
+pub struct CreateChapter {
+    username: String,
 }
 
-pub async fn handler(
+pub async fn get(auth_session: AuthSession) -> Result<CreateChapter, RespErr> {
+    let username = auth_session.user.ok_or(AppError::BackendUser)?.username;
+    Ok(CreateChapter { username })
+}
+
+#[derive(serde::Deserialize, Debug)]
+#[serde(tag = "type", rename_all(deserialize = "kebab-case"))]
+pub enum AddEventType {
+    SpreadGroup,
+    UserInput,
+}
+
+#[derive(askama::Template)]
+#[template(path = "components/add_event.html", whitespace = "suppress")]
+pub struct AddEvent {
+    ty: AddEventType,
+}
+
+pub async fn add_event(Query(ty): Query<AddEventType>) -> AddEvent {
+    AddEvent { ty }
+}
+
+#[derive(Debug, serde::Deserialize)]
+#[serde(
+    tag = "type",
+    rename_all(deserialize = "kebab-case"),
+    rename_all_fields = "kebab-case"
+)]
+pub enum EventSubmissionType {
+    Spread {
+        home_team: String,
+        away_team: String,
+        amount: String,
+    },
+    UserInput {
+        title: String,
+        description: String,
+    },
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct EventSubmissions {
+    #[serde(rename = "chapter-name")]
+    chapter_name: String,
+    vals: Vec<EventSubmissionType>,
+}
+
+enum ValidEvent {
+    Spread {
+        home_team: String,
+        away_team: String,
+        amount: f32,
+    },
+    UserInput {
+        title: String,
+        description: Option<String>,
+    },
+}
+
+fn validate(events: Vec<EventSubmissionType>) -> Option<Vec<ValidEvent>> {
+    let events: Result<Vec<ValidEvent>, ParseFloatError> = events
+        .into_iter()
+        .map(|curr_event| match curr_event {
+            EventSubmissionType::Spread {
+                home_team,
+                away_team,
+                amount,
+            } => {
+                let amount = amount.parse::<f32>()?;
+                Ok(ValidEvent::Spread {
+                    home_team,
+                    away_team,
+                    amount,
+                })
+            }
+            EventSubmissionType::UserInput { title, description } => {
+                let description = (!description.is_empty()).then_some(description);
+                Ok(ValidEvent::UserInput { title, description })
+            }
+        })
+        .collect();
+
+    events.ok()
+}
+
+pub async fn post(
     auth_session: AuthSession,
     Path(path): Path<HashMap<String, String>>,
-    Form(Params { chapter_name }): Form<Params>,
-) -> Result<Redirect, RespErr> {
+    Json(EventSubmissions { chapter_name, vals }): Json<EventSubmissions>,
+) -> Result<Response<Body>, RespErr> {
+    println!("Vals: {vals:?}");
     if chapter_name.len() > 30 {
         return Err(
             RespErr::new(StatusCode::BAD_REQUEST).user_msg("Chapter Name too long (> 30 chars)")
@@ -49,8 +141,7 @@ pub async fn handler(
     .await
     .map_err(AppError::from)?;
 
-    Ok(Redirect::to(&format!(
-        "/book/{book_id}/chapter/{}/",
-        record.id
-    )))
+    let new_chapter_uri = format!("/book/{book_id}/chapter/{}/", record.id);
+
+    Ok([("HX-Redirect", new_chapter_uri)].into_response())
 }
