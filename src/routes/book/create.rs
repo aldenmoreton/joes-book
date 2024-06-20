@@ -48,5 +48,5 @@ pub async fn handler(
 
     transaction.commit().await.map_err(AppError::from)?;
 
-    Ok(Redirect::to(&format!("/book/{}", record.id)))
+    Ok(Redirect::to(&format!("/book/{}/", record.id)))
 }

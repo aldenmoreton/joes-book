@@ -8,17 +8,9 @@ pub struct Chapter {
     pub title: String,
 }
 
-pub async fn get_chapters(
-    _user_id: i32,
-    book_id: i32,
-    pool: &PgPool,
-) -> Result<Vec<Chapter>, sqlx::Error> {
-    // let book_subscription = get_book(user_id, book_id, pool).await?;
-    // if let BookRole::Unauthorized = book_subscription.role {
-    //     return Err(sqlx::Error::);
-    // }
-
-    let result = sqlx::query!(
+pub async fn get_chapters(book_id: i32, pool: &PgPool) -> Result<Vec<Chapter>, sqlx::Error> {
+    sqlx::query_as!(
+        Chapter,
         r#"	SELECT id AS chapter_id, book_id, is_open, title
 			FROM chapters
 			WHERE book_id = $1
@@ -26,17 +18,7 @@ pub async fn get_chapters(
         book_id
     )
     .fetch_all(pool)
-    .await?;
-
-    Ok(result
-        .into_iter()
-        .map(|record| Chapter {
-            chapter_id: record.chapter_id,
-            book_id: record.book_id,
-            is_open: record.is_open,
-            title: record.title,
-        })
-        .collect::<Vec<_>>())
+    .await
 }
 
 pub async fn get_chapter(chapter_id: i32, pool: &PgPool) -> Result<Chapter, sqlx::Error> {

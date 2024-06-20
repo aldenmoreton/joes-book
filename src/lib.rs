@@ -16,6 +16,7 @@ use crate::components::*;
 use crate::routes::*;
 
 pub mod auth;
+pub mod team_search;
 
 pub mod routes {
     pub mod book;
@@ -34,6 +35,7 @@ pub mod db {
     pub mod chapter;
     pub mod event;
     pub mod spread;
+    pub mod team;
     pub mod user_input;
 }
 
@@ -91,6 +93,7 @@ pub fn router(auth_layer: AuthManagerLayer<BackendPgDB, PostgresStore>) -> Route
                     get(book::chapter::create::get).post(book::chapter::create::post),
                 )
                 .route("/add", get(book::chapter::create::add_event))
+                .route("/team-select", post(book::chapter::create::team_select))
                 .route_layer(middleware::from_fn(book::mw::require_admin)),
         );
 
@@ -124,6 +127,7 @@ pub fn router(auth_layer: AuthManagerLayer<BackendPgDB, PostgresStore>) -> Route
         // v Home Routes v
         .merge(home_routes)
         // ^ Home Routes ^
+        .route("/team-search", get(team_search::handler))
         .nest_service("/assets", ServeDir::new("assets"))
         // ------------------^ Logged in Routes ^------------------
         .route_layer(login_required!(BackendPgDB, login_url = "/login"))

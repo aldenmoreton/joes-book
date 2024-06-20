@@ -33,6 +33,12 @@ CREATE TABLE IF NOT EXISTS chapters (
 	"notes" 			TEXT
 );
 
+CREATE TABLE IF NOT EXISTS teams (
+	"id"				SERIAL NOT NULL PRIMARY KEY,
+	"name"				TEXT NOT NULL,
+	"logo"				TEXT
+);
+
 CREATE TABLE IF NOT EXISTS events (
 	"id"     		SERIAL NOT NULL PRIMARY KEY,
 	"book_id"		SERIAL NOT NULL REFERENCES books(id),

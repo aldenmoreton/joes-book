@@ -27,9 +27,8 @@ pub async fn handler(
     let BackendPgDB(pool) = auth_session.backend;
 
     let username = user.username;
-    let user_id = user.id;
 
-    let chapters = get_chapters(user_id, book_subscription.book_id, &pool)
+    let chapters = get_chapters(book_subscription.book_id, &pool)
         .await
         .map_err(AppError::from)?;
 

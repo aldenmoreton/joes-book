@@ -1,5 +1,3 @@
-use std::num::ParseFloatError;
-
 use axum::{
     body::Body,
     extract::{Path, Query},
@@ -8,8 +6,13 @@ use axum::{
     Json,
 };
 use axum_ctx::RespErr;
+use itertools::Itertools;
 
-use crate::{auth::AuthSession, AppError};
+use crate::{
+    auth::AuthSession,
+    db::{event::EventContent, spread::Spread, team::Team, user_input::UserInput},
+    AppError,
+};
 
 #[derive(askama::Template)]
 #[template(path = "pages/chapter_create.html")]
@@ -39,6 +42,18 @@ pub async fn add_event(Query(ty): Query<AddEventType>) -> AddEvent {
     AddEvent { ty }
 }
 
+#[derive(askama::Template, serde::Deserialize)]
+#[template(path = "components/team_select.html", whitespace = "suppress")]
+pub struct TeamSelect {
+    location: String,
+    #[serde(flatten)]
+    team: Team,
+}
+
+pub async fn team_select(Json(team): Json<TeamSelect>) -> TeamSelect {
+    team
+}
+
 #[derive(Debug, serde::Deserialize)]
 #[serde(
     tag = "type",
@@ -47,13 +62,14 @@ pub async fn add_event(Query(ty): Query<AddEventType>) -> AddEvent {
 )]
 pub enum EventSubmissionType {
     Spread {
-        home_team: String,
-        away_team: String,
-        amount: String,
+        home_id: String,
+        away_id: String,
+        home_spread: String,
     },
     UserInput {
         title: String,
         description: String,
+        points: String,
     },
 }
 
@@ -61,45 +77,84 @@ pub enum EventSubmissionType {
 pub struct EventSubmissions {
     #[serde(rename = "chapter-name")]
     chapter_name: String,
-    vals: Vec<EventSubmissionType>,
+    events: Vec<EventSubmissionType>,
 }
 
-enum ValidEvent {
-    Spread {
-        home_team: String,
-        away_team: String,
-        amount: f32,
-    },
-    UserInput {
-        title: String,
-        description: Option<String>,
-    },
+fn validate_name(chapter_name: &str) -> Result<(), RespErr> {
+    if chapter_name.len() > 30 {
+        return Err(
+            RespErr::new(StatusCode::BAD_REQUEST).user_msg("Chapter Name too long (> 30 chars)")
+        );
+    }
+
+    let name_invalid_chars = chapter_name
+        .chars()
+        .filter(|c| !c.is_alphabetic() && *c != ' ')
+        .join(",");
+
+    if !name_invalid_chars.is_empty() {
+        return Err(RespErr::new(StatusCode::BAD_REQUEST).user_msg(format!(
+            "Chaper name includes invalid characters: {name_invalid_chars}"
+        )));
+    }
+
+    Ok(())
 }
 
-fn validate(events: Vec<EventSubmissionType>) -> Option<Vec<ValidEvent>> {
-    let events: Result<Vec<ValidEvent>, ParseFloatError> = events
+fn validate_events(events: Vec<EventSubmissionType>) -> Result<Vec<EventContent>, RespErr> {
+    let mut spread_group = Vec::new();
+    let events = events
         .into_iter()
-        .map(|curr_event| match curr_event {
+        .filter_map(|curr_event| match curr_event {
             EventSubmissionType::Spread {
-                home_team,
-                away_team,
-                amount,
+                home_id,
+                away_id,
+                home_spread,
             } => {
-                let amount = amount.parse::<f32>()?;
-                Ok(ValidEvent::Spread {
-                    home_team,
-                    away_team,
-                    amount,
-                })
+                let home_id = match home_id.parse() {
+                    Ok(id) => id,
+                    Err(_) => return Some(Err(RespErr::new(StatusCode::BAD_REQUEST))),
+                };
+                let away_id = match away_id.parse() {
+                    Ok(id) => id,
+                    Err(_) => return Some(Err(RespErr::new(StatusCode::BAD_REQUEST))),
+                };
+                let home_spread = match home_spread.parse() {
+                    Ok(a) if a % 0.5 == 0.0 => a,
+                    _ => {
+                        return Some(Err(RespErr::new(StatusCode::BAD_REQUEST)
+                            .user_msg("Could not parse amount")))
+                    }
+                };
+
+                spread_group.push(Spread {
+                    home_id,
+                    away_id,
+                    home_spread,
+                    notes: None,
+                });
+                None
             }
-            EventSubmissionType::UserInput { title, description } => {
+            EventSubmissionType::UserInput {
+                title,
+                description,
+                points,
+            } => {
                 let description = (!description.is_empty()).then_some(description);
-                Ok(ValidEvent::UserInput { title, description })
+                let points = match points.parse() {
+                    Ok(p) => p,
+                    Err(_) => return Some(Err(RespErr::new(StatusCode::BAD_REQUEST))),
+                };
+                Some(Ok(EventContent::UserInput(UserInput {
+                    title,
+                    description,
+                    points,
+                })))
             }
         })
-        .collect();
+        .collect::<Result<Vec<EventContent>, RespErr>>()?;
 
-    events.ok()
+    Ok(events)
 }
 
 pub async fn post(
@@ -107,20 +162,8 @@ pub async fn post(
     Path(book_id): Path<i32>,
     Json(chapter_submission): Json<EventSubmissions>,
 ) -> Result<Response<Body>, RespErr> {
-    if chapter_name.len() > 30 {
-        return Err(
-            RespErr::new(StatusCode::BAD_REQUEST).user_msg("Chapter Name too long (> 30 chars)")
-        );
-    }
-    let name_invalid_chars = chapter_name
-        .chars()
-        .filter(|c| !c.is_alphabetic() && *c != ' ')
-        .join(",");
-    if !name_invalid_chars.is_empty() {
-        return Err(RespErr::new(StatusCode::BAD_REQUEST).user_msg(format!(
-            "Chaper name includes invalid characters: {name_invalid_chars}"
-        )));
-    }
+    validate_name(&chapter_submission.chapter_name)?;
+    let _events = validate_events(chapter_submission.events)?;
 
     let pool = auth_session.backend.0;
 
@@ -129,7 +172,7 @@ pub async fn post(
         VALUES ($1, $2, false)
         RETURNING id
         ",
-        chapter_name,
+        chapter_submission.chapter_name,
         book_id
     )
     .fetch_one(&pool)

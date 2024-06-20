@@ -20,7 +20,7 @@
 	<button hx-get="add?type=spread-group" hx-target="#spread-group" hx-swap="beforeend">Add Spread</button>
 	<button hx-get="add?type=user-input" hx-target="#user-inputs" hx-swap="beforeend">Add User Input</button>
 
-	<form id="submit-events" hx-post="." hx-ext="json-enc" hx-vals="js:{vals: get_forms()}" onsubmit="return validateForm()">
+	<form id="submit-events" hx-post="." hx-ext="json-enc" hx-vals="js:{events: get_forms()}" onsubmit="return validateForm()">
 		<button type="submit">Submit</button>
 	</form>
 {% endblock %}

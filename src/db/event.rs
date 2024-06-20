@@ -35,7 +35,7 @@ impl FromRow<'_, PgRow> for Event {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum EventContent {
-    SpreadGroup(Spread),
+    SpreadGroup(Vec<Spread>),
     UserInput(UserInput),
 }
 
@@ -72,38 +72,42 @@ pub async fn get_events(chapter_id: i32, pool: &PgPool) -> Result<Vec<Event>, sq
     .await
 }
 
-pub async fn get_picks(
+// pub async fn get_picks(
+//     user_id: i32,
+//     chapter_id: ChapterId,
+//     pool: &PgPool,
+// ) -> Result<Vec<(String, Vec<(Event, Pick)>)>, sqlx::Error> {
+//     let events = get_events(chapter_id, pool).await?;
+
+//     let mut picks = Vec::new();
+//     for event in events.iter() {
+//         picks.push(get_pick(user_id, event.id, pool))
+//     }
+
+//     let mut awaited_picks = Vec::new();
+//     for pick in picks {
+//         awaited_picks.push(pick.await?)
+//     }
+
+//     let event_picks: Vec<(Event, Pick)> = events.into_iter().zip(awaited_picks).collect();
+
+//     let mut data_grouped = Vec::new();
+//     for (key, group) in &event_picks
+//         .into_iter()
+//         .group_by(|elt| elt.0.event_type.clone())
+//     {
+//         data_grouped.push((key, group.collect()));
+//     }
+
+//     Ok(data_grouped)
+// }
+
+pub async fn get_pick(
     user_id: i32,
-    chapter_id: i32,
+    event_id: i32,
     pool: &PgPool,
-) -> Result<Vec<(String, Vec<(Event, Pick)>)>, sqlx::Error> {
-    let events = get_events(chapter_id, pool).await?;
-
-    let mut picks = Vec::new();
-    for event in events.iter() {
-        picks.push(get_pick(user_id, event.id, pool))
-    }
-
-    let mut awaited_picks = Vec::new();
-    for pick in picks {
-        awaited_picks.push(pick.await?)
-    }
-
-    let event_picks: Vec<(Event, Pick)> = events.into_iter().zip(awaited_picks).collect();
-
-    let mut data_grouped = Vec::new();
-    for (key, group) in &event_picks
-        .into_iter()
-        .group_by(|elt| elt.0.event_type.clone())
-    {
-        data_grouped.push((key, group.collect()));
-    }
-
-    Ok(data_grouped)
-}
-
-pub async fn get_pick(user_id: i32, event_id: i32, pool: &PgPool) -> Result<Pick, sqlx::Error> {
-    let pick = sqlx::query_as!(
+) -> Result<Option<Pick>, sqlx::Error> {
+    sqlx::query_as!(
         Pick,
         r#" SELECT id AS "id?", book_id, chapter_id, event_id, wager AS "wager?", choice AS "choice?", correct AS "correct?"
 			FROM picks
@@ -112,38 +116,5 @@ pub async fn get_pick(user_id: i32, event_id: i32, pool: &PgPool) -> Result<Pick
         user_id
     )
     .fetch_optional(pool)
-    .await?;
-
-    let pick = match pick {
-        Some(pick) => pick,
-        None => {
-            let event = sqlx::query_as::<_, Event>(
-				r#"	SELECT id, book_id, chapter_id, contents, event_type, is_open, TO_CHAR(closing_time, 'YYYY-MM-DD"T"HH24:MI:SS.MSZ') AS closing_time
-					FROM events
-					WHERE id = $1
-				"#
-			)
-				.bind(event_id)
-				.bind(user_id)
-				.fetch_one(pool)
-				.await?;
-
-            // let book_subscription = get_book(user_id, event.book_id, pool).await?;
-            // if book_subscription.role == BookRole::Unauthorized {
-            //     return Err(StatusCode::UNAUTHORIZED);
-            // }
-
-            Pick {
-                id: None,
-                book_id: event.book_id,
-                chapter_id: event.chapter_id,
-                event_id,
-                wager: None,
-                choice: None,
-                correct: None,
-            }
-        }
-    };
-
-    Ok(pick)
+    .await
 }

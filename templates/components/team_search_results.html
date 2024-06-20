@@ -1,0 +1,10 @@
+{% for team in teams %}
+	<li class="border border-black">
+		<button hx-post="team-select" hx-ext="json-enc" hx-vals='{"location": "{{location}}", "name": "{{team.name}}", "id": {{team.id}}, "logo": "{{team.logo.clone().unwrap_or(String::new())}}"}'>
+			{% if let Some(logo) = team.logo %}
+				<img src="{{logo}}" class="object-scale-down w-5 h-5" alt="">
+			{% endif %}
+			{{team.name}}
+		</button>
+	</li>
+{% endfor %}
