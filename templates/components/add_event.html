@@ -13,7 +13,6 @@
 				<p>Spread Team 2 (Away)</p>
 				<input type="search" name="name" placeholder="Team 2" autocomplete="off" hx-get="/team-search" hx-trigger="input changed delay:500ms, search" hx-vals='{"location": "away-id"}' hx-target="next ul">
 				<ul></ul>
-				<input type="text" name="away-team" placeholder="Away Team" form="submit-events" required>
 				<input form="submit-events" type="text" name="team-2-validate" style="opacity: 0; width: 0;" oninvalid="this.setCustomValidity('Missing Spread Team 2')" required>
 			</div>
 			<div title="spread-ammount">

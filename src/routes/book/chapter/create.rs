@@ -5,12 +5,17 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use axum_ctx::RespErr;
+use axum_ctx::{RespErr, RespErrCtx, RespErrExt};
 use itertools::Itertools;
 
 use crate::{
     auth::AuthSession,
-    db::{event::EventContent, spread::Spread, team::Team, user_input::UserInput},
+    db::{
+        event::{EventContent, EventType},
+        spread::Spread,
+        team::Team,
+        user_input::UserInput,
+    },
     AppError,
 };
 
@@ -103,7 +108,7 @@ fn validate_name(chapter_name: &str) -> Result<(), RespErr> {
 
 fn validate_events(events: Vec<EventSubmissionType>) -> Result<Vec<EventContent>, RespErr> {
     let mut spread_group = Vec::new();
-    let events = events
+    let mut events = events
         .into_iter()
         .filter_map(|curr_event| match curr_event {
             EventSubmissionType::Spread {
@@ -154,6 +159,7 @@ fn validate_events(events: Vec<EventSubmissionType>) -> Result<Vec<EventContent>
         })
         .collect::<Result<Vec<EventContent>, RespErr>>()?;
 
+    events.push(EventContent::SpreadGroup(spread_group));
     Ok(events)
 }
 
@@ -163,9 +169,11 @@ pub async fn post(
     Json(chapter_submission): Json<EventSubmissions>,
 ) -> Result<Response<Body>, RespErr> {
     validate_name(&chapter_submission.chapter_name)?;
-    let _events = validate_events(chapter_submission.events)?;
+    let events = validate_events(chapter_submission.events)?;
 
     let pool = auth_session.backend.0;
+
+    let mut transaction = pool.begin().await.map_err(AppError::from)?;
 
     let record = sqlx::query!(
         "INSERT INTO chapters (title, book_id, is_open)
@@ -175,9 +183,41 @@ pub async fn post(
         chapter_submission.chapter_name,
         book_id
     )
-    .fetch_one(&pool)
+    .fetch_one(&mut *transaction)
     .await
     .map_err(AppError::from)?;
+
+    let (book_ids, chapter_ids, event_types, event_contents): (Vec<_>, Vec<_>, Vec<_>, Vec<_>) =
+        events
+            .into_iter()
+            .map(|event| {
+                let event_type = match &event {
+                    &EventContent::SpreadGroup(_) => EventType::SpreadGroup,
+                    &EventContent::UserInput(_) => EventType::UserInput,
+                };
+                (book_id, record.id, event_type, serde_json::to_value(event))
+            })
+            .multiunzip();
+
+    let event_contents = event_contents
+        .into_iter()
+        .collect::<Result<Vec<_>, _>>()
+        .ctx(StatusCode::BAD_REQUEST)
+        .user_msg("Invalid Inputs")
+        .log_msg("Failed to serialize user inputs to json string")?;
+
+    sqlx::query!(
+        r#"   INSERT INTO events (book_id, chapter_id, event_type, contents)
+            SELECT book_id, chapter_id, event_type AS "event_type: EventType", contents
+            FROM UNNEST($1::INT[], $2::INT[], $3::event_types[], $4::jsonb[]) AS a(book_id, chapter_id, event_type, contents)
+        "#,
+        &book_ids,
+        &chapter_ids,
+        event_types as _,
+        &event_contents
+    ).execute(&mut * transaction).await.map_err(AppError::from)?;
+
+    transaction.commit().await.map_err(AppError::from)?;
 
     let new_chapter_uri = format!("/book/{book_id}/chapter/{}/", record.id);
 

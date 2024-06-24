@@ -1,70 +1,70 @@
-use itertools::Itertools;
-
-use serde::{Deserialize, Serialize};
-use sqlx::{postgres::PgRow, FromRow, PgPool, Row};
-
 use super::{spread::Spread, user_input::UserInput};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+use itertools::Itertools;
+use serde::{Deserialize, Serialize};
+use sqlx::postgres::{PgHasArrayType, PgTypeInfo};
+use sqlx::types::Json;
+use sqlx::PgPool;
+
+#[derive(Debug, Clone, sqlx::Type, Serialize, Deserialize)]
+#[sqlx(type_name = "event_types", rename_all = "snake_case")]
+pub enum EventType {
+    SpreadGroup,
+    UserInput,
+}
+
+impl PgHasArrayType for EventType {
+    fn array_compatible(ty: &sqlx::postgres::PgTypeInfo) -> bool {
+        true
+    }
+
+    fn array_type_info() -> sqlx::postgres::PgTypeInfo {
+        PgTypeInfo::with_name("event_types[]")
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct Event {
     pub id: i32,
     pub book_id: i32,
     pub chapter_id: i32,
     pub is_open: bool,
-    pub event_type: String,
-    pub contents: EventContent,
-}
-
-impl FromRow<'_, PgRow> for Event {
-    fn from_row(row: &PgRow) -> Result<Self, sqlx::Error> {
-        let contents: EventContent = {
-            let content_str: String = row.try_get("contents")?;
-            serde_json::from_str(&content_str).map_err(|err| sqlx::Error::Decode(Box::new(err)))?
-        };
-
-        Ok(Event {
-            id: row.try_get("id")?,
-            book_id: row.try_get("book_id")?,
-            chapter_id: row.try_get("chapter_id")?,
-            is_open: row.try_get("is_open")?,
-            event_type: row.try_get("event_type")?,
-            contents,
-        })
-    }
+    pub event_type: EventType,
+    pub contents: Json<EventContent>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum EventContent {
     SpreadGroup(Vec<Spread>),
     UserInput(UserInput),
 }
 
-// TODO: This is bad
-impl From<String> for EventContent {
-    fn from(value: String) -> Self {
-        serde_json::from_str(&value)
-            .unwrap_or_else(|_| panic!("Could not Deserialize Event Contents: {value}"))
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct Pick {
-    pub id: Option<i32>,
+    pub id: i32,
     pub book_id: i32,
     pub chapter_id: i32,
     pub event_id: i32,
-    pub wager: Option<i32>,
-    pub choice: Option<String>,
+    pub wager: i32,
+    pub choice: String,
     pub correct: Option<bool>,
 }
+
+pub type UserPick = (Event, Option<Pick>);
 
 pub async fn get_events(chapter_id: i32, pool: &PgPool) -> Result<Vec<Event>, sqlx::Error> {
     sqlx::query_as!(
         Event,
-        r#"	SELECT id, book_id, chapter_id, contents, event_type, is_open
+        r#"	SELECT  id,
+                    book_id,
+                    chapter_id,
+                    is_open,
+                    contents AS "contents: Json<EventContent>",
+                    event_type AS "event_type: EventType"
 			FROM events
 			WHERE chapter_id = $1
-			ORDER BY event_type
+            ORDER BY event_type
 		"#,
         chapter_id
     )
@@ -72,49 +72,84 @@ pub async fn get_events(chapter_id: i32, pool: &PgPool) -> Result<Vec<Event>, sq
     .await
 }
 
-// pub async fn get_picks(
-//     user_id: i32,
-//     chapter_id: ChapterId,
-//     pool: &PgPool,
-// ) -> Result<Vec<(String, Vec<(Event, Pick)>)>, sqlx::Error> {
-//     let events = get_events(chapter_id, pool).await?;
-
-//     let mut picks = Vec::new();
-//     for event in events.iter() {
-//         picks.push(get_pick(user_id, event.id, pool))
-//     }
-
-//     let mut awaited_picks = Vec::new();
-//     for pick in picks {
-//         awaited_picks.push(pick.await?)
-//     }
-
-//     let event_picks: Vec<(Event, Pick)> = events.into_iter().zip(awaited_picks).collect();
-
-//     let mut data_grouped = Vec::new();
-//     for (key, group) in &event_picks
-//         .into_iter()
-//         .group_by(|elt| elt.0.event_type.clone())
-//     {
-//         data_grouped.push((key, group.collect()));
-//     }
-
-//     Ok(data_grouped)
-// }
-
-pub async fn get_pick(
+pub async fn get_picks(
     user_id: i32,
-    event_id: i32,
+    chapter_id: i32,
     pool: &PgPool,
-) -> Result<Option<Pick>, sqlx::Error> {
-    sqlx::query_as!(
-        Pick,
-        r#" SELECT id AS "id?", book_id, chapter_id, event_id, wager AS "wager?", choice AS "choice?", correct AS "correct?"
-			FROM picks
-			WHERE event_id = $1 AND user_id = $2"#,
-        event_id,
-        user_id
+) -> Result<Vec<UserPick>, sqlx::Error> {
+    sqlx::query!(
+        r#" SELECT  e.id AS event_id,
+                    e.book_id AS book_id,
+                    e.chapter_id AS chapter_id,
+                    e.is_open AS is_open,
+                    e.event_type AS "event_type: EventType",
+                    e.contents AS "contents: Json<EventContent>",
+                    p.id AS "pick_id?",
+                    p.user_id AS "user_id?",
+                    p.choice AS "choice?",
+                    p.wager AS "wager?",
+                    p.correct
+            FROM EVENTS AS e
+            LEFT JOIN (
+                SELECT *
+                FROM picks
+                WHERE user_id = $1 AND chapter_id = $2
+            ) AS p ON e.id = p.event_id
+            WHERE e.chapter_id = $2
+            ORDER BY event_type
+        "#,
+        user_id,
+        chapter_id
     )
-    .fetch_optional(pool)
+    .fetch_all(pool)
     .await
+    .map(|rows| {
+        rows.into_iter()
+            .map(|row| {
+                let event = Event {
+                    id: row.event_id,
+                    book_id: row.book_id,
+                    chapter_id: row.chapter_id,
+                    is_open: row.is_open,
+                    event_type: row.event_type,
+                    contents: row.contents,
+                };
+                let pick = if let (Some(pick_id), Some(wager), Some(choice)) =
+                    (row.pick_id, row.wager, row.choice)
+                {
+                    Some(Pick {
+                        id: pick_id,
+                        book_id: row.book_id,
+                        chapter_id: row.chapter_id,
+                        event_id: row.event_id,
+                        wager,
+                        choice,
+                        correct: row.correct,
+                    })
+                } else {
+                    None
+                };
+
+                (event, pick)
+            })
+            .collect_vec()
+    })
 }
+
+// pub async fn get_pick(
+//     user_id: i32,
+//     event_id: i32,
+//     pool: &PgPool,
+// ) -> Result<Option<Pick>, sqlx::Error> {
+// sqlx::query_as!(
+//     Pick,
+//     r#" SELECT id AS "id?", book_id, chapter_id, event_id, wager AS "wager?", choice AS "choice?", correct AS "correct?"
+// 		FROM picks
+// 		WHERE event_id = $1 AND user_id = $2"#,
+//     event_id,
+//     user_id
+// )
+// .fetch_optional(pool)
+// .await;
+//     todo!()
+// }

@@ -39,13 +39,15 @@ CREATE TABLE IF NOT EXISTS teams (
 	"logo"				TEXT
 );
 
+CREATE TYPE event_types AS ENUM ('spread_group', 'user_input');
+
 CREATE TABLE IF NOT EXISTS events (
 	"id"     		SERIAL NOT NULL PRIMARY KEY,
 	"book_id"		SERIAL NOT NULL REFERENCES books(id),
 	"chapter_id"	SERIAL NOT NULL REFERENCES chapters(id),
 	"is_open"		BOOLEAN NOT NULL DEFAULT FALSE,
-	"event_type"	TEXT NOT NULL,
-	"contents"		TEXT NOT NULL,
+	"event_type"	event_types NOT NULL,
+	"contents"		JSONB NOT NULL,
 	"answer"		TEXT DEFAULT NULL,
 	"created_at" 	TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

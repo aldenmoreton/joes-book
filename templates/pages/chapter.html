@@ -1,16 +1,31 @@
 {% extends "authenticated.html" %}
 
-{% block title %}{{ meta.title }}{% endblock %}
+{% block title %}{{ chapter.title }}{% endblock %}
 
 {% block content %}
 	{% call super() %}
 	{% if is_admin %}
 		<a href="admin/">Go to Admin Page</a>
 	{% endif %}
-	{% for event in events %}
-		<p>Event</p>
-		<p>{{ "{:?}"|format(event.contents) }}</p>
+
+	{% for (event, pick) in user_picks %}
+		<h1>Event: {{ "{:?}"|format(event)}}</h1>
+		<h1>Pick: {{ "{:?}"|format(pick)}}</h1>
+		{% match event.contents.0 %}
+		{% when EventContent::SpreadGroup with (group) %}
+		<p>Spread Group: {{ "{:?}"|format(group) }}</p>
+		{% when EventContent::UserInput with (input) %}
+		{% call user_input(input) %}
+		{% endmatch %}
+		{% if !loop.last %}
+		<hr>
+		{% endif %}
 	{% else %}
 		<p>No Events in this Chapter</p>
 	{% endfor %}
+
 {% endblock %}
+
+{% macro user_input(input) %}
+	<p>User Input: {{ "{:?}"|format(input) }}</p>
+{% endmacro %}
