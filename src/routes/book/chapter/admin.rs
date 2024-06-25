@@ -16,7 +16,7 @@ use crate::{
 pub struct AuthChapterPage {
     username: String,
     meta: Chapter,
-    events: Vec<Event>,
+    _events: Vec<Event>,
 }
 
 pub async fn handler(
@@ -33,7 +33,7 @@ pub async fn handler(
     Ok(AuthChapterPage {
         username: user.username,
         meta,
-        events,
+        _events: events,
     })
 }
 

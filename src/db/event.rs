@@ -14,7 +14,7 @@ pub enum EventType {
 }
 
 impl PgHasArrayType for EventType {
-    fn array_compatible(ty: &sqlx::postgres::PgTypeInfo) -> bool {
+    fn array_compatible(_ty: &sqlx::postgres::PgTypeInfo) -> bool {
         true
     }
 

@@ -109,34 +109,33 @@ fn validate_name(chapter_name: &str) -> Result<(), RespErr> {
 fn validate_events(events: Vec<EventSubmissionType>) -> Result<Vec<EventContent>, RespErr> {
     let events = events
         .into_iter()
-        .filter_map(|curr_event| match curr_event {
+        .map(|curr_event| match curr_event {
             EventSubmissionType::Spread {
                 home_id,
                 away_id,
                 home_spread,
             } => {
-                let home_id = match home_id.parse() {
-                    Ok(id) => id,
-                    Err(_) => return Some(Err(RespErr::new(StatusCode::BAD_REQUEST))),
-                };
-                let away_id = match away_id.parse() {
-                    Ok(id) => id,
-                    Err(_) => return Some(Err(RespErr::new(StatusCode::BAD_REQUEST))),
-                };
+                let home_id = home_id
+                    .parse()
+                    .map_err(|_| RespErr::new(StatusCode::BAD_REQUEST))?;
+                let away_id = away_id
+                    .parse()
+                    .map_err(|_| RespErr::new(StatusCode::BAD_REQUEST))?;
+
                 let home_spread = match home_spread.parse() {
                     Ok(a) if a % 0.5 == 0.0 => a,
                     _ => {
-                        return Some(Err(RespErr::new(StatusCode::BAD_REQUEST)
-                            .user_msg("Could not parse amount")))
+                        return Err(RespErr::new(StatusCode::BAD_REQUEST)
+                            .user_msg("Could not parse amount"))
                     }
                 };
 
-                Some(Ok(EventContent::SpreadGroup(Spread {
+                Ok(EventContent::SpreadGroup(Spread {
                     home_id,
                     away_id,
                     home_spread,
                     notes: None,
-                })))
+                }))
             }
             EventSubmissionType::UserInput {
                 title,
@@ -144,15 +143,14 @@ fn validate_events(events: Vec<EventSubmissionType>) -> Result<Vec<EventContent>
                 points,
             } => {
                 let description = (!description.is_empty()).then_some(description);
-                let points = match points.parse() {
-                    Ok(p) => p,
-                    Err(_) => return Some(Err(RespErr::new(StatusCode::BAD_REQUEST))),
-                };
-                Some(Ok(EventContent::UserInput(UserInput {
+                let points = points
+                    .parse()
+                    .map_err(|_| RespErr::new(StatusCode::BAD_REQUEST))?;
+                Ok(EventContent::UserInput(UserInput {
                     title,
                     description,
                     points,
-                })))
+                }))
             }
         })
         .collect::<Result<Vec<EventContent>, RespErr>>()?;
@@ -188,9 +186,9 @@ pub async fn post(
         events
             .into_iter()
             .map(|event| {
-                let event_type = match &event {
-                    &EventContent::SpreadGroup(_) => EventType::SpreadGroup,
-                    &EventContent::UserInput(_) => EventType::UserInput,
+                let event_type = match event {
+                    EventContent::SpreadGroup(_) => EventType::SpreadGroup,
+                    EventContent::UserInput(_) => EventType::UserInput,
                 };
                 (book_id, record.id, event_type, serde_json::to_value(event))
             })
