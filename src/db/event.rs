@@ -36,7 +36,7 @@ pub struct Event {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum EventContent {
-    SpreadGroup(Vec<Spread>),
+    SpreadGroup(Spread),
     UserInput(UserInput),
 }
 

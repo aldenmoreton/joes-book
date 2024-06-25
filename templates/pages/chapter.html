@@ -9,13 +9,11 @@
 	{% endif %}
 
 	{% for (event, pick) in user_picks %}
-		<h1>Event: {{ "{:?}"|format(event)}}</h1>
-		<h1>Pick: {{ "{:?}"|format(pick)}}</h1>
 		{% match event.contents.0 %}
-		{% when EventContent::SpreadGroup with (group) %}
-		<p>Spread Group: {{ "{:?}"|format(group) }}</p>
+		{% when EventContent::SpreadGroup with (spreads) %}
+			{% call spread_group(spreads, pick) %}
 		{% when EventContent::UserInput with (input) %}
-		{% call user_input(input) %}
+			{% call user_input(input, pick) %}
 		{% endmatch %}
 		{% if !loop.last %}
 		<hr>
@@ -26,6 +24,39 @@
 
 {% endblock %}
 
-{% macro user_input(input) %}
-	<p>User Input: {{ "{:?}"|format(input) }}</p>
+{% macro spread_group(spread, picks) %}
+{% let home_team = relevent_teams.get(spread.home_id).unwrap() %}
+{% let away_team = relevent_teams.get(spread.away_id).unwrap() %}
+<div class="columns-2">
+	<div>
+		<img class="object-center" src="{{home_team.1.as_ref().unwrap()}}" alt="{{home_team.0}} Image">
+		<figcaption>{{home_team.0}}<br>{{ "{:+}"|format(spread.home_spread)}}</figcaption>
+	</div>
+	<div>
+		<img class="object-center" src="{{away_team.1.as_ref().unwrap()}}" alt="{{away_team.0}} Image">
+		<figcaption>{{away_team.0}}<br>{{ "{:+}"|format(-1.0 * spread.home_spread)}}</figcaption>
+	</div>
+</div>
+{% if let Some(notes) = spread.notes %}
+	<p>{{notes}}</p>
+{% endif %}
+
+<p>Picks: {{ "{:?}"|format(picks) }}</p>
+{% endmacro %}
+
+{% macro user_input(input, pick) %}
+	<h3 class="text-lg font-semibold">{{input.title}}</h3>
+	{% if let Some(description) = input.description %}
+		<h4>{{description}}</h4>
+	{% endif %}
+	{% if input.points == 1 %}
+		<p>({{input.points}} Point)</p>
+	{% else %}
+		<p>({{input.points}} Points)</p>
+	{% endif %}
+	<textarea name="user-input" placeholder="Your Answer">
+		{% if let Some(pick) = pick %}
+			{{pick.choice}}
+		{% endif %}
+	</textarea>
 {% endmacro %}

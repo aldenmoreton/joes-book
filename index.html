@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>Extension</title>
+			<link rel="icon" type_="image/ico" href="/public/favicon.ico"/>
+			<link rel="manifest" href="/public/manifest.json"/>
+			<script src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
+			<script src="https://unpkg.com/htmx-ext-json-enc@2.0.0/json-enc.js"></script>
+			<script src="/public/my-enc.js"></script>
+	</head>
+	<body class="justify-center text-center bg-green-50">
+		<script>0</script>
+			<fieldset name="outside name" form="elements">
+				<legend>Outer Set:</legend>
+				<input type="number" name="number" value="1">
+				<label>
+					<small>First Name</small>
+					<input type="text" name="first" value="Alden">
+				</label>
+				<label>
+					<small>Last Name</small>
+					<input type="text" name="last" value="Moreton">
+				</label>
+				<fieldset name="name">
+					<legend>Inner set:</legend>
+					<input type="text" name="first" value="Alden">
+					<input type="text" name="last" value="Moreton">
+				</fieldset>
+			</fieldset>
+			<fieldset name="name" form="elements">
+				<legend>Outer Set:</legend>
+				<input type="text" name="first" value="Alden">
+				<input type="text" name="last" value="Moreton">
+				<fieldset name="name">
+					<legend>Inner set:</legend>
+					<input type="text" name="first" value="Alden">
+					<input type="text" name="last" value="Moreton">
+				</fieldset>
+			</fieldset>
+			<input type="text" name="age" value="25">
+			<form id="elements" hx-post="/form-submit" hx-ext="my-enc">
+				<fieldset name="inside-name">
+					<legend>Outer Set:</legend>
+					<input type="number" name="number" value="1">
+					<input type="text" name="first" value="Alden">
+					<input type="text" name="last" value="Moreton">
+					<fieldset name="name">
+						<legend>Inner set:</legend>
+						<input type="text" name="first" value="Alden">
+						<input type="text" name="last" value="Moreton">
+					</fieldset>
+				</fieldset>
+				<input type="submit" value="Submit Me!">
+			</form>
+
+	</body>
+</html>

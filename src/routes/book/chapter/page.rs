@@ -1,10 +1,12 @@
+use std::collections::HashMap;
+
 use crate::db::event::{get_picks, EventContent, UserPick};
+use crate::db::team::get_chapter_teams;
 use crate::{
     auth::{AuthSession, BackendPgDB},
     db::{
         book::{BookRole, BookSubscription},
         chapter::Chapter,
-        event::{get_events, Event},
     },
     AppError,
 };
@@ -13,12 +15,13 @@ use axum::Extension;
 use axum_ctx::RespErr;
 
 #[derive(Template)]
-#[template(path = "pages/chapter.html")]
+#[template(path = "pages/chapter.html", whitespace = "suppress")]
 pub struct ChapterPage {
     username: String,
     chapter: Chapter,
     user_picks: Vec<UserPick>,
     is_admin: bool,
+    relevent_teams: HashMap<i32, (String, Option<String>)>,
 }
 
 pub async fn handler(
@@ -29,14 +32,17 @@ pub async fn handler(
     let user = auth_session.user.ok_or(AppError::BackendUser)?;
     let BackendPgDB(pool) = auth_session.backend;
 
-    let user_picks = get_picks(user.id, chapter.chapter_id, &pool)
-        .await
-        .map_err(AppError::from)?;
+    let user_picks = get_picks(user.id, chapter.chapter_id, &pool);
+    let relevent_teams = get_chapter_teams(chapter.chapter_id, &pool);
+
+    let user_picks = user_picks.await.map_err(AppError::from)?;
+    let relevent_teams = relevent_teams.await.map_err(AppError::from)?;
 
     Ok(ChapterPage {
         username: user.username,
         chapter,
         user_picks,
         is_admin: book_subscription.role == BookRole::Admin,
+        relevent_teams,
     })
 }

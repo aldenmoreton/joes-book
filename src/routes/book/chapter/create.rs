@@ -107,8 +107,7 @@ fn validate_name(chapter_name: &str) -> Result<(), RespErr> {
 }
 
 fn validate_events(events: Vec<EventSubmissionType>) -> Result<Vec<EventContent>, RespErr> {
-    let mut spread_group = Vec::new();
-    let mut events = events
+    let events = events
         .into_iter()
         .filter_map(|curr_event| match curr_event {
             EventSubmissionType::Spread {
@@ -132,13 +131,12 @@ fn validate_events(events: Vec<EventSubmissionType>) -> Result<Vec<EventContent>
                     }
                 };
 
-                spread_group.push(Spread {
+                Some(Ok(EventContent::SpreadGroup(Spread {
                     home_id,
                     away_id,
                     home_spread,
                     notes: None,
-                });
-                None
+                })))
             }
             EventSubmissionType::UserInput {
                 title,
@@ -159,7 +157,6 @@ fn validate_events(events: Vec<EventSubmissionType>) -> Result<Vec<EventContent>
         })
         .collect::<Result<Vec<EventContent>, RespErr>>()?;
 
-    events.push(EventContent::SpreadGroup(spread_group));
     Ok(events)
 }
 
