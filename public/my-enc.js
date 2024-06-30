@@ -31,7 +31,28 @@ htmx.defineExtension('my-enc', {
 				.filter(currElement => !fieldsets.some(currFieldset => currFieldset.contains(currElement)))
 				.forEach(field => {
 					if (field.name) {
-						obj[field.name] = field.value;
+						if (obj[field.name]) {
+							switch (typeof obj[field.name]) {
+								case "string":
+									obj[field.name] = field.value;
+									break;
+								case "object":
+									obj[field.name].push(field.value);
+									break;
+							}
+						} else {
+							const insertMode = field.getAttribute("me-insert") || myenc.config.insertMode;
+							console.log(field);
+							console.log(insertMode);
+							switch (insertMode.toLowerCase()) {
+								case "last":
+									obj[field.name] = field.value;
+									break;
+								case "array":
+									obj[field.name] = [field.value];
+									break;
+							}
+						}
 					}
 				});
 
@@ -40,7 +61,6 @@ htmx.defineExtension('my-enc', {
 			)
 			nextLevelFieldsets.forEach(nestedFieldset => {
 				var nestedName = nestedFieldset.name;
-				const insertMode = nestedFieldset.getAttribute("me-insert") || myenc.config.insertMode;
 				if (!nestedName) {
 					nestedName = "fieldset"
 				}
@@ -57,6 +77,7 @@ htmx.defineExtension('my-enc', {
 							parseForm(nestedFieldset, nestedObj);
 					}
 				} else {
+					const insertMode = nestedFieldset.getAttribute("me-insert") || myenc.config.insertMode;
 					switch (insertMode.toLowerCase()) {
 						case "last":
 							obj[nestedName] = {};
@@ -73,7 +94,7 @@ htmx.defineExtension('my-enc', {
 		};
 
 		parseForm(elt, nestedParameters);
-
+		console.log(nestedParameters)
 		return JSON.stringify(nestedParameters);
 	}
 });
