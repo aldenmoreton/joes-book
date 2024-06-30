@@ -28,3 +28,4 @@ fly.toml
 # Added by cargo
 
 /target
+college_teams.csv
