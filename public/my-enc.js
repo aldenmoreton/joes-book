@@ -1,62 +1,79 @@
+const myenc = {
+	config: {
+		insertMode: "last"
+	}
+};
+
 htmx.defineExtension('my-enc', {
 	onEvent: function(name, evt) {
 		if (name === 'htmx:configRequest') {
-			evt.detail.headers['Content-Type'] = 'application/json'
+			evt.detail.headers['Content-Type'] = 'application/json';
 		}
 	},
 	encodeParameters: function(xhr, parameters, elt) {
-		console.log(xhr)
-		console.log(parameters)
-		console.log(elt)
-		console.log(elt.elements)
-		xhr.overrideMimeType('text/json')
-		const json = {};
+		xhr.overrideMimeType('text/json');
+		const nestedParameters = {};
+		console.log(elt.elements);
+		function parseForm(fieldLevel, obj) {
+			const elements = Array.from(fieldLevel.elements);
 
-		function parseForm(fieldset, obj) {
-			const fieldsetName = fieldset.name;
-			if (!fieldsetName) {
-				fieldsetName = "fieldset"
-			};
+			const inputs = elements.filter(currElement => {
+				const tagName = currElement.tagName.toLowerCase();
+				return tagName === 'select' || tagName === 'textarea' || tagName === 'input';
+			});
 
-			if (obj[fieldsetName] == null) {
-				obj[fieldsetName] = [];
-			};
+			const fieldsets = elements.filter(currElement => {
+				const tagName = currElement.tagName.toLowerCase();
+				return tagName === 'fieldset';
+			});
 
-			const fieldset_values = {};
-			const elements = Array.from(fieldset.children).filter(el => el.tagName.toLowerCase() !== 'fieldset');
+			inputs
+				.filter(currElement => !fieldsets.some(currFieldset => currFieldset.contains(currElement)))
+				.forEach(field => {
+					if (field.name) {
+						obj[field.name] = field.value;
+					}
+				});
 
-			elements.forEach(field => {
-				if (field.name) {
-					fieldset_values[field.name] = field.value;
+			const nextLevelFieldsets = fieldsets.filter(currFieldset =>
+				!fieldsets.some(parentFieldset => currFieldset != parentFieldset && parentFieldset.contains(currFieldset))
+			)
+			nextLevelFieldsets.forEach(nestedFieldset => {
+				var nestedName = nestedFieldset.name;
+				const insertMode = nestedFieldset.getAttribute("me-insert") || myenc.config.insertMode;
+				if (!nestedName) {
+					nestedName = "fieldset"
+				}
+
+				if (obj[nestedName]) {
+					switch (typeof obj[nestedName]) {
+						case "string":
+							obj[nestedName] = {};
+							parseForm(nestedFieldset, obj[nestedName]);
+							break;
+						case "object":
+							const nestedObj = {};
+							obj[nestedName].push(nestedObj);
+							parseForm(nestedFieldset, nestedObj);
+					}
+				} else {
+					switch (insertMode.toLowerCase()) {
+						case "last":
+							obj[nestedName] = {};
+							parseForm(nestedFieldset, obj[nestedName]);
+							break;
+						case "array":
+							const nestedObj = {};
+							obj[nestedName] = [nestedObj];
+							parseForm(nestedFieldset, nestedObj);
+							break;
+					}
 				}
 			});
+		};
 
-			const nestedFieldsets = fieldset.querySelectorAll('fieldset');
-			nestedFieldsets.forEach(nestedFieldset => {
-				parseForm(nestedFieldset, fieldset_values);
-			});
-			obj[fieldsetName].push(fieldset_values)
-		}
+		parseForm(elt, nestedParameters);
 
-		const topLevelFieldsets = Array.from(elt.children).filter(el => {
-			return el.tagName.toLowerCase() == 'fieldset';
-		});
-
-		topLevelFieldsets.forEach(fieldset => {
-			parseForm(fieldset, json);
-		});
-
-		const otherElements = Array.from(elt.children).filter(el => {
-			return el.tagName.toLowerCase() !== 'fieldset';
-		});
-
-		otherElements.forEach(element => {
-			if (json[element.name] == null) {
-				json[element.name] = [];
-			}
-			json[element.name].push(element.value);
-		});
-
-		return JSON.stringify(json);
+		return JSON.stringify(nestedParameters);
 	}
-})
+});
