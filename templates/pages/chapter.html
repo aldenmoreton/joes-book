@@ -1,6 +1,12 @@
 {% extends "authenticated.html" %}
+{%- import "components/get_form_values.html" as form_values -%}
 
 {% block title %}{{ chapter.title }}{% endblock %}
+
+{% block head %}
+	<script src="/public/json-enc.js"></script>
+	{% call form_values::get_form_values("pickinputs") %}
+{% endblock %}
 
 {% block content %}
 	{% call super() %}
@@ -21,7 +27,9 @@
 	{% else %}
 		<p>No Events in this Chapter</p>
 	{% endfor %}
-
+	<form id="submit-picks" hx-post="." hx-ext="json-enc" hx-vals="js:{picks: get_forms()}">
+		<button type="submit">Submit</button>
+	</form>
 {% endblock %}
 
 {% macro spread_group(spread, picks) %}
@@ -45,18 +53,20 @@
 {% endmacro %}
 
 {% macro user_input(input, pick) %}
-	<h3 class="text-lg font-semibold">{{input.title}}</h3>
-	{% if let Some(description) = input.description %}
-		<h4>{{description}}</h4>
-	{% endif %}
-	{% if input.points == 1 %}
-		<p>({{input.points}} Point)</p>
-	{% else %}
-		<p>({{input.points}} Points)</p>
-	{% endif %}
-	<textarea name="user-input" placeholder="Your Answer">
-		{% if let Some(pick) = pick %}
-			{{pick.choice}}
+	<form class="pickinputs">
+		<h3 class="text-lg font-semibold">{{input.title}}</h3>
+		{% if let Some(description) = input.description %}
+			<h4>{{description}}</h4>
 		{% endif %}
-	</textarea>
+		{% if input.points == 1 %}
+			<p>({{input.points}} Point)</p>
+		{% else %}
+			<p>({{input.points}} Points)</p>
+		{% endif %}
+		{% if let Some(pick) = pick %}
+		<input type="text" name="user-input" placeholder="Your Answer" value={{pick.choice}}>
+		{% else %}
+		<input type="text" name="user-input" placeholder="Your Answer">
+		{% endif %}
+	</form>
 {% endmacro %}
