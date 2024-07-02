@@ -67,7 +67,7 @@ pub async fn team_select(Json(team): Json<TeamSelect>) -> TeamSelect {
 
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all(deserialize = "kebab-case"))]
-struct SpreadSubmission {
+pub struct SpreadSubmission {
     home_id: String,
     away_id: String,
     home_spread: String,
@@ -186,7 +186,7 @@ pub async fn post(
 ) -> Result<Response<Body>, RespErr> {
     validate_name(&chapter_submission.chapter_name)?;
     let events = validate_events(chapter_submission.events)?;
-    println!("{events:?}");
+
     let pool = auth_session.backend.0;
 
     let mut transaction = pool.begin().await.map_err(AppError::from)?;

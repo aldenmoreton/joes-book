@@ -3,7 +3,6 @@
 {% block title %}{{ chapter.title }}{% endblock %}
 
 {% block head %}
-	<script src="/public/js/json-enc.js"></script>
 {% endblock %}
 
 {% block content %}
@@ -15,7 +14,7 @@
 	{% for (event, pick) in user_picks %}
 		{% match event.contents.0 %}
 		{% when EventContent::SpreadGroup with (spreads) %}
-			{% call spread_group(spreads, pick) %}
+			<div>{% call spread_group(spreads, pick) %}</div>
 		{% when EventContent::UserInput with (input) %}
 			{% call user_input(input, pick) %}
 		{% endmatch %}
@@ -32,8 +31,23 @@
 
 {% macro spread_group(spreads, picks) %}
 {% let size = spreads.len() %}
-
-{{ "{:#?}"|format(spreads) }}
+{% for spread in spreads %}
+{% let home_team = relevent_teams.get(spread.home_id).unwrap() %}
+{% let away_team = relevent_teams.get(spread.away_id).unwrap() %}
+<button>
+	<img src="{{home_team.1.clone().unwrap_or(String::new())}}" alt="">
+	<p>{{home_team.0}}</p>
+</button>
+<button>
+	<img src="{{away_team.1.clone().unwrap_or(String::new())}}" alt="">
+	<p>{{away_team.0}}</p>
+</button>
+<div>
+	{% for i in 1..=size %}
+		<button>{{i}}</button>
+	{% endfor %}
+</div>
+{% endfor %}
 {% endmacro %}
 
 {% macro user_input(input, pick) %}
