@@ -13,13 +13,13 @@ htmx.defineExtension('my-enc', {
 	encodeParameters: function(xhr, parameters, elt) {
 		xhr.overrideMimeType('text/json');
 		const nestedParameters = {};
-		console.log(elt.elements);
+
 		function parseForm(fieldLevel, obj) {
 			const elements = Array.from(fieldLevel.elements);
 
 			const inputs = elements.filter(currElement => {
 				const tagName = currElement.tagName.toLowerCase();
-				return tagName === 'select' || tagName === 'textarea' || tagName === 'input';
+				return tagName != 'fieldset';
 			});
 
 			const fieldsets = elements.filter(currElement => {
@@ -30,7 +30,7 @@ htmx.defineExtension('my-enc', {
 			inputs
 				.filter(currElement => !fieldsets.some(currFieldset => currFieldset.contains(currElement)))
 				.forEach(field => {
-					if (field.name) {
+					if (field.name && field.checked !== false) {
 						if (obj[field.name]) {
 							switch (typeof obj[field.name]) {
 								case "string":
@@ -42,8 +42,6 @@ htmx.defineExtension('my-enc', {
 							}
 						} else {
 							const insertMode = field.getAttribute("me-insert") || myenc.config.insertMode;
-							console.log(field);
-							console.log(insertMode);
 							switch (insertMode.toLowerCase()) {
 								case "last":
 									obj[field.name] = field.value;
@@ -58,7 +56,7 @@ htmx.defineExtension('my-enc', {
 
 			const nextLevelFieldsets = fieldsets.filter(currFieldset =>
 				!fieldsets.some(parentFieldset => currFieldset != parentFieldset && parentFieldset.contains(currFieldset))
-			)
+			);
 			nextLevelFieldsets.forEach(nestedFieldset => {
 				var nestedName = nestedFieldset.name;
 				if (!nestedName) {
@@ -94,7 +92,6 @@ htmx.defineExtension('my-enc', {
 		};
 
 		parseForm(elt, nestedParameters);
-		console.log(nestedParameters)
 		return JSON.stringify(nestedParameters);
 	}
 });
