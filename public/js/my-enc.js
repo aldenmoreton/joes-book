@@ -19,7 +19,7 @@ htmx.defineExtension('my-enc', {
 
 			const inputs = elements.filter(currElement => {
 				const tagName = currElement.tagName.toLowerCase();
-				return tagName != 'fieldset';
+				return tagName !== 'fieldset';
 			});
 
 			const fieldsets = elements.filter(currElement => {
@@ -30,7 +30,8 @@ htmx.defineExtension('my-enc', {
 			inputs
 				.filter(currElement => !fieldsets.some(currFieldset => currFieldset.contains(currElement)))
 				.forEach(field => {
-					if (field.name && field.checked !== false) {
+					const checkable = (field.tagName.toLowerCase() != 'checkbox' || field.checked !== false);
+					if (field.name && checkable) {
 						if (obj[field.name]) {
 							switch (typeof obj[field.name]) {
 								case "string":

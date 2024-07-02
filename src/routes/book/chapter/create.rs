@@ -13,7 +13,6 @@ use crate::{
     db::{
         event::{EventContent, EventType},
         spread::Spread,
-        team::Team,
         user_input::UserInput,
     },
     AppError,
@@ -47,12 +46,19 @@ pub async fn add_event(Query(ty): Query<AddEventType>) -> AddEvent {
     AddEvent { ty }
 }
 
+#[derive(serde::Deserialize)]
+pub struct TeamParams {
+    pub id: String,
+    pub name: String,
+    pub logo: Option<String>,
+}
+
 #[derive(askama::Template, serde::Deserialize)]
 #[template(path = "components/team_select.html", whitespace = "suppress")]
 pub struct TeamSelect {
     location: String,
     #[serde(flatten)]
-    team: Team,
+    team: TeamParams,
 }
 
 pub async fn team_select(Json(team): Json<TeamSelect>) -> TeamSelect {

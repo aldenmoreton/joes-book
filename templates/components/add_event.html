@@ -1,4 +1,4 @@
-<form class="eventinput">
+<fieldset form="submit-events" name="events" me-insert="array">
 	{% match ty %}
 	  {% when AddEventType::SpreadGroup %}
 		<div title="spread-container">
@@ -28,4 +28,4 @@
 			<input type="number" name="points" placeholder="Number of Points" value="1" required>
 		</div>
 	{% endmatch %}
-</form>
+</fieldset>
