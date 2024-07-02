@@ -66,16 +66,22 @@ pub async fn team_select(Json(team): Json<TeamSelect>) -> TeamSelect {
 }
 
 #[derive(Debug, serde::Deserialize)]
+#[serde(rename_all(deserialize = "kebab-case"))]
+struct SpreadSubmission {
+    home_id: String,
+    away_id: String,
+    home_spread: String,
+}
+
+#[derive(Debug, serde::Deserialize)]
 #[serde(
     tag = "type",
     rename_all(deserialize = "kebab-case"),
     rename_all_fields = "kebab-case"
 )]
 pub enum EventSubmissionType {
-    Spread {
-        home_id: String,
-        away_id: String,
-        home_spread: String,
+    SpreadGroup {
+        spreads: Vec<SpreadSubmission>,
     },
     UserInput {
         title: String,
@@ -116,32 +122,41 @@ fn validate_events(events: Vec<EventSubmissionType>) -> Result<Vec<EventContent>
     let events = events
         .into_iter()
         .map(|curr_event| match curr_event {
-            EventSubmissionType::Spread {
-                home_id,
-                away_id,
-                home_spread,
-            } => {
-                let home_id = home_id
-                    .parse()
-                    .map_err(|_| RespErr::new(StatusCode::BAD_REQUEST))?;
-                let away_id = away_id
-                    .parse()
-                    .map_err(|_| RespErr::new(StatusCode::BAD_REQUEST))?;
+            EventSubmissionType::SpreadGroup { spreads } => {
+                let spreads = spreads
+                    .into_iter()
+                    .map(
+                        |SpreadSubmission {
+                             home_id,
+                             away_id,
+                             home_spread,
+                         }| {
+                            let home_id = home_id
+                                .parse()
+                                .map_err(|_| RespErr::new(StatusCode::BAD_REQUEST))?;
+                            let away_id = away_id
+                                .parse()
+                                .map_err(|_| RespErr::new(StatusCode::BAD_REQUEST))?;
 
-                let home_spread = match home_spread.parse() {
-                    Ok(a) if a % 0.5 == 0.0 => a,
-                    _ => {
-                        return Err(RespErr::new(StatusCode::BAD_REQUEST)
-                            .user_msg("Could not parse amount"))
-                    }
-                };
+                            let home_spread = match home_spread.parse() {
+                                Ok(a) if a % 0.5 == 0.0 => a,
+                                _ => {
+                                    return Err(RespErr::new(StatusCode::BAD_REQUEST)
+                                        .user_msg("Could not parse amount"))
+                                }
+                            };
 
-                Ok(EventContent::SpreadGroup(Spread {
-                    home_id,
-                    away_id,
-                    home_spread,
-                    notes: None,
-                }))
+                            Ok(Spread {
+                                home_id,
+                                away_id,
+                                home_spread,
+                                notes: None,
+                            })
+                        },
+                    )
+                    .collect::<Result<Vec<Spread>, RespErr>>()?;
+
+                Ok(EventContent::SpreadGroup(spreads))
             }
             EventSubmissionType::UserInput {
                 title,
@@ -171,7 +186,7 @@ pub async fn post(
 ) -> Result<Response<Body>, RespErr> {
     validate_name(&chapter_submission.chapter_name)?;
     let events = validate_events(chapter_submission.events)?;
-
+    println!("{events:?}");
     let pool = auth_session.backend.0;
 
     let mut transaction = pool.begin().await.map_err(AppError::from)?;

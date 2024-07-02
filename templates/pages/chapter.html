@@ -1,11 +1,9 @@
 {% extends "authenticated.html" %}
-{%- import "components/get_form_values.html" as form_values -%}
 
 {% block title %}{{ chapter.title }}{% endblock %}
 
 {% block head %}
 	<script src="/public/js/json-enc.js"></script>
-	{% call form_values::get_form_values("pickinputs") %}
 {% endblock %}
 
 {% block content %}
@@ -32,24 +30,10 @@
 	</form>
 {% endblock %}
 
-{% macro spread_group(spread, picks) %}
-{% let home_team = relevent_teams.get(spread.home_id).unwrap() %}
-{% let away_team = relevent_teams.get(spread.away_id).unwrap() %}
-<div class="columns-2">
-	<div>
-		<img class="object-center" src="{{home_team.1.as_ref().unwrap()}}" alt="{{home_team.0}} Image">
-		<figcaption>{{home_team.0}}<br>{{ "{:+}"|format(spread.home_spread)}}</figcaption>
-	</div>
-	<div>
-		<img class="object-center" src="{{away_team.1.as_ref().unwrap()}}" alt="{{away_team.0}} Image">
-		<figcaption>{{away_team.0}}<br>{{ "{:+}"|format(-1.0 * spread.home_spread)}}</figcaption>
-	</div>
-</div>
-{% if let Some(notes) = spread.notes %}
-	<p>{{notes}}</p>
-{% endif %}
+{% macro spread_group(spreads, picks) %}
+{% let size = spreads.len() %}
 
-<p>Picks: {{ "{:?}"|format(picks) }}</p>
+{{ "{:#?}"|format(spreads) }}
 {% endmacro %}
 
 {% macro user_input(input, pick) %}

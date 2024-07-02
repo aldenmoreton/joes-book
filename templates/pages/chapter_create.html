@@ -1,19 +1,19 @@
 {% extends "authenticated.html" %}
-{%- import "components/get_form_values.html" as form_values -%}
 
 {% block title %}Create Chapter{% endblock %}
 
 {% block head %}
 	<script src="/public/js/my-enc.js"></script>
 	<script src="/public/js/json-enc.js"></script>
-	{% call form_values::get_form_values("eventinput") %}
 {% endblock %}
 
 {% block content%}
 	{% call super() %}
 	<input type="text" name="chapter-name" placeholder="Chapter Name" form="submit-events" required>
 	<div id="event-spaces">
-		<div id="spread-group"></div>
+		<fieldset id="spread-group" form="submit-events" name="events" me-insert="array">
+			<input type="hidden" name="type" value="spread-group">
+		</fieldset>
 		<div id="user-inputs"></div>
 	</div>
 
