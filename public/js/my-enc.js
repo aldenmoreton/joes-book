@@ -1,8 +1,94 @@
 const myenc = {
 	config: {
 		insertMode: "last"
+	},
+	parseForm: (fieldLevel) => {
+		console.log(fieldLevel);
+		const nestedParameters = {};
+
+		parseLevel(fieldLevel, nestedParameters);
+		return nestedParameters;
 	}
 };
+
+function parseLevel(fieldLevel, obj) {
+	const elements = Array.from(fieldLevel.elements);
+
+	const inputs = elements.filter(currElement => {
+		const tagName = currElement.tagName.toLowerCase();
+		return tagName !== 'fieldset';
+	});
+
+	const fieldsets = elements.filter(currElement => {
+		const tagName = currElement.tagName.toLowerCase();
+		return tagName === 'fieldset';
+	});
+
+	inputs
+		.filter(currElement => !fieldsets.some(currFieldset => currFieldset.contains(currElement)))
+		.forEach(field => {
+			const checkable = ((field.type.toLowerCase() != 'checkbox' && field.type.toLowerCase() != 'radio') || field.checked !== false);
+			if (field.name && checkable) {
+				let fieldName = field.name.includes('[') ? field.name.split('[')[0] : field.name;
+				if (obj[fieldName]) {
+					switch (typeof obj[fieldName]) {
+						case "string":
+							obj[fieldName] = field.value;
+							break;
+						case "object":
+							obj[fieldName].push(field.value);
+							break;
+					}
+				} else {
+					const insertMode = field.getAttribute("me-insert") || myenc.config.insertMode;
+					switch (insertMode.toLowerCase()) {
+						case "last":
+							obj[fieldName] = field.value;
+							break;
+						case "array":
+							obj[fieldName] = [field.value];
+							break;
+					}
+				}
+			}
+		});
+
+	const nextLevelFieldsets = fieldsets.filter(currFieldset =>
+		!fieldsets.some(parentFieldset => currFieldset != parentFieldset && parentFieldset.contains(currFieldset))
+	);
+	nextLevelFieldsets.forEach(nestedFieldset => {
+		var nestedName = nestedFieldset.name;
+		if (!nestedName) {
+			nestedName = "fieldset"
+		}
+
+		if (obj[nestedName]) {
+			switch (typeof obj[nestedName]) {
+				case "string":
+					obj[nestedName] = {};
+					parseLevel(nestedFieldset, obj[nestedName]);
+					break;
+				case "object":
+					const nestedObj = {};
+					obj[nestedName].push(nestedObj);
+					parseLevel(nestedFieldset, nestedObj);
+			}
+		} else {
+			const insertMode = nestedFieldset.getAttribute("me-insert") || myenc.config.insertMode;
+			switch (insertMode.toLowerCase()) {
+				case "last":
+					obj[nestedName] = {};
+					parseLevel(nestedFieldset, obj[nestedName]);
+					break;
+				case "array":
+					const nestedObj = {};
+					obj[nestedName] = [nestedObj];
+					parseLevel(nestedFieldset, nestedObj);
+					break;
+			}
+		}
+	});
+}
 
 htmx.defineExtension('my-enc', {
 	onEvent: function(name, evt) {
@@ -12,87 +98,7 @@ htmx.defineExtension('my-enc', {
 	},
 	encodeParameters: function(xhr, parameters, elt) {
 		xhr.overrideMimeType('text/json');
-		const nestedParameters = {};
 
-		function parseForm(fieldLevel, obj) {
-			const elements = Array.from(fieldLevel.elements);
-
-			const inputs = elements.filter(currElement => {
-				const tagName = currElement.tagName.toLowerCase();
-				return tagName !== 'fieldset';
-			});
-
-			const fieldsets = elements.filter(currElement => {
-				const tagName = currElement.tagName.toLowerCase();
-				return tagName === 'fieldset';
-			});
-
-			inputs
-				.filter(currElement => !fieldsets.some(currFieldset => currFieldset.contains(currElement)))
-				.forEach(field => {
-					const checkable = (field.tagName.toLowerCase() != 'checkbox' || field.checked !== false);
-					if (field.name && checkable) {
-						if (obj[field.name]) {
-							switch (typeof obj[field.name]) {
-								case "string":
-									obj[field.name] = field.value;
-									break;
-								case "object":
-									obj[field.name].push(field.value);
-									break;
-							}
-						} else {
-							const insertMode = field.getAttribute("me-insert") || myenc.config.insertMode;
-							switch (insertMode.toLowerCase()) {
-								case "last":
-									obj[field.name] = field.value;
-									break;
-								case "array":
-									obj[field.name] = [field.value];
-									break;
-							}
-						}
-					}
-				});
-
-			const nextLevelFieldsets = fieldsets.filter(currFieldset =>
-				!fieldsets.some(parentFieldset => currFieldset != parentFieldset && parentFieldset.contains(currFieldset))
-			);
-			nextLevelFieldsets.forEach(nestedFieldset => {
-				var nestedName = nestedFieldset.name;
-				if (!nestedName) {
-					nestedName = "fieldset"
-				}
-
-				if (obj[nestedName]) {
-					switch (typeof obj[nestedName]) {
-						case "string":
-							obj[nestedName] = {};
-							parseForm(nestedFieldset, obj[nestedName]);
-							break;
-						case "object":
-							const nestedObj = {};
-							obj[nestedName].push(nestedObj);
-							parseForm(nestedFieldset, nestedObj);
-					}
-				} else {
-					const insertMode = nestedFieldset.getAttribute("me-insert") || myenc.config.insertMode;
-					switch (insertMode.toLowerCase()) {
-						case "last":
-							obj[nestedName] = {};
-							parseForm(nestedFieldset, obj[nestedName]);
-							break;
-						case "array":
-							const nestedObj = {};
-							obj[nestedName] = [nestedObj];
-							parseForm(nestedFieldset, nestedObj);
-							break;
-					}
-				}
-			});
-		};
-
-		parseForm(elt, nestedParameters);
-		return JSON.stringify(nestedParameters);
+		return JSON.stringify(myenc.parseForm(elt));
 	}
 });
