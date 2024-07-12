@@ -33,6 +33,7 @@ pub async fn get(auth_session: AuthSession) -> Result<CreateChapter, RespErr> {
 #[serde(tag = "type", rename_all(deserialize = "kebab-case"))]
 pub enum AddEventType {
     SpreadGroup,
+    SpreadGroupAppend,
     UserInput,
 }
 

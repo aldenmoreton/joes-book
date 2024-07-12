@@ -46,3 +46,15 @@ pub async fn handler(
         relevent_teams,
     })
 }
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "kebab-case")]
+enum PickSubmission {
+    SpreadGroup {
+        num_points: String,
+        selection: String,
+    },
+    UserInput {},
+}
+
+pub async fn submit() -> () {}

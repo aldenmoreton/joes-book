@@ -1,22 +1,12 @@
 {% match ty %}
 	{% when AddEventType::SpreadGroup %}
-	<fieldset form="submit-events" name="spreads" me-insert="array">
-		<div title="team-1" hx-target="this">
-			<p>Spread Team 1 (Home)</p>
-			<input type="search" name="name" placeholder="Team 1" autocomplete="off" hx-get="/team-search" hx-trigger="input changed delay:500ms, search" hx-vals='{"location":"home-id"}' hx-target="next ul">
-			<ul></ul>
-			<input form="submit-events" type="text" name="team-1-validate" style="opacity: 0; width: 0;" oninvalid="this.setCustomValidity('Missing Spread Team 1')" required>
-		</div>
-		<div title="team-2" hx-target="this">
-			<p>Spread Team 2 (Away)</p>
-			<input type="search" name="name" placeholder="Team 2" autocomplete="off" hx-get="/team-search" hx-trigger="input changed delay:500ms, search" hx-vals='{"location": "away-id"}' hx-target="next ul">
-			<ul></ul>
-			<input form="submit-events" type="text" name="team-2-validate" style="opacity: 0; width: 0;" oninvalid="this.setCustomValidity('Missing Spread Team 2')" required>
-		</div>
-		<div title="spread-ammount">
-			<input type="number" name="home-spread" placeholder="Home Spread Amount" form="submit-events" step="0.5" required>
-		</div>
+	<fieldset form="submit-events" name="events" me-insert="array">
+		<input type="hidden" name="type" value="spread-group">
+		{% call spread_group_spread() %}
 	</fieldset>
+	<button hx-get="add?type=spread-group-append" hx-target="previous" hx-swap="beforeend">Add Spread</button>
+	{% when AddEventType::SpreadGroupAppend %}
+		{% call spread_group_spread() %}
 	{% when AddEventType::UserInput %}
 	<fieldset form="submit-events" name="events" me-insert="array">
 		<h3>User Input</h3>
@@ -26,3 +16,23 @@
 		<input type="number" name="points" placeholder="Number of Points" value="1" required>
 	</fieldset>
 {% endmatch %}
+
+{% macro spread_group_spread() %}
+<fieldset name="spreads" me-insert="array">
+	<div title="team-1" hx-target="this">
+		<p>Spread Team 1 (Home)</p>
+		<input type="search" name="name" placeholder="Team 1" autocomplete="off" hx-get="/team-search" hx-trigger="input changed delay:500ms, search" hx-vals='{"location":"home-id"}' hx-target="next ul">
+		<ul></ul>
+		<input form="submit-events" type="text" name="team-1-validate" style="opacity: 0; width: 0;" oninvalid="this.setCustomValidity('Missing Spread Team 1')" required>
+	</div>
+	<div title="team-2" hx-target="this">
+		<p>Spread Team 2 (Away)</p>
+		<input type="search" name="name" placeholder="Team 2" autocomplete="off" hx-get="/team-search" hx-trigger="input changed delay:500ms, search" hx-vals='{"location": "away-id"}' hx-target="next ul">
+		<ul></ul>
+		<input form="submit-events" type="text" name="team-2-validate" style="opacity: 0; width: 0;" oninvalid="this.setCustomValidity('Missing Spread Team 2')" required>
+	</div>
+	<div title="spread-ammount">
+		<input type="number" name="home-spread" placeholder="Home Spread Amount" form="submit-events" step="0.5" required>
+	</div>
+</fieldset>
+{% endmacro %}

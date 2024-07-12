@@ -5,20 +5,18 @@
 {% block head %}
 	<script src="/public/js/my-enc.js"></script>
 	<script src="/public/js/json-enc.js"></script>
+	<script src="https://unpkg.com/htmx.org@1.9.12/dist/ext/debug.js"></script>
 {% endblock %}
 
 {% block content%}
 	{% call super() %}
 	<input type="text" name="chapter-name" placeholder="Chapter Name" form="submit-events" required>
 	<div id="event-spaces">
-		<fieldset id="spread-group" form="submit-events" name="events" me-insert="array">
-			<input type="hidden" name="type" value="spread-group">
-		</fieldset>
-		<div id="user-inputs"></div>
+
 	</div>
 
-	<button hx-get="add?type=spread-group" hx-target="#spread-group" hx-swap="beforeend">Add Spread</button>
-	<button hx-get="add?type=user-input" hx-target="#user-inputs" hx-swap="beforeend">Add User Input</button>
+	<button hx-get="add?type=spread-group" hx-target="#event-spaces" hx-swap="beforeend" hx-on::xhr:loadend="this.remove()">Add Spread Group</button>
+	<button hx-get="add?type=user-input" hx-target="#event-spaces" hx-swap="beforeend">Add User Input</button>
 
 	<form id="submit-events" hx-post="." hx-ext="my-enc">
 		<button type="submit">Submit</button>
