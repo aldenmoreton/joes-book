@@ -11,13 +11,14 @@
 	{% if is_admin %}
 		<a href="admin/">Go to Admin Page</a>
 	{% endif %}
-	<form id="submit-picks" hx-post="." hx-ext="my-enc" hx-on::before-request="console.log(myenc.parseForm(this))">
+	<div class="flex flex-col items-center justify-center">
+	<form id="submit-picks" hx-post="." hx-ext="my-enc" hx-on::before-request="console.log(myenc.parseForm(this))" class="items-center self-center justify-center">
 		{% for (event, pick) in user_picks %}
-			{% match event.contents.0 %}
-				{% when EventContent::SpreadGroup with (spreads) %}
-					<fieldset name="events" me-insert="array">
-						<input type="hidden" name="type" value="spread-group">
-						<input type="hidden" name="event-id" value="{{event.id}}">
+			<fieldset name="events" me-insert="array" class="bg-white border border-gray-300 rounded-lg shadow-md">
+				<input type="hidden" name="type" value="spread-group">
+				<input type="hidden" name="event-id" value="{{event.id}}">
+				{% match event.contents.0 %}
+					{% when EventContent::SpreadGroup with (spreads) %}
 						{% let event_index = loop.index %}
 						{% match pick %}
 						{% when Some with (pick_pick) %}
@@ -28,14 +29,10 @@
 							{% endmatch %}
 						{% else %}
 						{% endmatch %}
-					</fieldset>
-				{% when EventContent::UserInput with (input) %}
-					<fieldset name="events" me-insert="array">
-						<input type="hidden" name="type" value="user-input">
-						<input type="hidden" name="event-id" value="{{event.id}}">
+					{% when EventContent::UserInput with (input) %}
 						{% call user_input(input, pick) %}
-					</fieldset>
-			{% endmatch %}
+				{% endmatch %}
+			</fieldset>
 			{% if !loop.last %}
 				<hr>
 			{% endif %}
@@ -45,46 +42,57 @@
 
 		<button type="submit">Submit</button>
 	</form>
+	</div>
 {% endblock %}
 
 {% macro spread_group(spreads, picks, event_number) %}
 {% let size = spreads.len() %}
-
+<p>Spread Group</p>
 {% for (spread, pick) in spreads.iter().zip(picks.iter()) %}
 	{% let home_team = relevent_teams.get(spread.home_id).unwrap() %}
 	{% let away_team = relevent_teams.get(spread.away_id).unwrap() %}
+
 	<fieldset name="spreads" me-insert="array">
-		<input type="radio" name="selection[{{event_number}}-{{loop.index}}]" class="peer" value="home" id="{{event_number}}-{{loop.index}}-home" required
+		<div class="grid grid-flow-col grid-cols-2 gap-4 p-5">
+		<div class="col-span-1">
+		<input type="radio" name="selection[{{event_number}}-{{loop.index}}]" class="opacity-0 peer" value="home" id="{{event_number}}-{{loop.index}}-home" required
 		{%+ if matches!(pick, serde_json::Value::String(s) if s == "home") %}
 			checked
 		{% endif +%}
 		>
-		<label for="{{event_number}}-{{loop.index}}-home" class="border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100">
+		<label for="{{event_number}}-{{loop.index}}-home" class="inline-grid w-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100">
 			<div>
 				<img src="{{home_team.1.clone().unwrap_or(String::new())}}" alt="">
-				<p>{{away_team.0}}</p>
+				<p>{{home_team.0}}</p>
 			</div>
 		</label>
+		</div>
 
-		<input type="radio" name="selection[{{event_number}}-{{loop.index}}]" class="peer" value="away" id="{{event_number}}-{{loop.index}}-away" required
+		<div class="col-span-1">
+		<input type="radio" name="selection[{{event_number}}-{{loop.index}}]" class="hidden peer" value="away" id="{{event_number}}-{{loop.index}}-away" required
 		{%+ if matches!(pick, serde_json::Value::String(s) if s == "away") %}
 			checked
 		{% endif +%}
 		>
-		<label for="{{event_number}}-{{loop.index}}-away" class="border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100">
+		<label for="{{event_number}}-{{loop.index}}-away" class="inline-grid w-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100">
 			<div>
 				<img src="{{away_team.1.clone().unwrap_or(String::new())}}" alt="">
 				<p>{{away_team.0}}</p>
 			</div>
 		</label>
-
-		{% let spread_index = loop.index %}
-		<div>
-			{% for i in 1..=size %}
-				<input type="radio" name="num-points[{{event_number}}-{{spread_index}}]" value="{{i}}" id="{{event_number}}-{{spread_index}}-{{i}}" class="border border-black" required>
-				<label for="{{event_number}}-{{spread_index}}-{{i}}">{{i}}</label>
-			{% endfor %}
 		</div>
+		</div>
+		{% let spread_index = loop.index %}
+		<ul>
+			{% for i in 1..=size %}
+				<li class="inline-flex items-center p-1">
+				<input type="radio" name="num-points[{{event_number}}-{{spread_index}}]" value="{{i}}" id="{{event_number}}-{{spread_index}}-{{i}}" class="hidden peer" required>
+				<label for="{{event_number}}-{{spread_index}}-{{i}}" class="inline-grid w-5 h-5 p-5 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100">
+					{{i}}
+				</label>
+				</li>
+			{% endfor %}
+		</ul>
 	</fieldset>
 {% endfor %}
 
@@ -97,20 +105,24 @@
 	<h4>{{description}}</h4>
 {% endif %}
 
-{% if input.points == 1 %}
-	<p>({{input.points}} Point)</p>
-{% else %}
-	<p>({{input.points}} Points)</p>
-{% endif %}
-
 {% if let Some(pick) = pick %}
 	{% match pick.choice %}
 		{% when serde_json::Value::String with (input) %}
-		<input type="text" name="user-input" placeholder="Your Answer" value="{{input}}" required>
+		<label for="first_name" class="block mb-2 text-sm font-medium">
+			Your Answer
+			<input type="text" name="user-input" placeholder="Make Pick" value="{{input}}" required class="block p-1 ml-1 mr-1 text-sm text-center text-gray-900 border rounded-lg focus:ring-blue-500 focus:border-blue-500">
+		</label>
 		{% else %}
 	{% endmatch %}
 {% else %}
-	<input type="text" name="user-input" placeholder="Your Answer" required>
+	<label for="first_name" class="block mb-2 text-sm font-medium">
+		Your Answer
+		<input type="text" name="user-input" placeholder="Make Pick" required class="block p-1 ml-1 mr-1 text-sm text-center text-gray-900 border rounded-lg focus:ring-blue-500 focus:border-blue-500">
+	</label>
 {% endif %}
+
+{%+ if input.points != 1 %}
+	<p>({{input.points}} Points)</p>
+{% endif +%}
 
 {% endmacro %}

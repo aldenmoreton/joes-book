@@ -28,7 +28,8 @@ CREATE TABLE IF NOT EXISTS chapters (
 	"id"     			SERIAL NOT NULL PRIMARY KEY,
 	"title"       		TEXT NOT NULL,
 	"book_id"			SERIAL NOT NULL REFERENCES books(id),
-	"is_open"			BOOLEAN NOT NULL,
+	"is_open"			BOOLEAN NOT NULL DEFAULT FALSE,
+	"is_visible"	BOOLEAN NOT NULL DEFAULT FALSE,
 	"created_at" 		TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	"notes" 			TEXT
 );
@@ -58,7 +59,7 @@ CREATE TABLE IF NOT EXISTS picks (
 	"chapter_id"	SERIAL NOT NULL REFERENCES chapters(id),
 	"event_id"		SERIAL NOT NULL REFERENCES events(id),
 	"user_id"		SERIAL NOT NULL REFERENCES users(id),
-	"choice"		TEXT NOT NULL,
-	"wager"			INT4 NOT NULL,
+	"choice"		JSONB NOT NULL,
+	"wager"			JSONB NOT NULL,
 	"correct"		BOOLEAN
 );

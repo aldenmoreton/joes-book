@@ -25,4 +25,51 @@
 		<button hx-post="">Show</button>
 	{% endif %}
 
+	<form>
+	{% for event in events %}
+		<fieldset name="events" me-insert="array">
+			<input type="hidden" name="type" value="spread-group">
+			<input type="hidden" name="event-id" value="{{event.id}}">
+			{% let event_index = loop.index %}
+			{% match event.contents.0 %}
+			{% when EventContent::SpreadGroup with (spreads) %}
+				{% call spread_group(spreads, event_index) %}
+			{% when EventContent::UserInput with (question) %}
+				{% call user_input(question, event_index) %}
+			{% endmatch %}
+		</fieldset>
+	{% endfor %}
+		<button type="submit">Submit</button>
+	</form>
 {% endblock %}
+
+{% macro spread_group(spreads, event_number) %}
+{% let size = spreads.len() %}
+
+{% for spread in spreads %}
+	{% let home_team = relevent_teams.get(spread.home_id).unwrap() %}
+	{% let away_team = relevent_teams.get(spread.away_id).unwrap() %}
+	<fieldset name="spreads" me-insert="array">
+		<input type="radio" name="selection[{{event_number}}-{{loop.index}}]" class="peer" value="home" id="{{event_number}}-{{loop.index}}-home" required>
+		<label for="{{event_number}}-{{loop.index}}-home" class="border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100">
+			<div>
+				<img src="{{home_team.1.clone().unwrap_or(String::new())}}" alt="">
+				<p>{{home_team.0}}</p>
+			</div>
+		</label>
+
+		<input type="radio" name="selection[{{event_number}}-{{loop.index}}]" class="peer" value="away" id="{{event_number}}-{{loop.index}}-away" required>
+		<label for="{{event_number}}-{{loop.index}}-away" class="border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100">
+			<div>
+				<img src="{{away_team.1.clone().unwrap_or(String::new())}}" alt="">
+				<p>{{away_team.0}}</p>
+			</div>
+		</label>
+	</fieldset>
+{% endfor %}
+
+{% endmacro %}
+
+{% macro user_input(question, event_index) %}
+<p>{{"{:?}"|format(question)}}</p>
+{% endmacro %}
