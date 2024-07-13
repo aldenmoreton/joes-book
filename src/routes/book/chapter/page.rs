@@ -11,7 +11,7 @@ use crate::{
     AppError,
 };
 use askama::Template;
-use axum::Extension;
+use axum::{Extension, Json};
 use axum_ctx::RespErr;
 
 #[derive(Template)]
@@ -48,13 +48,28 @@ pub async fn handler(
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "kebab-case")]
-enum PickSubmission {
+#[serde(
+    rename_all = "kebab-case",
+    rename_all_fields = "kebab-case",
+    tag = "type"
+)]
+pub enum SubmissionEvent {
     SpreadGroup {
         num_points: String,
         selection: String,
+        event_id: String,
     },
-    UserInput {},
+    UserInput {
+        user_input: String,
+        event_id: String,
+    },
 }
 
-pub async fn submit() -> () {}
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct PickSubmission {
+    events: Vec<SubmissionEvent>,
+}
+
+pub async fn submit(Json(picks): Json<PickSubmission>) {
+    println!("{picks:?}")
+}
