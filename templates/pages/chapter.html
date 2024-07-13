@@ -14,11 +14,11 @@
 	<div class="flex flex-col items-center justify-center">
 	<form id="submit-picks" hx-post="." hx-ext="my-enc" hx-on::before-request="console.log(myenc.parseForm(this))" class="items-center self-center justify-center">
 		{% for (event, pick) in user_picks %}
-			<fieldset name="events" me-insert="array" class="bg-white border border-gray-300 rounded-lg shadow-md">
-				<input type="hidden" name="type" value="spread-group">
+			<fieldset name="events" me-insert="array" class="self-center justify-center m-3 bg-white border border-gray-300 rounded-lg shadow-md w-fit">
 				<input type="hidden" name="event-id" value="{{event.id}}">
 				{% match event.contents.0 %}
 					{% when EventContent::SpreadGroup with (spreads) %}
+						<input type="hidden" name="type" value="spread-group">
 						{% let event_index = loop.index %}
 						{% match pick %}
 						{% when Some with (pick_pick) %}
@@ -28,14 +28,14 @@
 							{% else %}
 							{% endmatch %}
 						{% else %}
+							{% let pick_pick_pick = self::empty_picks(spreads.len()) %}
+							{% call spread_group(spreads, pick_pick_pick, event_index) %}
 						{% endmatch %}
 					{% when EventContent::UserInput with (input) %}
+						<input type="hidden" name="type" value="user-input">
 						{% call user_input(input, pick) %}
 				{% endmatch %}
 			</fieldset>
-			{% if !loop.last %}
-				<hr>
-			{% endif %}
 		{% else %}
 			<p>No Events in this Chapter</p>
 		{% endfor %}
@@ -55,7 +55,7 @@
 	<fieldset name="spreads" me-insert="array">
 		<div class="grid grid-flow-col grid-cols-2 gap-4 p-5">
 		<div class="col-span-1">
-		<input type="radio" name="selection[{{event_number}}-{{loop.index}}]" class="opacity-0 peer" value="home" id="{{event_number}}-{{loop.index}}-home" required
+		<input type="radio" name="selection[{{event_number}}-{{loop.index}}]" class="absolute opacity-0 peer" value="home" id="{{event_number}}-{{loop.index}}-home" required
 		{%+ if matches!(pick, serde_json::Value::String(s) if s == "home") %}
 			checked
 		{% endif +%}
@@ -69,7 +69,7 @@
 		</div>
 
 		<div class="col-span-1">
-		<input type="radio" name="selection[{{event_number}}-{{loop.index}}]" class="hidden peer" value="away" id="{{event_number}}-{{loop.index}}-away" required
+		<input type="radio" name="selection[{{event_number}}-{{loop.index}}]" class="absolute opacity-0 peer" value="away" id="{{event_number}}-{{loop.index}}-away" required
 		{%+ if matches!(pick, serde_json::Value::String(s) if s == "away") %}
 			checked
 		{% endif +%}
@@ -86,7 +86,7 @@
 		<ul>
 			{% for i in 1..=size %}
 				<li class="inline-flex items-center p-1">
-				<input type="radio" name="num-points[{{event_number}}-{{spread_index}}]" value="{{i}}" id="{{event_number}}-{{spread_index}}-{{i}}" class="hidden peer" required>
+				<input type="radio" name="num-points[{{event_number}}-{{spread_index}}]" value="{{i}}" id="{{event_number}}-{{spread_index}}-{{i}}" class="absolute opacity-0 peer" required>
 				<label for="{{event_number}}-{{spread_index}}-{{i}}" class="inline-grid w-5 h-5 p-5 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100">
 					{{i}}
 				</label>

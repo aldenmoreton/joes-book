@@ -63,3 +63,6 @@ CREATE TABLE IF NOT EXISTS picks (
 	"wager"			JSONB NOT NULL,
 	"correct"		BOOLEAN
 );
+
+ALTER TABLE IF EXISTS picks
+ADD UNIQUE (book_id, chapter_id, event_id, user_id);

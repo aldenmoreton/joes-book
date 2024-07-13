@@ -27,6 +27,10 @@ pub struct ChapterPage {
     relevent_teams: HashMap<i32, (String, Option<String>)>,
 }
 
+fn empty_picks(len: usize) -> Vec<serde_json::Value> {
+    vec![serde_json::Value::Null; len]
+}
+
 pub async fn handler(
     auth_session: AuthSession,
     Extension(book_subscription): Extension<BookSubscription>,
@@ -40,7 +44,7 @@ pub async fn handler(
 
     let user_picks = user_picks.await.map_err(AppError::from)?;
     let relevent_teams = relevent_teams.await.map_err(AppError::from)?;
-
+    println!("{user_picks:?}");
     Ok(ChapterPage {
         username: user.username,
         chapter,
