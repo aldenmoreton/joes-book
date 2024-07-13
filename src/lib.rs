@@ -102,6 +102,12 @@ pub fn router(auth_layer: AuthManagerLayer<BackendPgDB, PostgresStore>) -> Route
 
     let book_routes = Router::new()
         .nest("/:book_id/chapter/", chapter_routes)
+        .nest(
+            "/:book_id/admin/",
+            Router::new()
+                .route("/", get(book::admin::handler))
+                .route_layer(middleware::from_fn(book::mw::require_admin)),
+        )
         .route("/:book_id/", get(book::page::handler))
         .route_layer(middleware::from_fn(book::mw::require_member))
         .route(

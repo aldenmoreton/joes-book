@@ -1,8 +1,28 @@
 {% extends "authenticated.html" %}
 
-{% block title %}{{ meta.title }} - Admin{% endblock %}
+{% block title %}{{ chapter.title }} - Admin{% endblock %}
+
+{% block head %}
+<script defer src="/public/js/alpine.js"></script>
+{% endblock %}
 
 {% block content%}
 	{% call super() %}
 	<p>Chapter Admin Page</p>
+	{% if chapter.is_open %}
+		<p>Chapter Status: Open</p>
+		<button hx-post="">Close</button>
+	{% else %}
+		<p>Chapter Status: Closed</p>
+		<button hx-post="">Open</button>
+	{% endif %}
+
+	{% if chapter.is_visible %}
+		<p>Chapter Visibility: Visible</p>
+		<button hx-post="">Hide</button>
+	{% else %}
+		<p>Chapter Visibility: Hidden</p>
+		<button hx-post="">Show</button>
+	{% endif %}
+
 {% endblock %}

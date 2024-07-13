@@ -6,6 +6,7 @@
 	{% call super() %}
 	{% if book_subscription.role == BookRole::Admin %}
 		<a href="chapter/create/">Create New Chapter</a>
+		<a href="admin/">Admin</a>
 	{% endif %}
 	{% include "components/chapter_list.html" %}
 {% endblock %}
