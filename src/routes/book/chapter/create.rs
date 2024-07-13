@@ -204,17 +204,16 @@ pub async fn post(
     .await
     .map_err(AppError::from)?;
 
-    let (book_ids, chapter_ids, event_types, event_contents): (Vec<_>, Vec<_>, Vec<_>, Vec<_>) =
-        events
-            .into_iter()
-            .map(|event| {
-                let event_type = match event {
-                    EventContent::SpreadGroup(_) => EventType::SpreadGroup,
-                    EventContent::UserInput(_) => EventType::UserInput,
-                };
-                (book_id, record.id, event_type, serde_json::to_value(event))
-            })
-            .multiunzip();
+    let (event_types, event_contents): (Vec<_>, Vec<_>) = events
+        .into_iter()
+        .map(|event| {
+            let event_type = match event {
+                EventContent::SpreadGroup(_) => EventType::SpreadGroup,
+                EventContent::UserInput(_) => EventType::UserInput,
+            };
+            (event_type, serde_json::to_value(event))
+        })
+        .unzip();
 
     let event_contents = event_contents
         .into_iter()
@@ -224,15 +223,19 @@ pub async fn post(
         .log_msg("Failed to serialize user inputs to json string")?;
 
     sqlx::query!(
-        r#"   INSERT INTO events (book_id, chapter_id, event_type, contents)
-            SELECT book_id, chapter_id, event_type AS "event_type: EventType", contents
-            FROM UNNEST($1::INT[], $2::INT[], $3::event_types[], $4::jsonb[]) AS a(book_id, chapter_id, event_type, contents)
+        r#"
+        INSERT INTO events (book_id, chapter_id, event_type, contents)
+        SELECT $1 AS book_id, $2 AS chapter_id, event_type AS "event_type: EventType", contents
+        FROM UNNEST($3::event_types[], $4::jsonb[]) AS a(event_type, contents)
         "#,
-        &book_ids,
-        &chapter_ids,
+        book_id,
+        record.id,
         event_types as _,
         &event_contents
-    ).execute(&mut * transaction).await.map_err(AppError::from)?;
+    )
+    .execute(&mut *transaction)
+    .await
+    .map_err(AppError::from)?;
 
     transaction.commit().await.map_err(AppError::from)?;
 

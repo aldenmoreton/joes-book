@@ -64,8 +64,8 @@ impl From<AppError> for RespErr {
                 .user_msg(value.to_string())
                 .log_msg(value.to_string()),
             AppError::Sqlx(_) => RespErr::new(StatusCode::INTERNAL_SERVER_ERROR)
-                .log_msg(value.to_string())
-                .user_msg("Database Error"),
+                .user_msg("Database Error")
+                .log_msg(value.to_string()),
         }
     }
 }

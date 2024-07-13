@@ -15,14 +15,14 @@
 		{% for (event, pick) in user_picks %}
 			{% match event.contents.0 %}
 				{% when EventContent::SpreadGroup with (spreads) %}
-					<fieldset name="events" form="submit-picks" me-insert="array">
+					<fieldset name="events" me-insert="array">
 						<input type="hidden" name="type" value="spread-group">
 						<input type="hidden" name="event-id" value="{{event.id}}">
 						{% let event_index = loop.index %}
 						{% call spread_group(spreads, pick, event_index) %}
 					</fieldset>
 				{% when EventContent::UserInput with (input) %}
-					<fieldset name="events" form="submit-picks" me-insert="array">
+					<fieldset name="events" me-insert="array">
 						<input type="hidden" name="type" value="user-input">
 						<input type="hidden" name="event-id" value="{{event.id}}">
 						{% call user_input(input, pick) %}
@@ -46,7 +46,7 @@
 	{% let home_team = relevent_teams.get(spread.home_id).unwrap() %}
 	{% let away_team = relevent_teams.get(spread.away_id).unwrap() %}
 	<fieldset name="spreads" me-insert="array">
-		<input type="radio" name="selection[{{event_number}}-{{loop.index}}]" class="peer" value="home" id="{{event_number}}-{{loop.index}}-home" form="submit-picks" required>
+		<input type="radio" name="selection[{{event_number}}-{{loop.index}}]" class="peer" value="home" id="{{event_number}}-{{loop.index}}-home" required>
 		<label for="{{event_number}}-{{loop.index}}-home" class="border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100">
 			<div>
 				<img src="{{home_team.1.clone().unwrap_or(String::new())}}" alt="">
@@ -54,7 +54,7 @@
 			</div>
 		</label>
 
-		<input type="radio" name="selection[{{event_number}}-{{loop.index}}]" class="peer" value="away" id="{{event_number}}-{{loop.index}}-away" form="submit-picks" required>
+		<input type="radio" name="selection[{{event_number}}-{{loop.index}}]" class="peer" value="away" id="{{event_number}}-{{loop.index}}-away" required>
 		<label for="{{event_number}}-{{loop.index}}-away" class="border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100">
 			<div>
 				<img src="{{away_team.1.clone().unwrap_or(String::new())}}" alt="">
@@ -65,7 +65,7 @@
 		{% let spread_index = loop.index %}
 		<div>
 			{% for i in 1..=size %}
-				<input type="radio" name="num-points[{{event_number}}-{{spread_index}}]" value="{{i}}" id="{{event_number}}-{{spread_index}}-{{i}}" class="border border-black" form="submit-picks" required>
+				<input type="radio" name="num-points[{{event_number}}-{{spread_index}}]" value="{{i}}" id="{{event_number}}-{{spread_index}}-{{i}}" class="border border-black" required>
 				<label for="{{event_number}}-{{spread_index}}-{{i}}">{{i}}</label>
 			{% endfor %}
 		</div>
@@ -88,9 +88,13 @@
 {% endif %}
 
 {% if let Some(pick) = pick %}
-	<input type="text" name="user-input" placeholder="Your Answer" value={{pick.choice}} form="submit-picks" required>
+	{% match pick.choice %}
+		{% when serde_json::Value::String with (input) %}
+		<input type="text" name="user-input" placeholder="Your Answer" value="{{input}}" required>
+		{% else %}
+	{% endmatch %}
 {% else %}
-	<input type="text" name="user-input" placeholder="Your Answer" form="submit-picks" required>
+	<input type="text" name="user-input" placeholder="Your Answer" required>
 {% endif %}
 
 {% endmacro %}

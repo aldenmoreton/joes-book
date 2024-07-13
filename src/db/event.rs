@@ -46,8 +46,8 @@ pub struct Pick {
     pub book_id: i32,
     pub chapter_id: i32,
     pub event_id: i32,
-    pub wager: i32,
-    pub choice: String,
+    pub wager: serde_json::Value,
+    pub choice: serde_json::Value,
     pub correct: Option<bool>,
 }
 
@@ -135,21 +135,3 @@ pub async fn get_picks(
             .collect_vec()
     })
 }
-
-// pub async fn get_pick(
-//     user_id: i32,
-//     event_id: i32,
-//     pool: &PgPool,
-// ) -> Result<Option<Pick>, sqlx::Error> {
-// sqlx::query_as!(
-//     Pick,
-//     r#" SELECT id AS "id?", book_id, chapter_id, event_id, wager AS "wager?", choice AS "choice?", correct AS "correct?"
-// 		FROM picks
-// 		WHERE event_id = $1 AND user_id = $2"#,
-//     event_id,
-//     user_id
-// )
-// .fetch_optional(pool)
-// .await;
-//     todo!()
-// }
