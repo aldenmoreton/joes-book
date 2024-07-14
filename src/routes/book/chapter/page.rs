@@ -26,7 +26,7 @@ pub async fn handler(
     let user_picks = user_picks.await.map_err(AppError::from)?;
     let relevent_teams = relevent_teams.await.map_err(AppError::from)?;
 
-    Ok(crate::pages::chapter_open::markup(
+    Ok(crate::templates::chapter_open::markup(
         &user.username,
         chapter,
         user_picks,

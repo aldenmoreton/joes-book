@@ -1,4 +1,3 @@
-use askama::Template;
 use axum::{
     body::Body,
     extract::Query,
@@ -11,16 +10,12 @@ use serde::Deserialize;
 
 use crate::auth::{AuthSession, LoginCreds};
 
-#[derive(Template)]
-#[template(path = "pages/login.html")]
-struct LoginPage;
-
 pub async fn login_page(auth_session: AuthSession) -> Response<Body> {
     if auth_session.user.is_some() {
         return Redirect::to("/").into_response();
     }
 
-    LoginPage {}.into_response()
+    crate::templates::login_page::markup().into_response()
 }
 
 #[derive(Debug, Deserialize)]

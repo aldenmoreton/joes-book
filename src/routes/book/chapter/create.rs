@@ -18,15 +18,9 @@ use crate::{
     AppError,
 };
 
-#[derive(askama::Template)]
-#[template(path = "pages/chapter_create.html")]
-pub struct CreateChapter {
-    username: String,
-}
-
-pub async fn get(auth_session: AuthSession) -> Result<CreateChapter, RespErr> {
+pub async fn get(auth_session: AuthSession) -> Result<maud::Markup, RespErr> {
     let username = auth_session.user.ok_or(AppError::BackendUser)?.username;
-    Ok(CreateChapter { username })
+    Ok(crate::templates::chapter_create::markup(&username))
 }
 
 #[derive(serde::Deserialize, Debug)]
@@ -37,14 +31,8 @@ pub enum AddEventType {
     UserInput,
 }
 
-#[derive(askama::Template)]
-#[template(path = "components/add_event.html", whitespace = "suppress")]
-pub struct AddEvent {
-    ty: AddEventType,
-}
-
-pub async fn add_event(Query(ty): Query<AddEventType>) -> AddEvent {
-    AddEvent { ty }
+pub async fn add_event(Query(ty): Query<AddEventType>) -> maud::Markup {
+    crate::templates::add_event::markup(ty)
 }
 
 #[derive(serde::Deserialize)]
@@ -54,16 +42,15 @@ pub struct TeamParams {
     pub logo: Option<String>,
 }
 
-#[derive(askama::Template, serde::Deserialize)]
-#[template(path = "components/team_select.html", whitespace = "suppress")]
+#[derive(serde::Deserialize)]
 pub struct TeamSelect {
-    location: String,
+    pub location: String,
     #[serde(flatten)]
-    team: TeamParams,
+    pub team: TeamParams,
 }
 
-pub async fn team_select(Json(team): Json<TeamSelect>) -> TeamSelect {
-    team
+pub async fn team_select(Json(team): Json<TeamSelect>) -> maud::Markup {
+    crate::templates::team_select::markup(team)
 }
 
 #[derive(Debug, serde::Deserialize)]

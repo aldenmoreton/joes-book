@@ -1,9 +1,7 @@
-use askama_axum::IntoResponse;
-
-#[derive(askama::Template)]
-#[template(path = "pages/book_admin.html")]
-pub struct Page;
+use axum::response::IntoResponse;
 
 pub async fn handler() -> impl IntoResponse {
-    Page
+    maud::html! {
+        "Admin Page"
+    }
 }

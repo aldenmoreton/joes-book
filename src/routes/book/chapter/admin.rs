@@ -22,7 +22,7 @@ pub async fn handler(
         .await
         .map_err(AppError::from)?;
 
-    Ok(crate::pages::chapter_admin::markup(
+    Ok(crate::templates::chapter_admin::markup(
         &user.username,
         chapter,
         events,

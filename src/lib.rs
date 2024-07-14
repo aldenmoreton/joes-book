@@ -12,7 +12,6 @@ use axum_login::{login_required, AuthManagerLayer};
 use tower_http::services::ServeDir;
 use tower_sessions::PostgresStore;
 
-use crate::components::*;
 use crate::routes::*;
 
 pub mod auth;
@@ -25,11 +24,6 @@ pub mod routes {
     pub mod signup;
 }
 
-pub mod components {
-    pub mod book_list;
-    pub mod nav;
-}
-
 pub mod db {
     pub mod book;
     pub mod chapter;
@@ -39,7 +33,7 @@ pub mod db {
     pub mod user_input;
 }
 
-pub mod pages;
+pub mod templates;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
@@ -120,12 +114,10 @@ pub fn router(auth_layer: AuthManagerLayer<BackendPgDB, PostgresStore>) -> Route
 
     let home_routes = Router::new()
         .route("/logout", post(auth::logout))
-        .nest("/nav", Router::new().route("/", get(nav::user)))
+        // .nest("/nav", Router::new().route("/", get(nav::user)))
         .nest(
             "/home",
-            Router::new()
-                .route("/logout", post(auth::logout))
-                .nest("/nav", Router::new().route("/", get(nav::user))),
+            Router::new().route("/logout", post(auth::logout)), // .nest("/nav", Router::new().route("/", get(nav::user))),
         )
         .route("/", get(home::handler));
 

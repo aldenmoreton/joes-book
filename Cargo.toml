@@ -4,8 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-askama = { version = "0.12.1", features = ["with-axum"] }
-askama_axum = "0.4.0"
 async-trait = "0.1.77"
 axum = "0.7.4"
 axum-ctx = "0.4.0"
@@ -24,6 +22,3 @@ tower-sessions = { version = "0.9.1", features = ["postgres-store"] }
 
 [dev-dependencies]
 axum-macros = "0.4.1"
-
-[profile.dev.package.askama_derive]
-opt-level = 3

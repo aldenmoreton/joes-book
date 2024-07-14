@@ -1,7 +1,16 @@
 use maud::{html, Markup, DOCTYPE};
 
+pub mod add_event;
+pub mod book_list;
+pub mod book_page;
 pub mod chapter_admin;
+pub mod chapter_create;
+pub mod chapter_list;
 pub mod chapter_open;
+pub mod home_page;
+pub mod login_page;
+pub mod team_search;
+pub mod team_select;
 
 pub fn base(
     page_title: Option<&str>,
