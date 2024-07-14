@@ -132,9 +132,13 @@ fn user_input(input: UserInput, pick: Option<Pick>) -> Markup {
             input type="text" name="user-input" placeholder="Make Pick" value=[value] required class="block p-1 ml-1 mr-1 text-sm text-center text-gray-900 border rounded-lg focus:ring-blue-500 focus:border-blue-500";
         }
 
-        @if input.points != 1 {
+        @if input.points == 1 {
             p {
-                (input.points) " Points"
+                "(" (input.points) " Point)"
+            }
+        } @else {
+            p {
+                "(" (input.points) " Points)"
             }
         }
     }

@@ -18,8 +18,17 @@ pub fn markup(
         None,
         Some(maud::html! {
             @if book_subscription.role == BookRole::Admin {
-                a href="chapter/create/" { "Create New Chapter" }
-                a href="admin/" { "Admin" }
+                a href="chapter/create/" {
+                    button class="px-2 py-2 mt-1 font-bold text-white bg-orange-600 rounded hover:bg-orange-700" {
+                        "Create New Chapter"
+                    }
+                }
+                br;
+                a href="admin/" {
+                    button class="px-2 py-2 mt-1 font-bold text-white bg-orange-600 rounded hover:bg-orange-700" {
+                        "Admin"
+                    }
+                }
             }
 
             (chapter_list::markup(book_subscription.book_id, chapters))

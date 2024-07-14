@@ -21,7 +21,6 @@ pub fn markup(
         None,
         None,
         Some(maud::html! {
-            p { "Chapter Admin Page" }
             div class="flex flex-col items-center justify-center" {
                 div class="self-center justify-center p-2 m-3 bg-white border border-gray-300 rounded-lg shadow-md w-fit" {
                     div hx-target="this" {
