@@ -13,6 +13,7 @@ axum-login = "0.12.0"
 bcrypt = "0.15.0"
 dotenvy = "0.15.7"
 itertools = "0.12.1"
+maud = { version = "0.26.0", features = ["axum"] }
 serde = {version = "1.0.195", features = ["derive"] }
 serde_json = { version = "1.0.113", features = ["raw_value"] }
 sqlx = { version = "0.7.3", features = ["runtime-tokio-rustls", "postgres", "json"] }

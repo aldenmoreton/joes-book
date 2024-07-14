@@ -1,41 +1,22 @@
-use std::collections::HashMap;
-
-use crate::db::event::{get_picks, EventContent, UserPick};
+use crate::db::book::BookRole;
+use crate::db::event::get_picks;
 use crate::db::team::get_chapter_teams;
+
 use crate::{
     auth::{AuthSession, BackendPgDB},
-    db::{
-        book::{BookRole, BookSubscription},
-        chapter::Chapter,
-    },
+    db::{book::BookSubscription, chapter::Chapter},
     AppError,
 };
-use askama::Template;
 use axum::http::Response;
 use axum::{response::IntoResponse, Extension, Json};
 use axum_ctx::{RespErr, RespErrCtx, RespErrExt, StatusCode};
 use itertools::Itertools;
-use sqlx::PgPool;
-
-#[derive(Template)]
-#[template(path = "pages/chapter.html", whitespace = "suppress")]
-pub struct ChapterPage {
-    username: String,
-    chapter: Chapter,
-    user_picks: Vec<UserPick>,
-    is_admin: bool,
-    relevent_teams: HashMap<i32, (String, Option<String>)>,
-}
-
-fn empty_picks(len: usize) -> Vec<serde_json::Value> {
-    vec![serde_json::Value::Null; len]
-}
 
 pub async fn handler(
     auth_session: AuthSession,
     Extension(book_subscription): Extension<BookSubscription>,
     Extension(chapter): Extension<Chapter>,
-) -> Result<ChapterPage, RespErr> {
+) -> Result<maud::Markup, RespErr> {
     let user = auth_session.user.ok_or(AppError::BackendUser)?;
     let BackendPgDB(pool) = auth_session.backend;
 
@@ -44,14 +25,14 @@ pub async fn handler(
 
     let user_picks = user_picks.await.map_err(AppError::from)?;
     let relevent_teams = relevent_teams.await.map_err(AppError::from)?;
-    println!("{user_picks:?}");
-    Ok(ChapterPage {
-        username: user.username,
+
+    Ok(crate::pages::chapter::markup(
+        &user.username,
         chapter,
         user_picks,
-        is_admin: book_subscription.role == BookRole::Admin,
+        book_subscription.role == BookRole::Admin,
         relevent_teams,
-    })
+    ))
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -119,7 +100,7 @@ pub async fn submit(
 
 async fn validate_picks(
     events: Vec<SubmissionEvent>,
-    pool: &PgPool,
+    pool: &sqlx::PgPool,
 ) -> Result<(Vec<i32>, Vec<serde_json::Value>, Vec<serde_json::Value>), RespErr> {
     let (events, choices, wagers): (Vec<_>, Vec<_>, Vec<_>) = events
         .into_iter()

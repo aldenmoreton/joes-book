@@ -39,6 +39,8 @@ pub mod db {
     pub mod user_input;
 }
 
+pub mod pages;
+
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
     #[error("No Backend User")]
