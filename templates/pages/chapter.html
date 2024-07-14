@@ -9,7 +9,9 @@
 {% block content %}
 	{% call super() %}
 	{% if is_admin %}
-		<a href="admin/">Go to Admin Page</a>
+		<a href="admin/">
+			<button class="px-2 py-2 mt-1 font-bold text-white bg-orange-600 rounded hover:bg-orange-700">Go to Admin Page</button>
+		</a>
 	{% endif %}
 	<div class="flex flex-col items-center justify-center">
 	<form id="submit-picks" hx-post="." hx-ext="my-enc" hx-on::before-request="console.log(myenc.parseForm(this))" class="items-center self-center justify-center">
@@ -20,17 +22,15 @@
 					{% when EventContent::SpreadGroup with (spreads) %}
 						<input type="hidden" name="type" value="spread-group">
 						{% let event_index = loop.index %}
-						{% match pick %}
-						{% when Some with (pick_pick) %}
-							{% match pick_pick.choice %}
-							{% when serde_json::Value::Array with (pick_pick_pick) %}
-								{% call spread_group(spreads, pick_pick_pick, event_index) %}
-							{% else %}
-							{% endmatch %}
+						{% if let Some(pick) = pick %}
+							{% if let (serde_json::Value::Array(choices), serde_json::Value::Array(wagers)) = (pick.clone().choice, pick.clone().wager)%}
+								{% call spread_group(spreads, choices, wagers, event_index) %}
+							{% endif %}
 						{% else %}
-							{% let pick_pick_pick = self::empty_picks(spreads.len()) %}
-							{% call spread_group(spreads, pick_pick_pick, event_index) %}
-						{% endmatch %}
+							{% let choices = self::empty_picks(spreads.len()) %}
+							{% let wagers = self::empty_picks(spreads.len()) %}
+							{% call spread_group(spreads, choices, wagers, event_index) %}
+						{% endif %}
 					{% when EventContent::UserInput with (input) %}
 						<input type="hidden" name="type" value="user-input">
 						{% call user_input(input, pick) %}
@@ -45,10 +45,10 @@
 	</div>
 {% endblock %}
 
-{% macro spread_group(spreads, picks, event_number) %}
+{% macro spread_group(spreads, choices, wagers, event_number) %}
 {% let size = spreads.len() %}
 <p>Spread Group</p>
-{% for (spread, pick) in spreads.iter().zip(picks.iter()) %}
+{% for (spread, choice) in spreads.iter().zip(choices.iter()) %}
 	{% let home_team = relevent_teams.get(spread.home_id).unwrap() %}
 	{% let away_team = relevent_teams.get(spread.away_id).unwrap() %}
 
@@ -56,13 +56,13 @@
 		<div class="grid grid-flow-col grid-cols-2 gap-4 p-5">
 		<div class="col-span-1">
 		<input type="radio" name="selection[{{event_number}}-{{loop.index}}]" class="absolute opacity-0 peer" value="home" id="{{event_number}}-{{loop.index}}-home" required
-		{%+ if matches!(pick, serde_json::Value::String(s) if s == "home") %}
+		{%+ if matches!(choice, serde_json::Value::String(s) if s == "home") %}
 			checked
 		{% endif +%}
 		>
 		<label for="{{event_number}}-{{loop.index}}-home" class="inline-grid w-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100">
 			<div>
-				<img src="{{home_team.1.clone().unwrap_or(String::new())}}" alt="">
+				<img src="{{home_team.1.clone().unwrap_or(String::new())}}" width="150" height="150" alt="Home Team Logo">
 				<p>{{home_team.0}}</p>
 			</div>
 		</label>
@@ -70,13 +70,13 @@
 
 		<div class="col-span-1">
 		<input type="radio" name="selection[{{event_number}}-{{loop.index}}]" class="absolute opacity-0 peer" value="away" id="{{event_number}}-{{loop.index}}-away" required
-		{%+ if matches!(pick, serde_json::Value::String(s) if s == "away") %}
+		{%+ if matches!(choice, serde_json::Value::String(s) if s == "away") %}
 			checked
 		{% endif +%}
 		>
 		<label for="{{event_number}}-{{loop.index}}-away" class="inline-grid w-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100">
 			<div>
-				<img src="{{away_team.1.clone().unwrap_or(String::new())}}" alt="">
+				<img src="{{away_team.1.clone().unwrap_or(String::new())}}" width="150" height="150" alt="Away Team Logo">
 				<p>{{away_team.0}}</p>
 			</div>
 		</label>
@@ -86,7 +86,11 @@
 		<ul>
 			{% for i in 1..=size %}
 				<li class="inline-flex items-center p-1">
-				<input type="radio" name="num-points[{{event_number}}-{{spread_index}}]" value="{{i}}" id="{{event_number}}-{{spread_index}}-{{i}}" class="absolute opacity-0 peer" required>
+				<input type="radio" name="num-points[{{event_number}}-{{spread_index}}]" value="{{i}}" id="{{event_number}}-{{spread_index}}-{{i}}" class="absolute opacity-0 peer" required
+				{%+ if matches!(pick, serde_json::Value::String(s) if s == "away") %}
+					checked
+				{% endif +%}
+				>
 				<label for="{{event_number}}-{{spread_index}}-{{i}}" class="inline-grid w-5 h-5 p-5 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100">
 					{{i}}
 				</label>
