@@ -12,8 +12,8 @@ use crate::db::{
 
 use super::authenticated;
 
-pub fn markup<'a>(
-    username: &'a str,
+pub fn markup(
+    username: &str,
     chapter: Chapter,
     user_picks: Vec<UserPick>,
     is_admin: bool,

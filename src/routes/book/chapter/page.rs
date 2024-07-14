@@ -112,8 +112,8 @@ async fn validate_picks(
                     .unzip();
                 (
                     event_id,
-                    serde_json::to_value(&choices).unwrap(),
-                    serde_json::to_value(&wagers).unwrap(),
+                    serde_json::to_value(choices).unwrap(),
+                    serde_json::to_value(wagers).unwrap(),
                 )
             }
             SubmissionEvent::UserInput {

@@ -9,8 +9,8 @@ use crate::db::{
 
 use super::authenticated;
 
-pub fn markup<'a>(
-    username: &'a str,
+pub fn markup(
+    username: &str,
     chapter: Chapter,
     events: Vec<Event>,
     relevent_teams: HashMap<i32, (String, Option<String>)>,
