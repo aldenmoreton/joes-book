@@ -43,12 +43,8 @@ pub fn markup(
                         fieldset name="events" me-insert="array" class="self-center justify-center m-3 bg-white border border-gray-300 rounded-lg shadow-md w-fit" {
                             input type="hidden" name="event-id" value=(event.id);
                             @match event.contents.0 {
-                                EventContent::SpreadGroup(spreads) => {
-                                    (spread_group(spreads, pick, i, &relevent_teams))
-                                },
-                                EventContent::UserInput(input) => {
-                                    (user_input(input, pick))
-                                }
+                                EventContent::SpreadGroup(spreads) => (spread_group(spreads, pick, i, &relevent_teams)),
+                                EventContent::UserInput(input) => (user_input(input, pick))
                             }
                         }
                     }
@@ -68,10 +64,10 @@ fn spread_group(
 ) -> Markup {
     let (choices, wagers) = match picks {
         Some(Pick {
-            wager: serde_json::Value::Array(wager),
             choice: serde_json::Value::Array(choice),
+            wager: serde_json::Value::Array(wager),
             ..
-        }) => (wager, choice),
+        }) => (choice, wager),
         _ => (
             vec![serde_json::Value::Null; spreads.len()],
             vec![serde_json::Value::Null; spreads.len()],
@@ -82,11 +78,12 @@ fn spread_group(
 
     html! {
         p { "Spread Group" }
+        input type="hidden" name="type" value="spread-group";
         @for (i, (spread, choice, wager)) in izip!(spreads, choices, wagers).enumerate() {
             fieldset name="spreads" me-insert="array" {
                 div class="grid grid-flow-col grid-cols-2 gap-4 p-5" {
                     div class="col-span-1" {
-                        input type="radio" name=(format!("selection[{}-{}]", index, i)) class="absolute opacity-0 peer" value="home" id=(format!("{}-{}-home", index, i)) required checked[matches!(&choice, serde_json::Value::String(s) if s == "home")];
+                        input type="radio" name=(format!("selection[{}-{}]", index, i)) class="opacity-0 peer" value="home" id=(format!("{}-{}-home", index, i)) required checked[matches!(&choice, serde_json::Value::String(s) if s == "home")];
                         label for=(format!("{}-{}-home", index, i)) class="inline-grid w-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100" {
                             div {
                                 img src=(relevent_teams[&spread.home_id].1.to_owned().unwrap_or_default()) width="150" height="150" alt="Home Team Logo";
@@ -96,7 +93,7 @@ fn spread_group(
                     }
 
                     div class="col-span-1" {
-                        input type="radio" name=(format!("selection[{}-{}]", index, i)) class="absolute opacity-0 peer" value="away" id=(format!("{}-{}-away", index, i)) required checked[matches!(&choice, serde_json::Value::String(s) if s == "away")];
+                        input type="radio" name=(format!("selection[{}-{}]", index, i)) class="opacity-0 peer" value="away" id=(format!("{}-{}-away", index, i)) required checked[matches!(&choice, serde_json::Value::String(s) if s == "away")];
                         label for=(format!("{}-{}-away", index, i)) class="inline-grid w-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100" {
                             div {
                                 img src=(relevent_teams[&spread.away_id].1.to_owned().unwrap_or_default()) width="150" height="150" alt="Away Team Logo";
@@ -109,7 +106,7 @@ fn spread_group(
                 ul {
                     @for j in 1..=num_spreads {
                         li class="inline-flex items-center p-1" {
-                            input type="radio" value=(j) name=(format!("num-points[{}-{}]", index, i)) id=(format!("{}-{}-{}", index, i, j)) class="absolute opacity-0 peer" required checked[matches!(&wager, serde_json::Value::Number(n) if n == &serde_json::Number::from(j))];
+                            input type="radio" value=(j) name=(format!("num-points[{}-{}]", index, i)) id=(format!("{}-{}-{}", index, i, j)) class="opacity-0 peer" required checked[matches!(&wager, serde_json::Value::Number(n) if n == &serde_json::Number::from(j))];
                             label for=(format!("{}-{}-{}", index, i, j)) class="inline-grid w-5 h-5 p-5 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100" {
                                 (j)
                             }
@@ -124,6 +121,7 @@ fn spread_group(
 fn user_input(input: UserInput, pick: Option<Pick>) -> Markup {
     html! {
         h3 class="text-lg font-semibold" { (input.title) }
+        input type="hidden" name="type" value="user-input";
         @if let Some(description) = input.description {
             h4 { (description) }
         }

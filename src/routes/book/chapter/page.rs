@@ -108,7 +108,7 @@ async fn validate_picks(
             SubmissionEvent::SpreadGroup { event_id, spreads } => {
                 let (choices, wagers): (Vec<_>, Vec<_>) = spreads
                     .into_iter()
-                    .map(|spread| (spread.selection, spread.num_points))
+                    .map(|spread| (spread.selection, spread.num_points.parse::<i32>().unwrap()))
                     .unzip();
                 (
                     event_id,
