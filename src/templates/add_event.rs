@@ -1,4 +1,4 @@
-use crate::book::chapter::create::AddEventType;
+use crate::chapter::create::AddEventType;
 
 pub fn markup(ty: AddEventType) -> maud::Markup {
     maud::html! {

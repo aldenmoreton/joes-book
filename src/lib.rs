@@ -19,6 +19,7 @@ pub mod team_search;
 
 pub mod routes {
     pub mod book;
+    pub mod chapter;
     pub mod home;
     pub mod login;
     pub mod signup;
@@ -74,26 +75,20 @@ pub fn router(auth_layer: AuthManagerLayer<BackendPgDB, PostgresStore>) -> Route
     );
 
     let chapter_routes = Router::new()
-        .route(
-            "/:chapter_id/admin/update",
-            post(book::chapter::admin::update),
-        )
-        .route("/:chapter_id/admin/", get(book::chapter::admin::handler))
+        .route("/:chapter_id/admin/update", post(chapter::admin::update))
+        .route("/:chapter_id/admin/", get(chapter::admin::handler))
         .route_layer(middleware::from_fn(book::mw::require_admin))
         .route(
             "/:chapter_id/",
-            get(book::chapter::page::handler).post(book::chapter::page::submit),
+            get(chapter::page::handler).post(chapter::page::submit),
         )
-        .route_layer(middleware::from_fn(book::chapter::mw::chapter_ext))
+        .route_layer(middleware::from_fn(chapter::mw::chapter_ext))
         .nest(
             "/create/",
             Router::new()
-                .route(
-                    "/",
-                    get(book::chapter::create::get).post(book::chapter::create::post),
-                )
-                .route("/add", get(book::chapter::create::add_event))
-                .route("/team-select", post(book::chapter::create::team_select))
+                .route("/", get(chapter::create::get).post(chapter::create::post))
+                .route("/add", get(chapter::create::add_event))
+                .route("/team-select", post(chapter::create::team_select))
                 .route_layer(middleware::from_fn(book::mw::require_admin)),
         );
 

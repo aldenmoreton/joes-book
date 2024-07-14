@@ -1,4 +1,4 @@
-use crate::book::chapter::create::TeamSelect;
+use crate::chapter::create::TeamSelect;
 
 pub fn markup(team: TeamSelect) -> maud::Markup {
     maud::html! {
