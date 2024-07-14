@@ -1,5 +1,7 @@
-pub mod chapter;
 use maud::{html, Markup, DOCTYPE};
+
+pub mod chapter_admin;
+pub mod chapter_open;
 
 pub fn base<'a>(
     page_title: Option<&'a str>,

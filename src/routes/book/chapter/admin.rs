@@ -1,32 +1,16 @@
-use std::collections::HashMap;
-
-use askama::Template;
 use axum::Extension;
 use axum_ctx::RespErr;
 
 use crate::{
     auth::{AuthSession, BackendPgDB},
-    db::{
-        chapter::Chapter,
-        event::{get_events, Event, EventContent},
-        team::get_chapter_teams,
-    },
+    db::{chapter::Chapter, event::get_events, team::get_chapter_teams},
     AppError,
 };
-
-#[derive(Template)]
-#[template(path = "pages/chapter_admin.html")]
-pub struct ChapterAdminPage {
-    username: String,
-    chapter: Chapter,
-    events: Vec<Event>,
-    relevent_teams: HashMap<i32, (String, Option<String>)>,
-}
 
 pub async fn handler(
     auth_session: AuthSession,
     Extension(chapter): Extension<Chapter>,
-) -> Result<ChapterAdminPage, RespErr> {
+) -> Result<maud::Markup, RespErr> {
     let user = auth_session.user.ok_or(AppError::BackendUser)?;
     let BackendPgDB(pool) = auth_session.backend;
 
@@ -38,12 +22,12 @@ pub async fn handler(
         .await
         .map_err(AppError::from)?;
 
-    Ok(ChapterAdminPage {
-        username: user.username,
+    Ok(crate::pages::chapter_admin::markup(
+        &user.username,
         chapter,
         events,
         relevent_teams,
-    })
+    ))
 }
 
 pub async fn update(body: String) {
