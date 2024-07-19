@@ -49,7 +49,6 @@ CREATE TABLE IF NOT EXISTS events (
 	"is_open"		BOOLEAN NOT NULL DEFAULT FALSE,
 	"event_type"	event_types NOT NULL,
 	"contents"		JSONB NOT NULL,
-	"answer"		TEXT DEFAULT NULL,
 	"created_at" 	TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

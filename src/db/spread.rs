@@ -5,5 +5,6 @@ pub struct Spread {
     pub home_id: i32,
     pub away_id: i32,
     pub home_spread: f64,
+    pub answer: Option<String>,
     pub notes: Option<String>,
 }

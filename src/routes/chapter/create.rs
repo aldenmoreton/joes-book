@@ -139,6 +139,7 @@ fn validate_events(events: Vec<EventSubmissionType>) -> Result<Vec<EventContent>
                                 away_id,
                                 home_spread,
                                 notes: None,
+                                answer: None,
                             })
                         },
                     )
@@ -159,6 +160,7 @@ fn validate_events(events: Vec<EventSubmissionType>) -> Result<Vec<EventContent>
                     title,
                     description,
                     points,
+                    acceptable_answers: None,
                 }))
             }
         })

@@ -82,7 +82,7 @@ fn spread_group(
             fieldset name="spreads" me-insert="array" {
                 div class="grid grid-flow-col grid-cols-2 gap-4 p-5" {
                     div class="col-span-1" {
-                        input type="radio" name=(format!("selection[{}-{}]", index, i)) class="absolute opacity-0 peer" value="home" id=(format!("{}-{}-home", index, i)) required;
+                        input type="radio" name=(format!("selection[{}-{}]", index, i)) class="absolute opacity-0 peer" value="home" id=(format!("{}-{}-home", index, i)) checked[spread.answer == Some("home".into())] required;
                         label for=(format!("{}-{}-home", index, i)) class="inline-grid w-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100" {
                             div {
                                 img src=(relevent_teams[&spread.home_id].1.to_owned().unwrap_or_default()) width="150" height="150" alt="Home Team Logo";
@@ -91,14 +91,22 @@ fn spread_group(
                         }
                     }
 
-                     div class="col-span-1" {
-                        input type="radio" name=(format!("selection[{}-{}]", index, i)) class="absolute opacity-0 peer" value="away" id=(format!("{}-{}-away", index, i)) required;
+                    div class="col-span-1" {
+                        input type="radio" name=(format!("selection[{}-{}]", index, i)) class="absolute opacity-0 peer" value="away" id=(format!("{}-{}-away", index, i)) checked[spread.answer == Some("away".into())] required;
                         label for=(format!("{}-{}-away", index, i)) class="inline-grid w-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100" {
                             div {
                                 img src=(relevent_teams[&spread.away_id].1.to_owned().unwrap_or_default()) width="150" height="150" alt="Away Team Logo";
                                 p { (relevent_teams[&spread.away_id].0) }
                             }
                         }
+                    }
+
+                }
+
+                div {
+                    input type="radio" name=(format!("selection[{}-{}]", index, i)) class="absolute opacity-0 peer" value="push" id=(format!("{}-{}-push", index, i)) checked[spread.answer == Some("push".into())] required;
+                    label for=(format!("{}-{}-push", index, i)) class="inline-grid w-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-orange-700 peer-checked:bg-orange-500 peer-checked:border-orange-600 hover:bg-orange-100" {
+                        p class="px-1 font-semibold" { "Push" }
                     }
                 }
             }
