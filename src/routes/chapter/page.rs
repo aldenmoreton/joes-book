@@ -10,7 +10,6 @@ use crate::{
 use axum::http::Response;
 use axum::{response::IntoResponse, Extension, Json};
 use axum_ctx::{RespErr, RespErrCtx, RespErrExt, StatusCode};
-use itertools::Itertools;
 
 pub async fn handler(
     auth_session: AuthSession,
@@ -102,30 +101,68 @@ async fn validate_picks(
     events: Vec<SubmissionEvent>,
     pool: &sqlx::PgPool,
 ) -> Result<(Vec<i32>, Vec<serde_json::Value>, Vec<serde_json::Value>), RespErr> {
-    let (events, choices, wagers): (Vec<_>, Vec<_>, Vec<_>) = events
+    let (events, choices, wagers) = events
         .into_iter()
         .map(|event| match event {
             SubmissionEvent::SpreadGroup { event_id, spreads } => {
-                let (choices, wagers): (Vec<_>, Vec<_>) = spreads
-                    .into_iter()
-                    .map(|spread| (spread.selection, spread.num_points.parse::<i32>().unwrap()))
-                    .unzip();
-                (
+                let (choices, wagers) =
+                        spreads
+                            .into_iter()
+                            .map(|spread| {
+                                Ok((
+                                    serde_json::Value::String(spread.selection),
+                                    serde_json::Value::Number(
+                                        spread
+                                            .num_points
+                                            .parse::<i32>()
+                                            .ctx(StatusCode::BAD_REQUEST)
+                                            .user_msg("Could not parse Spread Group Points")?
+                                            .into(),
+                                    ),
+                                ))
+                            })
+                            .try_fold(
+                                (Vec::new(), Vec::new()),
+                                |(mut choices, mut wagers),
+                                 curr_item: Result<
+                                    (serde_json::Value, serde_json::Value),
+                                    RespErr,
+                                >| {
+                                    let (curr_choice, curr_wager) = curr_item?;
+                                    choices.push(curr_choice);
+                                    wagers.push(curr_wager);
+                                    Ok::<_, RespErr>((choices, wagers))
+                                },
+                            )?;
+                Ok((
                     event_id,
-                    serde_json::to_value(choices).unwrap(),
-                    serde_json::to_value(wagers).unwrap(),
-                )
+                    serde_json::Value::Array(choices),
+                    serde_json::Value::Array(wagers),
+                ))
             }
             SubmissionEvent::UserInput {
                 user_input,
                 event_id,
-            } => (
+            } => Ok((
                 event_id,
-                serde_json::to_value(user_input).unwrap(),
-                serde_json::to_value(1).unwrap(),
-            ),
+                serde_json::Value::String(user_input),
+                serde_json::Value::Number(1.into()),
+            )),
         })
-        .multiunzip();
+        .try_fold(
+            (Vec::new(), Vec::new(), Vec::new()),
+            |(mut events, mut choices, mut wagers),
+             curr_item: Result<
+                (String, serde_json::Value, serde_json::Value),
+                RespErr,
+            >| {
+                let (curr_event, curr_choices, curr_wager) = curr_item?;
+                events.push(curr_event);
+                choices.push(curr_choices);
+                wagers.push(curr_wager);
+                Ok::<_, RespErr>((events, choices, wagers))
+            },
+        )?;
 
     let event_ids = events
         .iter()

@@ -18,7 +18,9 @@ pub fn markup(
     authenticated(
         username,
         Some(&format!("{} - Admin", chapter.title)),
-        None,
+        Some(maud::html! {
+            script src="/public/js/my-enc.js" {}
+        }),
         None,
         Some(maud::html! {
             div class="flex flex-col items-center justify-center" {
@@ -52,17 +54,23 @@ pub fn markup(
                     }
                 }
 
-                form class="items-center self-center justify-center" {
+                form class="items-center self-center justify-center" hx-post="." hx-ext="my-enc" hx-swap="afterend" {
                     @for (i, event) in events.into_iter().enumerate() {
-                        fieldset name="events" me-insert="array" class="self-center justify-center m-3 bg-white border border-gray-300 rounded-lg shadow-md w-fit" {
-                            input type="hidden" name="type" value="spread-group";
+                        fieldset name="events" me-insert="array" class="items-center self-center justify-center m-3 bg-white border border-gray-300 rounded-lg shadow-md w-fit" {
                             input type="hidden" name="event-id" value=(event.id);
                             @match event.contents.0 {
-                                EventContent::SpreadGroup(spreads) => (spread_group(spreads, i, &relevent_teams)),
-                                EventContent::UserInput(input) => (user_input(input, i))
+                                EventContent::SpreadGroup(spreads) => {
+                                    input type="hidden" name="type" value="spread-group";
+                                    (spread_group(spreads, i, &relevent_teams))
+                                },
+                                EventContent::UserInput(input) => {
+                                    input type="hidden" name="type" value="user-input";
+                                    (user_input(input, event.id, i))
+                                }
                             }
                         }
                     }
+
                     button type="submit" { "Submit" }
                 }
             }
@@ -79,43 +87,51 @@ fn spread_group(
 ) -> maud::Markup {
     maud::html! {
         @for (i, spread) in spreads.into_iter().enumerate() {
-            fieldset name="spreads" me-insert="array" {
-                div class="grid grid-flow-col grid-cols-2 gap-4 p-5" {
-                    div class="col-span-1" {
-                        input type="radio" name=(format!("selection[{}-{}]", index, i)) class="absolute opacity-0 peer" value="home" id=(format!("{}-{}-home", index, i)) checked[spread.answer == Some("home".into())] required;
-                        label for=(format!("{}-{}-home", index, i)) class="inline-grid w-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100" {
-                            div {
-                                img src=(relevent_teams[&spread.home_id].1.to_owned().unwrap_or_default()) width="150" height="150" alt="Home Team Logo";
-                                p { (relevent_teams[&spread.home_id].0) }
-                            }
+            div class="grid grid-flow-col grid-cols-2 gap-4 p-5" {
+                div class="col-span-1" {
+                    input type="radio" name={"selections["(index)"-"(i)"]"} me-insert="array" class="absolute opacity-0 peer" value="home" id={(index)"-"(i)"-home"} checked[spread.answer == Some("home".into())] required;
+                    label for={(index)"-"(i)"-home"} class="inline-grid w-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100" {
+                        div {
+                            img src=(relevent_teams[&spread.home_id].1.to_owned().unwrap_or_default()) width="150" height="150" alt="Home Team Logo";
+                            p { (relevent_teams[&spread.home_id].0) }
                         }
                     }
-
-                    div class="col-span-1" {
-                        input type="radio" name=(format!("selection[{}-{}]", index, i)) class="absolute opacity-0 peer" value="away" id=(format!("{}-{}-away", index, i)) checked[spread.answer == Some("away".into())] required;
-                        label for=(format!("{}-{}-away", index, i)) class="inline-grid w-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100" {
-                            div {
-                                img src=(relevent_teams[&spread.away_id].1.to_owned().unwrap_or_default()) width="150" height="150" alt="Away Team Logo";
-                                p { (relevent_teams[&spread.away_id].0) }
-                            }
-                        }
-                    }
-
                 }
 
-                div {
-                    input type="radio" name=(format!("selection[{}-{}]", index, i)) class="absolute opacity-0 peer" value="push" id=(format!("{}-{}-push", index, i)) checked[spread.answer == Some("push".into())] required;
-                    label for=(format!("{}-{}-push", index, i)) class="inline-grid w-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-orange-700 peer-checked:bg-orange-500 peer-checked:border-orange-600 hover:bg-orange-100" {
-                        p class="px-1 font-semibold" { "Push" }
+                div class="col-span-1" {
+                    input type="radio" name={"selections["(index)"-"(i)"]"} me-insert="array" class="absolute opacity-0 peer" value="away" id={(index)"-"(i)"-away"} checked[spread.answer == Some("away".into())] required;
+                    label for={(index)"-"(i)"-away"} class="inline-grid w-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100" {
+                        div {
+                            img src=(relevent_teams[&spread.away_id].1.to_owned().unwrap_or_default()) width="150" height="150" alt="Away Team Logo";
+                            p { (relevent_teams[&spread.away_id].0) }
+                        }
                     }
+                }
+
+            }
+
+            div {
+                input type="radio" name={"selections["(index)"-"(i)"]"} me-insert="array" class="absolute opacity-0 peer" value="push" id={(index)"-"(i)"-push"} checked[spread.answer == Some("push".into())] required;
+                label for={(index)"-"(i)"-push"} class="inline-grid w-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-orange-700 peer-checked:bg-orange-500 peer-checked:border-orange-600 hover:bg-orange-100" {
+                    p class="px-1 font-semibold" { "Push" }
                 }
             }
         }
     }
 }
 
-fn user_input(input: UserInput, _index: usize) -> maud::Markup {
+fn user_input(input: UserInput, event_id: i32, _index: usize) -> maud::Markup {
     maud::html! {
-        p { (format!("{input:?}")) }
+        h3 {
+            (input.title)
+        }
+        @if let Some(description) = input.description {
+            p { (description) }
+        }
+        div hx-get={"user-input?event-id="(event_id)} hx-swap="outerHTML" hx-trigger="load" {
+            p {
+                "Loading..."
+            }
+        }
     }
 }
