@@ -29,9 +29,10 @@ pub fn markup(
                         "Admin"
                     }
                 }
+                (chapter_list::markup(book_subscription.book_id, chapters.iter().filter(|c| !c.is_open).peekable()))
             }
 
-            (chapter_list::markup(book_subscription.book_id, chapters))
+            (chapter_list::markup(book_subscription.book_id, chapters.iter().filter(|c| c.is_open).peekable()))
         }),
         None,
     )

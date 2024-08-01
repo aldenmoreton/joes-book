@@ -1,10 +1,15 @@
+use std::iter::Peekable;
+
 use crate::db::chapter::Chapter;
 
-pub fn markup(book_id: i32, chapters: Vec<Chapter>) -> maud::Markup {
+pub fn markup<'a, I>(book_id: i32, mut chapters: Peekable<I>) -> maud::Markup
+where
+    I: Iterator<Item = &'a Chapter>,
+{
     maud::html! {
         div class="flex flex-col items-center justify-center" {
             ul class="items-center self-center justify-center" {
-                @if chapters.is_empty() {
+                @if chapters.peek().is_none() {
                     li class="p-3 h-30 w-60" {
                         p { "No Chapters Yet!" }
                     }

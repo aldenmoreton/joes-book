@@ -80,7 +80,7 @@ pub async fn post(
         .ctx(StatusCode::BAD_REQUEST)
         .user_msg("Could not parse event id")?;
 
-    let (ids, event_types, contents) = events
+    let (ids, contents) = events
         .into_iter()
         .map(|mut event| {
             let submission = event_submissions.remove(&event.id).ok_or(
@@ -90,56 +90,47 @@ pub async fn post(
             match (event.contents.0.borrow_mut(), submission) {
                 (
                     EventContent::SpreadGroup(ref mut spreads),
-                    AnswerEventContent::SpreadGroup { mut selections },
+                    AnswerEventContent::SpreadGroup { selections },
                 ) => {
                     if spreads.len() != selections.len() {
                         return Err(RespErr::new(StatusCode::BAD_REQUEST)
                             .user_msg("Spread Group Submissions do not cover all games"));
                     }
-                    for spread in spreads.iter_mut().rev() {
-                        spread.answer = Some(selections.pop().unwrap());
-                    }
-                    Ok((
-                        event.id,
-                        event.event_type,
-                        serde_json::to_value(event.contents).unwrap(),
-                    ))
+
+                    spreads
+                        .iter_mut()
+                        .zip(selections.into_iter())
+                        .for_each(|(spread, selection)| spread.answer = Some(selection));
+
+                    Ok((event.id, serde_json::to_value(event.contents).unwrap()))
                 }
                 (EventContent::UserInput(input), AnswerEventContent::UserInput { choices }) => {
                     input.acceptable_answers =
                         Some(choices.unwrap_or_default().into_iter().collect());
-                    Ok((
-                        event.id,
-                        event.event_type,
-                        serde_json::to_value(event.contents).unwrap(),
-                    ))
+                    Ok((event.id, serde_json::to_value(event.contents).unwrap()))
                 }
                 _ => Err(RespErr::new(StatusCode::BAD_REQUEST)
                     .user_msg("Submitted event does not match its actual type")),
             }
         })
         .try_fold(
-            (Vec::new(), Vec::new(), Vec::new()),
-            |(mut ids, mut event_types, mut contents), curr_item| {
-                let (curr_id, curr_type, curr_contents) = curr_item?;
+            (Vec::new(), Vec::new()),
+            |(mut ids, mut contents), curr_item| {
+                let (curr_id, curr_contents) = curr_item?;
                 ids.push(curr_id);
-                event_types.push(curr_type);
                 contents.push(curr_contents);
-                Ok::<_, RespErr>((ids, event_types, contents))
+                Ok::<_, RespErr>((ids, contents))
             },
         )?;
 
     sqlx::query!(
         r#"
-        INSERT INTO events (id, event_type, contents)
-        SELECT id, event_type, contents
-        FROM UNNEST($1::INT[], $2::event_types[], $3::JSONB[]) AS a(id, event_type, contents)
-        ON CONFLICT (id)
-        DO UPDATE SET
-            contents = EXCLUDED.contents
+        UPDATE events AS e
+        SET contents = c.contents
+        FROM UNNEST($1::INT[], $2::JSONB[]) AS c(id, contents)
+        WHERE e.id = c.id
     "#,
         &ids,
-        event_types as _,
         contents.as_slice()
     )
     .execute(&pool)
@@ -149,6 +140,60 @@ pub async fn post(
     Ok(maud::html! {
         p { "Upload Successful" }
     })
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct ToggleParam {
+    toggle: bool,
+}
+
+pub async fn open(
+    auth_session: AuthSession,
+    Extension(chapter): Extension<Chapter>,
+    Query(ToggleParam { toggle }): Query<ToggleParam>,
+) -> Result<maud::Markup, RespErr> {
+    let pool = auth_session.backend.0;
+
+    sqlx::query!(
+        r#"
+        UPDATE chapters
+        SET is_open = $1
+        WHERE book_id = $2
+    "#,
+        toggle,
+        chapter.book_id
+    )
+    .execute(&pool)
+    .await
+    .map_err(AppError::from)?;
+
+    Ok(crate::templates::chapter_admin::chapter_open_button(toggle))
+}
+
+pub async fn visible(
+    auth_session: AuthSession,
+    Extension(chapter): Extension<Chapter>,
+    Query(ToggleParam { toggle }): Query<ToggleParam>,
+) -> Result<maud::Markup, RespErr> {
+    let pool = auth_session.backend.0;
+
+    sqlx::query!(
+        r#"
+        UPDATE chapters
+        SET is_visible = $1
+        WHERE book_id = $2
+        RETURNING id
+    "#,
+        toggle,
+        chapter.book_id
+    )
+    .fetch_one(&pool)
+    .await
+    .map_err(AppError::from)?;
+
+    Ok(crate::templates::chapter_admin::chapter_visible_button(
+        toggle,
+    ))
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -179,8 +224,6 @@ pub async fn user_input(
     .fetch_all(&pool)
     .await
     .map_err(AppError::from)?;
-
-    println!("{choices:?}");
 
     Ok(maud::html! {
         @for (i, choice) in choices.into_iter().enumerate() {

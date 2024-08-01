@@ -79,7 +79,9 @@ pub fn router(auth_layer: AuthManagerLayer<BackendPgDB, PostgresStore>) -> Route
             "/:chapter_id/admin/",
             Router::new()
                 .route("/", get(chapter::admin::handler).post(chapter::admin::post))
-                .route("/user-input", get(chapter::admin::user_input)),
+                .route("/user-input", get(chapter::admin::user_input))
+                .route("/open", post(chapter::admin::open))
+                .route("/visible", post(chapter::admin::visible)),
         )
         .route_layer(middleware::from_fn(book::mw::require_admin))
         .route(

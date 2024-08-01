@@ -23,35 +23,12 @@ pub fn markup(
         }),
         None,
         Some(maud::html! {
+            h3 class="h-3 text-orange-600" { "Admin" }
             div class="flex flex-col items-center justify-center" {
                 div class="self-center justify-center p-2 m-3 bg-white border border-gray-300 rounded-lg shadow-md w-fit" {
-                    div hx-target="this" {
-                        @if chapter.is_open {
-                            p { "Chapter Status: Open" }
-                            button hx-post="" class="p-0.5 font-bold text-white bg-orange-600 rounded hover:bg-orange-700" {
-                                "Close"
-                            }
-                        } @else {
-                            p { "Chapter Status: Closed" }
-                            button hx-post="" class="p-0.5 font-bold text-white bg-orange-600 rounded hover:bg-orange-700" {
-                                "Open"
-                            }
-                        }
-                    }
+                    (chapter_open_button(chapter.is_open))
 
-                    div hx-target="this" {
-                        @if chapter.is_visible {
-                            p { "Chapter Visibility: Visible" }
-                            button hx-post="" class="p-0.5 font-bold text-white bg-orange-600 rounded hover:bg-orange-700" {
-                                "Hide"
-                            }
-                        } @else {
-                            p { "Chapter Visibility: Hidden" }
-                            button hx-post="" class="p-0.5 font-bold text-white bg-orange-600 rounded hover:bg-orange-700" {
-                                "Show"
-                            }
-                        }
-                    }
+                    (chapter_visible_button(chapter.is_visible))
                 }
 
                 form class="items-center self-center justify-center" hx-post="." hx-ext="my-enc" hx-swap="afterend" {
@@ -78,6 +55,42 @@ pub fn markup(
         }),
         None,
     )
+}
+
+pub fn chapter_open_button(is_open: bool) -> maud::Markup {
+    maud::html! {
+        div hx-target="this" {
+            @if is_open {
+                p { "Chapter Status: Open" }
+                button hx-post="open?toggle=false" class="p-0.5 font-bold text-white bg-orange-600 rounded hover:bg-orange-700" {
+                    "Close"
+                }
+            } @else {
+                p { "Chapter Status: Closed" }
+                button hx-post="open?toggle=true" class="p-0.5 font-bold text-white bg-orange-600 rounded hover:bg-orange-700" {
+                    "Open"
+                }
+            }
+        }
+    }
+}
+
+pub fn chapter_visible_button(is_visible: bool) -> maud::Markup {
+    maud::html! {
+        div hx-target="this" {
+            @if is_visible {
+                p { "Chapter Visibility: Visible" }
+                button hx-post="visible?toggle=false" class="p-0.5 font-bold text-white bg-orange-600 rounded hover:bg-orange-700" {
+                    "Hide"
+                }
+            } @else {
+                p { "Chapter Visibility: Hidden" }
+                button hx-post="visible?toggle=true" class="p-0.5 font-bold text-white bg-orange-600 rounded hover:bg-orange-700" {
+                    "Show"
+                }
+            }
+        }
+    }
 }
 
 fn spread_group(

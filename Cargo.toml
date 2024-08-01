@@ -22,3 +22,9 @@ tower-sessions = { version = "0.9.1", features = ["postgres-store"] }
 
 [dev-dependencies]
 axum-macros = "0.4.1"
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
