@@ -11,10 +11,10 @@ use axum::http::Response;
 use axum::{response::IntoResponse, Extension, Json};
 use axum_ctx::{RespErr, RespErrCtx, RespErrExt, StatusCode};
 
-pub async fn handler(
+pub async fn open_book(
     auth_session: AuthSession,
-    Extension(book_subscription): Extension<BookSubscription>,
-    Extension(chapter): Extension<Chapter>,
+    book_subscription: BookSubscription,
+    chapter: Chapter,
 ) -> Result<maud::Markup, RespErr> {
     let user = auth_session.user.ok_or(AppError::BackendUser)?;
     let BackendPgDB(pool) = auth_session.backend;
@@ -32,6 +32,14 @@ pub async fn handler(
         book_subscription.role == BookRole::Admin,
         relevent_teams,
     ))
+}
+
+pub async fn closed_book(
+    _auth_session: AuthSession,
+    _book_subscription: BookSubscription,
+    _chapter: Chapter,
+) -> Result<maud::Markup, RespErr> {
+    Ok(crate::templates::chapter_closed::markup())
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -105,20 +113,25 @@ async fn validate_picks(
         .into_iter()
         .map(|event| match event {
             SubmissionEvent::SpreadGroup { event_id, spreads } => {
+                let (min_points, max_points) = (1, spreads.len() as i32);
+                let mut point_choices = vec![false; spreads.len()];
                 let (choices, wagers) =
                         spreads
                             .into_iter()
                             .map(|spread| {
-                                Ok((
-                                    serde_json::Value::String(spread.selection),
-                                    serde_json::Value::Number(
-                                        spread
+                                let amount = spread
                                             .num_points
                                             .parse::<i32>()
                                             .ctx(StatusCode::BAD_REQUEST)
-                                            .user_msg("Could not parse Spread Group Points")?
-                                            .into(),
-                                    ),
+                                            .user_msg("Could not parse Spread Group Points")?;
+
+                                if amount < min_points || amount > max_points || point_choices[amount as usize - 1] {
+                                    return Err(RespErr::new(StatusCode::BAD_REQUEST).user_msg("Points must be valid and cannot be repeated"))
+                                }
+                                point_choices[amount as usize - 1] = true;
+                                Ok((
+                                    serde_json::Value::String(spread.selection),
+                                    serde_json::Value::Number(amount.into()),
                                 ))
                             })
                             .try_fold(
@@ -134,6 +147,7 @@ async fn validate_picks(
                                     Ok::<_, RespErr>((choices, wagers))
                                 },
                             )?;
+
                 Ok((
                     event_id,
                     serde_json::Value::Array(choices),
