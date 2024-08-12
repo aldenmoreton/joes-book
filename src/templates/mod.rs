@@ -4,6 +4,7 @@ pub mod add_event;
 pub mod book_list;
 pub mod book_page;
 pub mod chapter_admin;
+pub mod chapter_closed;
 pub mod chapter_create;
 pub mod chapter_list;
 pub mod chapter_open;
@@ -49,9 +50,9 @@ pub fn base(
     }
 }
 
-pub fn authenticated<'a>(
-    username: &'a str,
-    page_title: Option<&'a str>,
+pub fn authenticated(
+    username: &str,
+    page_title: Option<&str>,
     head: Option<Markup>,
     header: Option<Markup>,
     main: Option<Markup>,

@@ -2,10 +2,11 @@
 // Simply route to the pages under them
 use auth::{authz, BackendPgDB};
 use axum::{
+    handler::Handler,
     middleware,
     response::Html,
     routing::{get, post},
-    Router,
+    Extension, Router,
 };
 use axum_ctx::{RespErr, StatusCode};
 use axum_login::{login_required, AuthManagerLayer};
@@ -74,6 +75,43 @@ pub fn router(auth_layer: AuthManagerLayer<BackendPgDB, PostgresStore>) -> Route
         get(|| async { Html("<p>You're on the admin page</p>") }),
     );
 
+    let chapter_home_page =
+        get(
+            |auth_session: auth::AuthSession,
+             Extension(book_subscription): Extension<db::book::BookSubscription>,
+             Extension(chapter): Extension<db::chapter::Chapter>| async {
+                if chapter.is_open {
+                    chapter::page::open_book(auth_session, book_subscription, chapter).await
+                } else {
+                    chapter::page::closed_book(auth_session, book_subscription, chapter).await
+                }
+            },
+        )
+        .post(chapter::page::submit.layer(middleware::from_fn(
+            |Extension(chapter): Extension<db::chapter::Chapter>,
+             request,
+             next: middleware::Next| async move {
+                if !chapter.is_open {
+                    Err(RespErr::new(StatusCode::LOCKED)
+                        .user_msg("This book is closed. Cannot make picks."))
+                } else {
+                    Ok(next.run(request).await)
+                }
+            },
+        )))
+        .layer(middleware::from_fn(
+            |Extension(chapter): Extension<db::chapter::Chapter>,
+             Extension(book_subscription): Extension<db::book::BookSubscription>,
+             request,
+             next: middleware::Next| async move {
+                if !chapter.is_visible && book_subscription.role != db::book::BookRole::Admin {
+                    Err(RespErr::new(StatusCode::LOCKED))
+                } else {
+                    Ok(next.run(request).await)
+                }
+            },
+        ));
+
     let chapter_routes = Router::new()
         .nest(
             "/:chapter_id/admin/",
@@ -84,10 +122,7 @@ pub fn router(auth_layer: AuthManagerLayer<BackendPgDB, PostgresStore>) -> Route
                 .route("/visible", post(chapter::admin::visible)),
         )
         .route_layer(middleware::from_fn(book::mw::require_admin))
-        .route(
-            "/:chapter_id/",
-            get(chapter::page::handler).post(chapter::page::submit),
-        )
+        .route("/:chapter_id/", chapter_home_page)
         .route_layer(middleware::from_fn(chapter::mw::chapter_ext))
         .nest(
             "/create/",

@@ -3,8 +3,6 @@ pub mod create;
 pub mod page;
 
 pub mod mw {
-    use std::collections::HashMap;
-
     use axum::{
         body::Body,
         extract::{Path, Request},
@@ -20,18 +18,19 @@ pub mod mw {
         AppError,
     };
 
+    #[derive(serde::Deserialize)]
+    pub struct BookIdPath {
+        book_id: i32,
+    }
+
     pub async fn require_member(
-        Path(path): Path<HashMap<String, String>>,
+        Path(BookIdPath { book_id }): Path<BookIdPath>,
         auth_session: AuthSession,
         mut request: Request,
         next: Next,
     ) -> Result<Response<Body>, RespErr> {
         let user = auth_session.user.ok_or(AppError::BackendUser)?;
         let BackendPgDB(pool) = auth_session.backend;
-
-        let Some(Ok(book_id)) = path.get("book_id").map(|id| id.parse()) else {
-            return Err(RespErr::new(StatusCode::BAD_REQUEST).user_msg("Could not find Book ID"));
-        };
 
         let book_subscription = match get_book(user.id, book_id, &pool).await {
             Ok(BookSubscription {
