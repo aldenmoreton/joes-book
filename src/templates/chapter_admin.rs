@@ -23,7 +23,11 @@ pub fn markup(
         }),
         None,
         Some(maud::html! {
-            h3 class="h-3 text-orange-600" { "Admin" }
+            a href = ".." {
+                button class="px-2 py-2 mt-1 font-bold text-white bg-orange-600 rounded hover:bg-orange-700" {
+                            "Return to Chapter"
+                }
+            }
             div class="flex flex-col items-center justify-center" {
                 div class="self-center justify-center p-2 m-3 bg-white border border-gray-300 rounded-lg shadow-md w-fit" {
                     (chapter_open_button(chapter.is_open))
@@ -48,7 +52,9 @@ pub fn markup(
                         }
                     }
 
-                    button type="submit" { "Submit" }
+                    button type="submit" class="px-2 py-2 mt-1 mb-5 font-bold text-white bg-green-600 rounded hover:bg-green-700" {
+                        "Submit"
+                    }
                 }
             }
 
