@@ -67,12 +67,18 @@ impl BackendPgDB {
             username,
             password_hashed
         )
-        .fetch_one(&self.0)
+        .fetch_optional(&self.0)
         .await
-        .map(|result| BackendUser {
-            id: result.id,
-            username: result.username,
-            pw_hash: result.password,
+        .and_then(|result| {
+            result
+                .map(|record| {
+                    Ok(BackendUser {
+                        id: record.id,
+                        username: record.username,
+                        pw_hash: record.password,
+                    })
+                })
+                .unwrap_or(Err(sqlx::Error::RowNotFound))
         })
     }
 }

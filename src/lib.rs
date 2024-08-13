@@ -175,16 +175,13 @@ pub fn router(auth_layer: AuthManagerLayer<BackendPgDB, PostgresStore>) -> Route
         // ------------------^ Logged in Routes ^------------------
         .route_layer(login_required!(BackendPgDB, login_url = "/login"))
         .nest_service("/public", ServeDir::new("public"))
-        .nest(
+        .route(
             "/signup",
-            Router::new().route("/", get(|| async { "No signup page yet" })),
+            get(crate::signup::signup_page).post(crate::signup::signup_form),
         )
-        .nest(
+        .route(
             "/login",
-            Router::new().route(
-                "/",
-                get(crate::login::login_page).post(crate::login::login_form),
-            ),
+            get(crate::login::login_page).post(crate::login::login_form),
         )
         .layer(auth_layer)
         .fallback(get(|| async {

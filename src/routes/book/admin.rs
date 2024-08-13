@@ -64,7 +64,7 @@ pub async fn handler(
                                 input
                                     name="username"
                                     hx-get="user-search"
-                                    hx-trigger="input changed delay:500ms, search"
+                                    hx-trigger="input changed delay:200ms, search"
                                     hx-target="next ul"
                                     type="search"
                                     autocomplete="off"
