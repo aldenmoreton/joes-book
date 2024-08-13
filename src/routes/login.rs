@@ -29,13 +29,13 @@ pub async fn login_form(
     mut auth_session: AuthSession,
     headers: HeaderMap,
     Form(creds): Form<LoginCreds>,
-) -> Result<Redirect, RespErr> {
+) -> Result<impl IntoResponse, RespErr> {
     let auth = auth_session.authenticate(creds).await;
 
     let user = match auth {
         Ok(Some(user)) => user,
         Ok(None) => {
-            return Err(RespErr::new(StatusCode::UNAUTHORIZED).user_msg("Invalid Credentials"))
+            return Ok(maud::html!(p { "Invalid Creds" }).into_response());
         }
         Err(_) => {
             return Err(RespErr::new(StatusCode::INTERNAL_SERVER_ERROR).user_msg("Error logging in"))
@@ -53,5 +53,5 @@ pub async fn login_form(
         .map(|query: RedirectQuery| query.0.next)
         .unwrap_or("/".to_string());
 
-    Ok(Redirect::to(&desired_redirect))
+    Ok([("HX-Location", desired_redirect)].into_response())
 }
