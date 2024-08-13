@@ -3,7 +3,6 @@ const myenc = {
 		insertMode: "last"
 	},
 	parseForm: (fieldLevel) => {
-		console.log(fieldLevel);
 		const nestedParameters = {};
 
 		parseLevel(fieldLevel, nestedParameters);
