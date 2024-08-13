@@ -1,4 +1,4 @@
-use axum::{Extension, Form};
+use axum::{extract::Query, Extension, Form};
 use axum_ctx::RespErr;
 
 use crate::{auth::AuthSession, db::book::BookSubscription, templates::authenticated, AppError};
@@ -50,10 +50,10 @@ pub async fn handler(
                         }
 
                         @for user in users {
-                            tr class="bg-white" {
+                            tr class="bg-white" hx-target="this" {
                                 td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap" { (user.username) }
                                 td class="px-6 py-4" { (user.role) }
-                                td class="px-6 py-4" { button { "Remove" } }
+                                td class="px-6 py-4" { button hx-post="remove-user" hx-vals={r#"{"user_id":""#(user.id)r#""}"#} class="px-2 py-2 mt-1 font-bold text-white bg-orange-600 rounded hover:bg-orange-700" { "Remove" } }
                             }
                         }
                     }
@@ -83,7 +83,7 @@ pub async fn handler(
 
 #[derive(serde::Deserialize)]
 pub struct AddUserParams {
-    user_id: String,
+    user_id: i32,
     username: String,
 }
 
@@ -94,10 +94,10 @@ pub async fn add_user(
 ) -> Result<maud::Markup, RespErr> {
     let pool = auth_session.backend.0;
 
-    let user_id = user_params
-        .user_id
-        .parse::<i32>()
-        .map_err(|_| AppError::Parse("Could not parse user id"))?;
+    // let user_id = user_params
+    //     .user_id
+    //     .parse::<i32>()
+    //     .map_err(|_| AppError::Parse("Could not parse user id"))?;
 
     let res = sqlx::query!(
         "
@@ -107,7 +107,7 @@ pub async fn add_user(
             DO NOTHING
             RETURNING user_id
         ",
-        user_id,
+        user_params.user_id,
         book_subscription.book_id
     )
     .fetch_optional(&pool)
@@ -119,10 +119,91 @@ pub async fn add_user(
     }
 
     Ok(maud::html! {
-        tr class="bg-white" {
+        tr class="bg-white" hx-target="this" {
             td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap" { (user_params.username) }
             td class="px-6 py-4" { "participant" }
-            td class="px-6 py-4" { button { "Remove" } }
+            td class="px-6 py-4" { button hx-post="remove-user" hx-vals={r#"{"user_id":""#(user_params.user_id)r#""}"#} class="px-2 py-2 mt-1 font-bold text-white bg-orange-600 rounded hover:bg-orange-700" { "Remove" } }
         }
     })
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct UserSearchParams {
+    username: String,
+}
+
+pub async fn search_user(
+    auth_session: AuthSession,
+    Query(UserSearchParams {
+        username: search_username,
+    }): Query<UserSearchParams>,
+    Extension(book_subscription): Extension<BookSubscription>,
+) -> Result<maud::Markup, RespErr> {
+    let pool = auth_session.backend.0;
+
+    if search_username.is_empty() {
+        return Ok(maud::html!());
+    }
+
+    let matching_users = sqlx::query!(
+        "
+            SELECT u.id, u.username
+            FROM users AS u
+            LEFT JOIN (
+                SELECT *
+                FROM subscriptions
+                WHERE subscriptions.book_id = $2
+            ) AS s ON u.id = s.user_id
+            WHERE LOWER(u.username) LIKE '%' || LOWER($1) || '%' AND s.user_id IS NULL
+            ",
+        search_username,
+        book_subscription.book_id
+    )
+    .fetch_all(&pool)
+    .await
+    .map_err(AppError::from)?;
+
+    Ok(maud::html!(
+        @for user in matching_users {
+            li {
+                button
+                    name="username"
+                    value=(user.username)
+                    hx-post={"/book/"(book_subscription.book_id)"/admin/add-user"}
+                    hx-vals={r#"{"user_id":""#(user.id)r#""}"#}
+                    hx-target="previous tbody"
+                    hx-on-click=r#"document.querySelector('input[type="search"]').value=""; document.querySelector('ul').innerHTML="";"#
+                    hx-swap="beforeend" {
+                        (user.username)
+                    }
+            }
+        }
+    ))
+}
+
+#[derive(serde::Deserialize)]
+pub struct RemoveUserForm {
+    user_id: i32,
+}
+
+pub async fn remove_user(
+    auth_session: AuthSession,
+    book: Extension<BookSubscription>,
+    form: Form<RemoveUserForm>,
+) -> Result<(), RespErr> {
+    let pool = auth_session.backend.0;
+
+    sqlx::query!(
+        "
+        DELETE FROM subscriptions
+        WHERE user_id = $1 AND book_id = $2
+        ",
+        form.user_id,
+        book.book_id
+    )
+    .execute(&pool)
+    .await
+    .map_err(AppError::from)?;
+
+    Ok(())
 }

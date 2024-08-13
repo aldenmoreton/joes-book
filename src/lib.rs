@@ -139,8 +139,9 @@ pub fn router(auth_layer: AuthManagerLayer<BackendPgDB, PostgresStore>) -> Route
             "/:book_id/admin/",
             Router::new()
                 .route("/", get(book::admin::handler))
-                .route("/user-search", get(search::user))
+                .route("/user-search", get(book::admin::search_user))
                 .route("/add-user", post(book::admin::add_user))
+                .route("/remove-user", post(book::admin::remove_user))
                 .route_layer(middleware::from_fn(book::mw::require_admin)),
         )
         .route("/:book_id/", get(book::page::handler))
