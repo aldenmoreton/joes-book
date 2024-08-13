@@ -94,17 +94,19 @@ impl AuthnBackend for BackendPgDB {
             creds.username
         )
         .fetch_optional(&self.0)
-        .await;
+        .await?;
 
-        match res {
-            Ok(Some(record)) => Ok(Some(BackendUser {
-                id: record.id,
-                username: record.username,
-                pw_hash: record.password,
-            })),
-            Ok(None) => Ok(None),
-            Err(e) => Err(e),
-        }
+        let Some(user) = res else { return Ok(None) };
+
+        if !bcrypt::verify(creds.password, &user.password).unwrap() {
+            return Ok(None);
+        };
+
+        Ok(Some(BackendUser {
+            id: user.id,
+            username: user.username,
+            pw_hash: user.password,
+        }))
     }
 
     async fn get_user(&self, user_id: &UserId<Self>) -> Result<Option<Self::User>, Self::Error> {
