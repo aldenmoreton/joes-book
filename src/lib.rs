@@ -16,7 +16,7 @@ use tower_sessions::PostgresStore;
 use crate::routes::*;
 
 pub mod auth;
-pub mod team_search;
+pub mod search;
 
 pub mod routes {
     pub mod book;
@@ -38,18 +38,18 @@ pub mod db {
 pub mod templates;
 
 #[derive(Debug, thiserror::Error)]
-pub enum AppError {
+pub enum AppError<'a> {
     #[error("No Backend User")]
     BackendUser,
     #[error("Unauthorized: {0}")]
     Unauthorized(String),
     #[error("Parsing: {0}")]
-    Parse(String),
+    Parse(&'a str),
     #[error("Database Error: {0}")]
     Sqlx(#[from] sqlx::Error),
 }
 
-impl From<AppError> for RespErr {
+impl From<AppError<'_>> for RespErr {
     fn from(value: AppError) -> Self {
         match &value {
             AppError::BackendUser => RespErr::new(StatusCode::INTERNAL_SERVER_ERROR)
@@ -139,6 +139,8 @@ pub fn router(auth_layer: AuthManagerLayer<BackendPgDB, PostgresStore>) -> Route
             "/:book_id/admin/",
             Router::new()
                 .route("/", get(book::admin::handler))
+                .route("/user-search", get(search::user))
+                .route("/add-user", post(book::admin::add_user))
                 .route_layer(middleware::from_fn(book::mw::require_admin)),
         )
         .route("/:book_id/", get(book::page::handler))
@@ -167,7 +169,7 @@ pub fn router(auth_layer: AuthManagerLayer<BackendPgDB, PostgresStore>) -> Route
         // v Home Routes v
         .merge(home_routes)
         // ^ Home Routes ^
-        .route("/team-search", get(team_search::handler))
+        .route("/team-search", get(search::team))
         .nest_service("/assets", ServeDir::new("assets"))
         // ------------------^ Logged in Routes ^------------------
         .route_layer(login_required!(BackendPgDB, login_url = "/login"))

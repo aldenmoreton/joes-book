@@ -6,7 +6,7 @@ pub fn markup(books: Vec<BookSubscription>) -> maud::Markup {
             ul class="items-center self-center justify-center" {
                 @if books.is_empty() {
                     li class="p-3 h-30 w-60" {
-                        p { "Bo Books Yet!" }
+                        p { "No Books Yet!" }
                     }
                 }
                 @for book in books {
