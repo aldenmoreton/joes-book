@@ -1,5 +1,7 @@
+use std::collections::HashMap;
+
 use crate::db::book::BookRole;
-use crate::db::event::get_picks;
+use crate::db::event::{get_events, get_picks, Event, EventContent};
 use crate::db::team::get_chapter_teams;
 
 use crate::{
@@ -13,8 +15,8 @@ use axum_ctx::{RespErr, RespErrCtx, RespErrExt, StatusCode};
 
 pub async fn open_book(
     auth_session: AuthSession,
-    book_subscription: BookSubscription,
-    chapter: Chapter,
+    book_subscription: &BookSubscription,
+    chapter: &Chapter,
 ) -> Result<maud::Markup, RespErr> {
     let user = auth_session.user.ok_or(AppError::BackendUser)?;
     let BackendPgDB(pool) = auth_session.backend;
@@ -27,19 +29,11 @@ pub async fn open_book(
 
     Ok(crate::templates::chapter_open::markup(
         &user.username,
-        chapter,
+        &chapter,
         user_picks,
         book_subscription.role == BookRole::Admin,
         relevent_teams,
     ))
-}
-
-pub async fn closed_book(
-    _auth_session: AuthSession,
-    _book_subscription: BookSubscription,
-    _chapter: Chapter,
-) -> Result<maud::Markup, RespErr> {
-    Ok(crate::templates::chapter_closed::markup())
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -204,4 +198,73 @@ async fn validate_picks(
     }
 
     Ok((event_ids, choices, wagers))
+}
+
+pub async fn closed_book(
+    auth_session: AuthSession,
+    book_subscription: &BookSubscription,
+    chapter: &Chapter,
+) -> Result<maud::Markup, RespErr> {
+    let pool = auth_session.backend.0;
+
+    let events = get_events(chapter.chapter_id, &pool)
+        .await
+        .map_err(AppError::from)?;
+
+    let relevent_teams = get_chapter_teams(chapter.chapter_id, &pool)
+        .await
+        .map_err(AppError::from)?;
+
+    Ok(crate::templates::authenticated(
+        "username",
+        None,
+        Some(maud::html!(
+            link rel="stylesheet" id="tailwind" href="/public/styles/chapter-table.css";
+        )),
+        None,
+        Some(maud::html! {
+            @if book_subscription.role == BookRole::Admin {
+                a href="admin/" {
+                    button class="px-2 py-2 mt-1 font-bold text-white bg-orange-600 rounded hover:bg-orange-700" {
+                        "Go to Admin Page"
+                    }
+                }
+
+                div class="h-screen overflow-auto border border-black" {
+                    table class="picktable" {
+                        (table_header(&events, &relevent_teams))
+                        (table_rows())
+                    }
+                }
+            }
+        }),
+        None,
+    ))
+}
+
+fn table_header(
+    events: &[Event],
+    relevent_teams: &HashMap<i32, (String, Option<String>)>,
+) -> maud::Markup {
+    maud::html!(
+        thead {
+            th {}
+            @for event in events {
+                @match &event.contents.0 {
+                    EventContent::SpreadGroup(group) => {
+                        @for spread in group {
+                            th {
+                                p { (relevent_teams[&spread.away_id].0) " " (format!("({:+})", -1. * spread.home_spread)) " at " (relevent_teams[&spread.home_id].0)}
+                            }
+                        }
+                    },
+                    EventContent::UserInput(input) => { th { p { (input.title) } } }
+                }
+            }
+        }
+    )
+}
+
+fn table_rows() -> maud::Markup {
+    maud::html!()
 }

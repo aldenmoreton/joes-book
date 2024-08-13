@@ -4,7 +4,6 @@ pub mod add_event;
 pub mod book_list;
 pub mod book_page;
 pub mod chapter_admin;
-pub mod chapter_closed;
 pub mod chapter_create;
 pub mod chapter_list;
 pub mod chapter_open;
@@ -28,7 +27,7 @@ pub fn base(
                 title {(page_title.unwrap_or("Joe's Book"))}
                 link rel="icon" type="image/ico" href="/public/favicon.ico";
                 link rel="mainfest" href="/public/manifest.json";
-                link rel="stylesheet" id="tailwind" href="/public/output.css";
+                link rel="stylesheet" id="tailwind" href="/public/styles/bookie.css";
                 script src="/public/js/htmx.js" {}
                 (head.unwrap_or_default())
             }
