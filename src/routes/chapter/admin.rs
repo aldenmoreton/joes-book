@@ -1,6 +1,6 @@
 use std::{borrow::BorrowMut, collections::HashMap};
 
-use axum::{extract::Query, Extension, Json};
+use axum::{extract::Query, response::Html, Extension, Json};
 use axum_ctx::{RespErr, RespErrCtx, RespErrExt, StatusCode};
 
 use crate::{
@@ -66,7 +66,7 @@ pub async fn post(
     Json(AnswerSubmission {
         events: event_submissions,
     }): Json<AnswerSubmission>,
-) -> Result<maud::Markup, RespErr> {
+) -> Result<Html<&'static str>, RespErr> {
     let pool = auth_session.backend.0;
 
     let events = get_events(chapter.chapter_id, &pool)
@@ -198,13 +198,20 @@ pub async fn post(
             AND PICKS.USER_ID = CALCULATIONS.USER_ID
         ",
         chapter.chapter_id
-    ).execute(&mut *transaction).await.map_err(AppError::from)?;
+    ).execute(&mut *transaction)
+    .await
+    .map_err(AppError::from)?;
 
     transaction.commit().await.map_err(AppError::from)?;
 
-    Ok(maud::html! {
-        p { "Upload Successful" }
-    })
+    Ok(Html(
+        "
+        <script>
+            alertify.set('notifier','position', 'top-center');
+            alertify.success('Answers Saved', 2);
+        </script>
+        ",
+    ))
 }
 
 #[derive(Debug, serde::Deserialize)]

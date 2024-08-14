@@ -1,5 +1,5 @@
 use axum::{
-    response::{IntoResponse, Redirect},
+    response::{Html, IntoResponse, Redirect},
     Form,
 };
 use axum_ctx::{RespErr, RespErrCtx, RespErrExt, StatusCode};
@@ -13,12 +13,16 @@ pub async fn signup_page(auth_session: AuthSession) -> impl IntoResponse {
 
     base(
 		Some("Sign Up"),
-		None,
+		Some(maud::html!(
+            script src="/public/js/alertify.js" {}
+            link rel="stylesheet" href="/public/styles/alertify-main.css";
+            link rel="stylesheet" href="/public/styles/alertify-theme.css";
+        )),
 		None,
 		Some(maud::html!(
 		div class="flex flex-col items-center justify-center pt-10" {
 			div class="w-full max-w-xs" {
-				form hx-post="/signup" hx-target="next p" class="px-8 pt-6 pb-8 mb-4 bg-white rounded shadow-md" {
+				form hx-post="/signup" hx-target="next script" hx-swap="outerHTML" class="px-8 pt-6 pb-8 mb-4 bg-white rounded shadow-md" {
 					div class="mb-4" {
 						label class="block mb-2 text-sm font-bold text-gray-700" for="username" {
 							"Username"
@@ -40,7 +44,7 @@ pub async fn signup_page(auth_session: AuthSession) -> impl IntoResponse {
 						a class="text-green-500 hover:text-green-800" href="/login" { "Sign In" }
 					}
 				}
-				p {}
+				script {}
 			}
 		}
     )),
@@ -60,7 +64,14 @@ pub async fn signup_form(
     let pool = auth_session.backend.0.clone();
 
     if form.password != form.password_confirmation {
-        return Ok(maud::html!("Password does not match confirmation").into_response());
+        return Ok(Html(
+            "
+        <script>
+            alertify.set('notifier','position', 'top-center');
+            alertify.error('Password does not match confirmation', 2);
+        </script>",
+        )
+        .into_response());
     }
 
     let existing_user = sqlx::query!(
@@ -76,7 +87,14 @@ pub async fn signup_form(
     .map_err(AppError::from)?;
 
     if existing_user.is_some() {
-        return Ok(maud::html!({"Username " (form.username) " is already taken"}).into_response());
+        return Ok(Html(
+            "
+        <script>
+            alertify.set('notifier','position', 'top-center');
+            alertify.error('Username already taken', 2);
+        </script>",
+        )
+        .into_response());
     }
 
     let user = auth_session

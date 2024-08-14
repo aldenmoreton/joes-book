@@ -24,6 +24,9 @@ pub fn markup(
         Some(&chapter.title),
         Some(html! {
             script src="/public/js/my-enc.js" {}
+            script src="/public/js/alertify.js" {}
+            link rel="stylesheet" href="/public/styles/alertify-main.css";
+            link rel="stylesheet" href="/public/styles/alertify-theme.css";
         }),
         None,
         Some(html! {
@@ -35,7 +38,7 @@ pub fn markup(
                 }
             }
             div class="flex flex-col items-center justify-center" {
-                form id="submit-picks" hx-post="." hx-ext="my-enc" class="items-center self-center justify-center" {
+                form id="submit-picks" hx-post="." hx-ext="my-enc" hx-target="next script" hx-swap="outerHTML" class="items-center self-center justify-center" {
                     @if user_picks.is_empty() {
                         p { "No Events in this Chapter" }
                     }
@@ -52,6 +55,7 @@ pub fn markup(
                         "Submit"
                     }
                 }
+                script {}
             }
         }),
         None,

@@ -2,7 +2,7 @@ use axum::{
     body::Body,
     extract::Query,
     http::{HeaderMap, Response, StatusCode, Uri},
-    response::{IntoResponse, Redirect},
+    response::{Html, IntoResponse, Redirect},
     Form,
 };
 use axum_ctx::RespErr;
@@ -35,7 +35,15 @@ pub async fn login_form(
     let user = match auth {
         Ok(Some(user)) => user,
         Ok(None) => {
-            return Ok(maud::html!(p { "Invalid Creds" }).into_response());
+            return Ok(Html(
+                "
+                <script>
+                    alertify.set('notifier','position', 'bottom-center');
+                    alertify.error('Invalid Username or Password');
+                </script>
+                ",
+            )
+            .into_response());
         }
         Err(_) => {
             return Err(RespErr::new(StatusCode::INTERNAL_SERVER_ERROR).user_msg("Error logging in"))

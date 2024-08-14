@@ -20,6 +20,9 @@ pub fn markup(
         Some(&format!("{} - Admin", chapter.title)),
         Some(maud::html! {
             script src="/public/js/my-enc.js" {}
+            script src="/public/js/alertify.js" {}
+            link rel="stylesheet" href="/public/styles/alertify-main.css";
+            link rel="stylesheet" href="/public/styles/alertify-theme.css";
         }),
         None,
         Some(maud::html! {

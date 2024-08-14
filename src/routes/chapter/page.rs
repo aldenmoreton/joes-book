@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::db::book::BookRole;
-use crate::db::event::{get_events, get_picks, Event, EventContent};
+use crate::db::event::{get_events, get_picks, Event, EventContent, Pick};
 use crate::db::team::get_chapter_teams;
 
 use crate::{
@@ -10,6 +10,7 @@ use crate::{
     AppError,
 };
 use axum::http::Response;
+use axum::response::Html;
 use axum::{response::IntoResponse, Extension, Json};
 use axum_ctx::{RespErr, RespErrCtx, RespErrExt, StatusCode};
 
@@ -69,7 +70,7 @@ pub async fn submit(
     auth_session: AuthSession,
     Extension(chapter): Extension<Chapter>,
     Json(picks): Json<PickSubmission>,
-) -> Result<Response<axum::body::Body>, RespErr> {
+) -> Result<Html<&'static str>, RespErr> {
     let pool = auth_session.backend.0;
     let user_id = auth_session.user.ok_or(AppError::BackendUser)?.id;
 
@@ -96,7 +97,14 @@ pub async fn submit(
     .await
     .map_err(AppError::from)?;
 
-    Ok([("HX-Refresh", "true")].into_response())
+    Ok(Html(
+        "
+        <script>
+            alertify.set('notifier','position', 'top-center');
+            alertify.success('Picks Saved', 2);
+        </script>
+        ",
+    ))
 }
 
 async fn validate_picks(
@@ -233,7 +241,7 @@ pub async fn closed_book(
                 div class="h-screen overflow-auto border border-black" {
                     table class="picktable" {
                         (table_header(&events, &relevent_teams))
-                        (table_rows())
+                        // (table_rows())
                     }
                 }
             }
@@ -265,6 +273,25 @@ fn table_header(
     )
 }
 
-fn table_rows() -> maud::Markup {
-    maud::html!()
+fn table_rows(
+    events: &[Event],
+    picks_by_user: &[Vec<Pick>],
+    relevent_teams: &HashMap<i32, (String, Option<String>)>,
+) -> maud::Markup {
+    maud::html!(
+        tbody {
+            @for (i, user_picks) in picks_by_user.iter().enumerate() {
+                tr {
+                    @for pick in user_picks {
+                        td {
+                            @match &events[i].contents.0 {
+                                EventContent::SpreadGroup(group) => "",
+                                EventContent::UserInput(input) => ""
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    )
 }
