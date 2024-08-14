@@ -48,7 +48,7 @@ pub struct Pick {
     pub event_id: i32,
     pub wager: serde_json::Value,
     pub choice: serde_json::Value,
-    pub correct: Option<bool>,
+    pub points: Option<i32>,
 }
 
 pub type UserPick = (Event, Option<Pick>);
@@ -88,7 +88,7 @@ pub async fn get_picks(
                     p.user_id AS "user_id?",
                     p.choice AS "choice?",
                     p.wager AS "wager?",
-                    p.correct
+                    p.points
             FROM EVENTS AS e
             LEFT JOIN (
                 SELECT *
@@ -124,7 +124,7 @@ pub async fn get_picks(
                         event_id: row.event_id,
                         wager,
                         choice,
-                        correct: row.correct,
+                        points: row.points,
                     })
                 } else {
                     None

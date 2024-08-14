@@ -81,6 +81,7 @@ pub async fn post(
         .user_msg("Could not parse event id")?;
 
     let (ids, contents) = events
+        .clone()
         .into_iter()
         .map(|mut event| {
             let submission = event_submissions.remove(&event.id).ok_or(
@@ -123,19 +124,83 @@ pub async fn post(
             },
         )?;
 
+    let mut transaction = pool.begin().await.map_err(AppError::from)?;
+
     sqlx::query!(
         r#"
         UPDATE events AS e
         SET contents = c.contents
         FROM UNNEST($1::INT[], $2::JSONB[]) AS c(id, contents)
         WHERE e.id = c.id
-    "#,
+        "#,
         &ids,
         contents.as_slice()
     )
-    .execute(&pool)
+    .execute(&mut *transaction)
     .await
     .map_err(AppError::from)?;
+
+    sqlx::query!(
+        "
+        UPDATE PICKS
+        SET
+            POINTS = CALCULATIONS.POINTS_AWARDED
+        FROM
+            (
+                SELECT
+                    EVENT_ID,
+                    USER_ID,
+                    SUM(POINTS_AWARDED) AS POINTS_AWARDED
+                FROM
+                    (
+                        SELECT
+                            EVENT_ID,
+                            USER_ID,
+                            CASE
+                                WHEN CORRECT THEN WAGER
+                                ELSE 0
+                            END AS POINTS_AWARDED
+                        FROM
+                            (
+                                SELECT
+                                    E.ID AS EVENT_ID,
+                                    P.USER_ID,
+                                    JSONB_ARRAY_ELEMENTS(P.WAGER)::INT AS WAGER,
+                                    JSONB_ARRAY_ELEMENTS(E.CONTENTS -> 'spread_group') ->> 'answer' = JSONB_ARRAY_ELEMENTS(P.CHOICE) #>> '{}' AS CORRECT
+                                FROM
+                                    EVENTS AS E
+                                    JOIN PICKS AS P ON E.ID = P.EVENT_ID
+                                WHERE
+                                    E.EVENT_TYPE = 'spread_group'
+                                    AND E.CHAPTER_ID = $1
+                            )
+                    )
+                GROUP BY
+                    EVENT_ID,
+                    USER_ID
+                UNION
+                SELECT
+                    E.ID AS EVENT_ID,
+                    P.USER_ID,
+                    CASE
+                        WHEN E.CONTENTS -> 'user_input' -> 'acceptable_answers' @> P.CHOICE THEN P.WAGER::INTEGER
+                        ELSE 0
+                    END AS POINTS_AWARDED
+                FROM
+                    EVENTS AS E
+                    JOIN PICKS AS P ON E.ID = P.EVENT_ID
+                WHERE
+                    E.EVENT_TYPE = 'user_input'
+                    AND E.CHAPTER_ID = $1
+            ) AS CALCULATIONS
+        WHERE
+            PICKS.EVENT_ID = CALCULATIONS.EVENT_ID
+            AND PICKS.USER_ID = CALCULATIONS.USER_ID
+        ",
+        chapter.chapter_id
+    ).execute(&mut *transaction).await.map_err(AppError::from)?;
+
+    transaction.commit().await.map_err(AppError::from)?;
 
     Ok(maud::html! {
         p { "Upload Successful" }
