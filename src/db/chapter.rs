@@ -1,5 +1,7 @@
 use sqlx::PgPool;
 
+use crate::AppError;
+
 #[derive(Debug, Clone)]
 pub struct Chapter {
     pub chapter_id: i32,
@@ -33,4 +35,39 @@ pub async fn get_chapter(chapter_id: i32, pool: &PgPool) -> Result<Chapter, sqlx
     )
     .fetch_one(pool)
     .await
+}
+
+pub struct ChapterUser {
+    pub user_id: i32,
+    pub username: String,
+    pub total_points: i32,
+}
+
+pub async fn get_chapter_users(
+    chapter_id: i32,
+    pool: &PgPool,
+) -> Result<Vec<ChapterUser>, AppError> {
+    sqlx::query_as!(
+        ChapterUser,
+        r#"
+        SELECT user_id, username, COALESCE(total_points, 0)::INT as "total_points!"
+        FROM (SELECT
+            USERS.ID AS user_id,
+            USERS.USERNAME,
+            SUM(PICKS.POINTS) AS TOTAL_POINTS
+        FROM
+            USERS
+            JOIN PICKS ON USERS.ID = PICKS.USER_ID
+        WHERE
+            PICKS.CHAPTER_ID = $1
+        GROUP BY
+            USERS.ID,
+            USERS.USERNAME)
+        ORDER BY total_points
+        "#,
+        chapter_id
+    )
+    .fetch_all(pool)
+    .await
+    .map_err(AppError::from)
 }

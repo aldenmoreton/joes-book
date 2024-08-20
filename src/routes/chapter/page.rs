@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
-use crate::db::book::{get_book_users, BookRole};
+use crate::db::book::BookRole;
+use crate::db::chapter::{get_chapter_users, ChapterUser};
 use crate::db::event::{
     get_chapter_picks, get_events, get_picks, ChapterPick, ChapterPickHash, Event, EventContent,
 };
@@ -225,7 +226,7 @@ pub async fn closed_book(
         .await
         .map_err(AppError::from)?;
 
-    let users = get_book_users(chapter.book_id, &pool).await?;
+    let users = get_chapter_users(chapter.chapter_id, &pool).await?;
 
     let user_picks = get_chapter_picks(chapter.chapter_id, &pool).await?;
 
@@ -281,16 +282,19 @@ fn table_header(
 
 fn table_rows(
     events: &[Event],
-    users: &[(i32, String)],
+    users: &[ChapterUser],
     picks_by_user: &HashMap<ChapterPickHash, ChapterPick>,
     relevent_teams: &HashMap<i32, (String, Option<String>)>,
 ) -> maud::Markup {
     maud::html!(
         tbody {
             // Each user
-            @for (user_id, username) in users {
+            @for ChapterUser { user_id, username, total_points } in users {
                 tr {
-                    td { p {(username)}}
+                    td {
+                        p {(username)}
+                        p {(total_points) " point" (if *total_points != 1 {"s"} else {""})}
+                    }
                     // Each event
                     @for event in events {
                         // Event type
