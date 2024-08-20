@@ -3,7 +3,7 @@ use axum_login::{
     AuthManagerLayerBuilder,
 };
 use joes_book::{auth::BackendPgDB, router};
-use sqlx::PgPool;
+use sqlx::{postgres::PgPoolOptions, PgPool};
 
 use tower_sessions::PostgresStore;
 
@@ -13,7 +13,15 @@ pub struct AppState {
 }
 
 #[shuttle_runtime::main]
-pub async fn shuttle(#[shuttle_shared_db::Postgres] pool: PgPool) -> shuttle_axum::ShuttleAxum {
+pub async fn shuttle(
+    #[shuttle_shared_db::Postgres(local_uri = "postgresql://postgres:postgres@localhost/new")]
+    database_url: String,
+) -> shuttle_axum::ShuttleAxum {
+    let pool = PgPoolOptions::new()
+        .connect(&database_url)
+        .await
+        .expect("Could not make pool.");
+
     let backend = BackendPgDB(pool.clone());
     backend.init_admin().await.ok();
 
@@ -32,7 +40,6 @@ pub async fn shuttle(#[shuttle_shared_db::Postgres] pool: PgPool) -> shuttle_axu
 
 // #[tokio::main]
 // async fn main() {
-// use postgres::PgPoolOptions
 //     dotenvy::dotenv().ok();
 //     let database_url = std::env::var("DATABASE_URL").expect("Unable to read DATABASE_URL ENV");
 
