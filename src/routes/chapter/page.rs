@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
-use crate::db::book::BookRole;
-use crate::db::event::{get_events, get_picks, Event, EventContent, Pick};
+use crate::db::book::{get_book_users, BookRole};
+use crate::db::event::{
+    get_chapter_picks, get_events, get_picks, ChapterPick, ChapterPickHash, Event, EventContent,
+};
 use crate::db::team::get_chapter_teams;
 
 use crate::{
@@ -9,9 +11,9 @@ use crate::{
     db::{book::BookSubscription, chapter::Chapter},
     AppError,
 };
-use axum::http::Response;
+
 use axum::response::Html;
-use axum::{response::IntoResponse, Extension, Json};
+use axum::{Extension, Json};
 use axum_ctx::{RespErr, RespErrCtx, RespErrExt, StatusCode};
 
 pub async fn open_book(
@@ -223,6 +225,10 @@ pub async fn closed_book(
         .await
         .map_err(AppError::from)?;
 
+    let users = get_book_users(chapter.book_id, &pool).await?;
+
+    let user_picks = get_chapter_picks(chapter.chapter_id, &pool).await?;
+
     Ok(crate::templates::authenticated(
         "username",
         None,
@@ -241,7 +247,7 @@ pub async fn closed_book(
                 div class="h-screen overflow-auto border border-black" {
                     table class="picktable" {
                         (table_header(&events, &relevent_teams))
-                        // (table_rows())
+                        (table_rows(&events, &users, &user_picks, &relevent_teams))
                     }
                 }
             }
@@ -275,20 +281,69 @@ fn table_header(
 
 fn table_rows(
     events: &[Event],
-    picks_by_user: &[Vec<Pick>],
+    users: &[(i32, String)],
+    picks_by_user: &HashMap<ChapterPickHash, ChapterPick>,
     relevent_teams: &HashMap<i32, (String, Option<String>)>,
 ) -> maud::Markup {
     maud::html!(
         tbody {
-            @for (i, user_picks) in picks_by_user.iter().enumerate() {
+            // Each user
+            @for (user_id, username) in users {
                 tr {
-                    @for pick in user_picks {
-                        td {
-                            @match &events[i].contents.0 {
-                                EventContent::SpreadGroup(group) => "",
-                                EventContent::UserInput(input) => ""
+                    td { p {(username)}}
+                    // Each event
+                    @for event in events {
+                        // Event type
+                        @match (&event.contents.0, picks_by_user.get(&ChapterPickHash{event_id: event.id, user_id: *user_id})) {
+                            (EventContent::SpreadGroup(spreads), Some(ChapterPick::SpreadGroup { choice, wager, .. })) => {
+                                @for (i, spread) in spreads.iter().enumerate() {
+                                    @let bg_color = match spread.answer.as_ref().map(|a| *a == choice[i]) {
+                                        Some(true) => "bg-green-300",
+                                        Some(false) => "bg-red-300",
+                                        None => "bg-grey-300"
+                                    };
+
+                                    @let team_id = match choice[i].as_str() {
+                                        "home" => spread.home_id,
+                                        "away" => spread.away_id,
+                                        _ => panic!()
+                                    };
+
+                                    td class={(bg_color)} {
+                                        p {(relevent_teams[&team_id].0)}
+                                        p {(wager[i])}
+                                    }
+                                }
+                            },
+                            (EventContent::SpreadGroup(spreads), None) => {
+                                @for _ in spreads {
+                                    td {
+                                        p {"Did Not Answer"}
+                                    }
+                                }
+                            },
+                            (EventContent::UserInput(_), Some(ChapterPick::UserInput { choice, wager, points })) => {
+                                @let bg_color = match points.as_ref().map(|p| p == wager) {
+                                    Some(true) => "bg-green-300",
+                                    Some(false) => "bg-red-300",
+                                    None => ""
+                                };
+
+                                td class={(bg_color)} {
+                                    p {(choice)}
+                                    p {(wager)}
+                                }
+                            }
+                            (EventContent::UserInput(_), None) => {
+                                td {
+                                    p {"Did Not Answer"}
+                                }
+                            }
+                            _ => {
+                                p { "Something Went Wrong!!!" }
                             }
                         }
+
                     }
                 }
             }

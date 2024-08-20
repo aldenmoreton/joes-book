@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
+use crate::AppError;
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum BookRole {
     Owner,
@@ -75,4 +77,22 @@ pub async fn get_book(
     )
     .fetch_one(pool)
     .await
+}
+
+pub async fn get_book_users(book_id: i32, pool: &PgPool) -> Result<Vec<(i32, String)>, AppError> {
+    Ok(sqlx::query!(
+        "
+            SELECT users.id, users.username
+            FROM users
+            JOIN subscriptions ON users.id = subscriptions.user_id
+            WHERE subscriptions.book_id = $1
+            ",
+        book_id
+    )
+    .fetch_all(pool)
+    .await
+    .map_err(AppError::from)?
+    .into_iter()
+    .map(|r| (r.id, r.username))
+    .collect())
 }

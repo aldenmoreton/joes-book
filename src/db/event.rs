@@ -1,3 +1,7 @@
+use std::collections::HashMap;
+
+use crate::AppError;
+
 use super::{spread::Spread, user_input::UserInput};
 
 use itertools::Itertools;
@@ -46,6 +50,7 @@ pub struct Pick {
     pub book_id: i32,
     pub chapter_id: i32,
     pub event_id: i32,
+    pub user_id: i32,
     pub wager: serde_json::Value,
     pub choice: serde_json::Value,
     pub points: Option<i32>,
@@ -64,7 +69,7 @@ pub async fn get_events(chapter_id: i32, pool: &PgPool) -> Result<Vec<Event>, sq
                     event_type AS "event_type: EventType"
 			FROM events
 			WHERE chapter_id = $1
-            ORDER BY event_type
+            ORDER BY event_type, id
 		"#,
         chapter_id
     )
@@ -114,14 +119,15 @@ pub async fn get_picks(
                     event_type: row.event_type,
                     contents: row.contents,
                 };
-                let pick = if let (Some(pick_id), Some(wager), Some(choice)) =
-                    (row.pick_id, row.wager, row.choice)
+                let pick = if let (Some(pick_id), Some(user_id), Some(wager), Some(choice)) =
+                    (row.pick_id, row.user_id, row.wager, row.choice)
                 {
                     Some(Pick {
                         id: pick_id,
                         book_id: row.book_id,
                         chapter_id: row.chapter_id,
                         event_id: row.event_id,
+                        user_id,
                         wager,
                         choice,
                         points: row.points,
@@ -134,4 +140,70 @@ pub async fn get_picks(
             })
             .collect_vec()
     })
+}
+
+#[derive(sqlx::FromRow)]
+pub struct ChapterPicksQuery {
+    #[sqlx(flatten)]
+    key: ChapterPickHash,
+    #[sqlx(json)]
+    contents: ChapterPick,
+}
+
+#[derive(Hash, Eq, PartialEq, sqlx::FromRow)]
+pub struct ChapterPickHash {
+    pub event_id: i32,
+    pub user_id: i32,
+}
+
+#[derive(serde::Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum ChapterPick {
+    SpreadGroup {
+        choice: Vec<String>,
+        wager: Vec<i32>,
+        points: Option<i32>,
+    },
+    UserInput {
+        choice: String,
+        wager: i32,
+        points: Option<i32>,
+    },
+}
+
+pub async fn get_chapter_picks(
+    chapter_id: i32,
+    pool: &PgPool,
+) -> Result<HashMap<ChapterPickHash, ChapterPick>, AppError> {
+    let records = sqlx::query_as::<_, ChapterPicksQuery>(
+        r#"
+            SELECT
+                EVENTS.ID AS "event_id",
+                PICKS.USER_ID,
+                JSONB_BUILD_OBJECT(
+                    'type',
+                    EVENTS.EVENT_TYPE,
+                    'choice',
+                    PICKS.CHOICE,
+                    'wager',
+                    PICKS.WAGER,
+                    'points',
+                    PICKS.POINTS
+                ) AS contents
+            FROM
+                EVENTS
+                JOIN PICKS ON EVENTS.ID = PICKS.EVENT_ID
+            WHERE
+                EVENTS.CHAPTER_ID = $1
+        "#,
+    )
+    .bind(chapter_id)
+    .fetch_all(pool)
+    .await
+    .map_err(AppError::from)?;
+
+    Ok(records
+        .into_iter()
+        .map(|record| (record.key, record.contents))
+        .collect())
 }
