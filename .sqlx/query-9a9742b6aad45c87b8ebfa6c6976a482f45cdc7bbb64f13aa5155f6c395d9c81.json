@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO picks (book_id, chapter_id, user_id, event_id, choice, wager)\n        SELECT $1 AS book_id, $2 AS chapter_id, $3 AS user_id, event_id, choice, wager\n        FROM UNNEST($4::INT[], $5::JSONB[], $6::JSONB[]) AS a(event_id, choice, wager)\n        ON CONFLICT (book_id, chapter_id, event_id, user_id)\n        DO UPDATE SET\n            choice = EXCLUDED.choice,\n            wager = EXCLUDED.wager\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4",
+        "Int4",
+        "Int4Array",
+        "JsonbArray",
+        "JsonbArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9a9742b6aad45c87b8ebfa6c6976a482f45cdc7bbb64f13aa5155f6c395d9c81"
+}

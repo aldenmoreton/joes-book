@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT a\n        FROM UNNEST($1::INT[]) AS a\n        LEFT JOIN events on a = events.id\n        WHERE events.id IS NULL\n    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "a",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4Array"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "11443d26a2288e15d674cb1b87d03c6924318aeb6a6d44f5e144232a5394347f"
+}

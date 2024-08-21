@@ -1,0 +1,93 @@
+{
+  "db_name": "PostgreSQL",
+  "query": " SELECT  e.id AS event_id,\n                    e.book_id AS book_id,\n                    e.chapter_id AS chapter_id,\n                    e.is_open AS is_open,\n                    e.event_type AS \"event_type: EventType\",\n                    e.contents AS \"contents: Json<EventContent>\",\n                    p.id AS \"pick_id?\",\n                    p.user_id AS \"user_id?\",\n                    p.choice AS \"choice?\",\n                    p.wager AS \"wager?\",\n                    p.points\n            FROM EVENTS AS e\n            LEFT JOIN (\n                SELECT *\n                FROM picks\n                WHERE user_id = $1 AND chapter_id = $2\n            ) AS p ON e.id = p.event_id\n            WHERE e.chapter_id = $2\n            ORDER BY event_type\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "event_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "book_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "chapter_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "is_open",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "event_type: EventType",
+        "type_info": {
+          "Custom": {
+            "name": "event_types",
+            "kind": {
+              "Enum": [
+                "spread_group",
+                "user_input"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "contents: Json<EventContent>",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 6,
+        "name": "pick_id?",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "user_id?",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "choice?",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 9,
+        "name": "wager?",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 10,
+        "name": "points",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "303268e0eb5af389df218dc3f7628c4aa1e6520afa32293d060ac0f7d8f2d597"
+}

@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\tSELECT id AS chapter_id, book_id, is_open, title, is_visible\n\t\t\tFROM chapters\n\t\t\tWHERE book_id = $1\n\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "chapter_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "book_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "is_open",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "is_visible",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "ad40f7601ffd909e1ce8016d0b2644fcfb3d642a7ca5921a559cf767c3081c01"
+}

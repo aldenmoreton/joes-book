@@ -16,8 +16,8 @@ serde = {version = "1.0.195", features = ["derive"] }
 serde_json = { version = "1.0.113", features = ["raw_value"] }
 shuttle-axum = "0.47.0"
 shuttle-runtime = "0.47.0"
-shuttle-shared-db = { version = "0.47.0", features = ["postgres"] }
-sqlx = { version = "0.7.3", features = ["runtime-tokio-rustls", "postgres", "json"] }
+shuttle-shared-db = { version = "0.47.0", features = ["postgres", "sqlx"] }
+sqlx = { version = "0.7.3", features = ["runtime-tokio-rustls", "postgres", "json", "macros"] }
 thiserror = "1.0.58"
 tokio = { version = "1.35.1", features = ["full"] }
 tower-http = { version = "0.5.1", features = ["fs"] }

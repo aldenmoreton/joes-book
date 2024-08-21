@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\tSELECT b.id AS book_id, b.name, s.role, s.user_id\n\t\t\tFROM books AS b\n\t\t\tINNER JOIN subscriptions AS s ON s.book_id=b.id\n\t\t\tWHERE s.user_id = $1 AND b.id = $2\n\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "book_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "role",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "user_id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "00c8c76031328110f1fbe8ab091041bed2be0af029221d5aa162d269fc5712ce"
+}

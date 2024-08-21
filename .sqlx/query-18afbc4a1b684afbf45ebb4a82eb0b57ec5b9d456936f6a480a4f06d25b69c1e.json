@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO books (name)\n            VALUES ($1)\n            ON CONFLICT DO NOTHING\n            RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "18afbc4a1b684afbf45ebb4a82eb0b57ec5b9d456936f6a480a4f06d25b69c1e"
+}

@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT u.id, u.username, s.role\n        FROM users AS u\n        JOIN subscriptions AS s ON u.id=s.user_id\n        JOIN books AS b on s.book_id=b.id\n        WHERE b.id = $1 AND u.id != $2\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "username",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "role",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "cec20bf66501d7d8d0888670e4945bbe6d2c10b8b05f56f7c8aafa95639853c4"
+}

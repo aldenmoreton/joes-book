@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\tSELECT *\n\t\t\tFROM teams\n\t\t\tWHERE LOWER(name) LIKE '%' || LOWER($1) || '%'\n            ORDER BY name\n            LIMIT $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "logo",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "50ab15e4e951c18e7b4f82760185cb34a6e9d9dfefb39f7114f764d57b26f7cf"
+}
