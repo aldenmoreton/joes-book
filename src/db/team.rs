@@ -20,9 +20,11 @@ pub async fn get_chapter_teams(
             JOIN (
                 WITH spread_cols AS (
                     SELECT (spread->>'home_id')::INT AS home_id, (spread->>'away_id')::INT AS away_id
-                    FROM (SELECT jsonb_array_elements(contents->'spread_group') AS spread
-                    FROM public.events
-                    WHERE contents->'spread_group' IS NOT NULL AND chapter_id = $1)
+                    FROM (
+                        SELECT jsonb_array_elements(contents->'spread_group') AS spread
+                        FROM public.events
+                        WHERE contents->'spread_group' IS NOT NULL AND chapter_id = $1
+                    ) AS t
                 )
                 SELECT home_id AS ids
                 FROM spread_cols

@@ -51,18 +51,20 @@ pub async fn get_chapter_users(
         ChapterUser,
         r#"
         SELECT user_id, username, COALESCE(total_points, 0)::INT as "total_points!"
-        FROM (SELECT
-            USERS.ID AS user_id,
-            USERS.USERNAME,
-            SUM(PICKS.POINTS) AS TOTAL_POINTS
-        FROM
-            USERS
-            JOIN PICKS ON USERS.ID = PICKS.USER_ID
-        WHERE
-            PICKS.CHAPTER_ID = $1
-        GROUP BY
-            USERS.ID,
-            USERS.USERNAME)
+        FROM (
+            SELECT
+                USERS.ID AS user_id,
+                USERS.USERNAME,
+                SUM(PICKS.POINTS) AS TOTAL_POINTS
+            FROM
+                USERS
+                JOIN PICKS ON USERS.ID = PICKS.USER_ID
+            WHERE
+                PICKS.CHAPTER_ID = $1
+            GROUP BY
+                USERS.ID,
+                USERS.USERNAME
+        ) AS sub
         ORDER BY total_points
         "#,
         chapter_id

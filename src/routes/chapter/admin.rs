@@ -173,8 +173,8 @@ pub async fn post(
                                 WHERE
                                     E.EVENT_TYPE = 'spread_group'
                                     AND E.CHAPTER_ID = $1
-                            )
-                    )
+                            ) as t2
+                    ) as t1
                 GROUP BY
                     EVENT_ID,
                     USER_ID

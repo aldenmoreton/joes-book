@@ -62,7 +62,7 @@ impl From<AppError<'_>> for RespErr {
                 .user_msg(value.to_string())
                 .log_msg(value.to_string()),
             AppError::Sqlx(_) => RespErr::new(StatusCode::INTERNAL_SERVER_ERROR)
-                // .user_msg(value.to_string())
+                .user_msg(value.to_string())
                 .log_msg(value.to_string()),
         }
     }
@@ -183,6 +183,7 @@ pub fn router(auth_layer: AuthManagerLayer<BackendPgDB, PostgresStore>) -> Route
             get(crate::login::login_page).post(crate::login::login_form),
         )
         .layer(auth_layer)
+        .layer(tower_http::trace::TraceLayer::new_for_http())
         .fallback(get(|| async {
             (StatusCode::NOT_FOUND, "Could not find your route")
         })) // TODO: Add funny status page
