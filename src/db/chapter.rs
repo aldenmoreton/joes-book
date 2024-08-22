@@ -55,17 +55,17 @@ pub async fn get_chapter_users(
             SELECT
                 USERS.ID AS user_id,
                 USERS.USERNAME,
-                SUM(PICKS.POINTS) AS TOTAL_POINTS
+                SUM(COALESCE(PICKS.POINTS, 0)) AS TOTAL_POINTS
             FROM
                 USERS
-                JOIN PICKS ON USERS.ID = PICKS.USER_ID
+                LEFT JOIN PICKS ON USERS.ID = PICKS.USER_ID
             WHERE
-                PICKS.CHAPTER_ID = $1
+                PICKS.CHAPTER_ID = $1 OR PICKS.CHAPTER_ID IS NULL
             GROUP BY
                 USERS.ID,
                 USERS.USERNAME
         ) AS sub
-        ORDER BY total_points
+        ORDER BY total_points DESC, username
         "#,
         chapter_id
     )

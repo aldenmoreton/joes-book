@@ -109,10 +109,10 @@ fn spread_group(
 ) -> maud::Markup {
     maud::html! {
         @for (i, spread) in spreads.into_iter().enumerate() {
-            div class="grid grid-flow-col grid-cols-2 gap-4 p-5" {
-                div class="col-span-1" {
-                    input type="radio" name={"selections["(index)"-"(i)"]"} me-insert="array" class="absolute opacity-0 peer" value="home" id={(index)"-"(i)"-home"} checked[spread.answer == Some("home".into())] required;
-                    label for={(index)"-"(i)"-home"} class="inline-grid w-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100" {
+            div class="grid grid-flow-col grid-cols-2 p-2" {
+                div class="col-span-1 mr-0.5" {
+                    input type="radio" name={"selections["(index)"-"(i)"]"} me-insert="array" class="absolute opacity-0 peer" value="home" id={(index)"-"(i)"-home"} checked[spread.answer == Some("home".into())];
+                    label for={(index)"-"(i)"-home"} class="inline-grid w-full h-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100" {
                         div {
                             p class="font-semibold" { "Home" }
                             img src=(relevent_teams[&spread.home_id].1.to_owned().unwrap_or_default()) width="150" height="150" alt="Home Team Logo";
@@ -121,9 +121,9 @@ fn spread_group(
                     }
                 }
 
-                div class="col-span-1" {
-                    input type="radio" name={"selections["(index)"-"(i)"]"} me-insert="array" class="absolute opacity-0 peer" value="away" id={(index)"-"(i)"-away"} checked[spread.answer == Some("away".into())] required;
-                    label for={(index)"-"(i)"-away"} class="inline-grid w-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100" {
+                div class="col-span-1 ml-0.5" {
+                    input type="radio" name={"selections["(index)"-"(i)"]"} me-insert="array" class="absolute opacity-0 peer" value="away" id={(index)"-"(i)"-away"} checked[spread.answer == Some("away".into())];
+                    label for={(index)"-"(i)"-away"} class="inline-grid w-full h-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100" {
                         div {
                             h3 class="font-semibold" { "Away" }
                             img src=(relevent_teams[&spread.away_id].1.to_owned().unwrap_or_default()) width="150" height="150" alt="Away Team Logo";
@@ -135,9 +135,15 @@ fn spread_group(
             }
 
             div {
-                input type="radio" name={"selections["(index)"-"(i)"]"} me-insert="array" class="absolute opacity-0 peer" value="push" id={(index)"-"(i)"-push"} checked[spread.answer == Some("push".into())] required;
-                label for={(index)"-"(i)"-push"} class="inline-grid w-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-orange-700 peer-checked:bg-orange-500 peer-checked:border-orange-600 hover:bg-orange-100" {
+                input type="radio" name={"selections["(index)"-"(i)"]"} me-insert="array" class="absolute opacity-0 peer" value="push" id={(index)"-"(i)"-push"} checked[spread.answer == Some("push".into())];
+                label for={(index)"-"(i)"-push"} class="inline-grid w-10/12 p-5 pt-0 pb-0 mb-1 border border-black rounded-lg cursor-pointer hover:border-orange-700 peer-checked:bg-orange-500 peer-checked:border-orange-600 hover:bg-orange-100" {
                     p class="px-1 font-semibold" { "Push" }
+                }
+            }
+            div {
+                input type="radio" name={"selections["(index)"-"(i)"]"} me-insert="array" class="absolute opacity-0 peer" value="unpicked" id={(index)"-"(i)"-unpicked"} checked[spread.answer.is_none() || spread.answer == Some("unpicked".into())];
+                label for={(index)"-"(i)"-unpicked"} class="inline-grid w-10/12 p-5 pt-0 pb-0 mb-1 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100" {
+                    p class="px-1 font-semibold" { "Unpicked" }
                 }
             }
         }

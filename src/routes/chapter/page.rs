@@ -216,6 +216,9 @@ pub async fn closed_book(
     book_subscription: &BookSubscription,
     chapter: &Chapter,
 ) -> Result<maud::Markup, RespErr> {
+    let curr_user = auth_session
+        .user
+        .ok_or(RespErr::new(StatusCode::INTERNAL_SERVER_ERROR))?;
     let pool = auth_session.backend.0;
 
     let events = get_events(chapter.chapter_id, &pool)
@@ -231,7 +234,7 @@ pub async fn closed_book(
     let user_picks = get_chapter_picks(chapter.chapter_id, &pool).await?;
 
     Ok(crate::templates::authenticated(
-        "username",
+        &curr_user.username,
         None,
         Some(maud::html!(
             link rel="stylesheet" id="tailwind" href="/public/styles/chapter-table.css";
@@ -303,6 +306,7 @@ fn table_rows(
                                 @for (i, spread) in spreads.iter().enumerate() {
                                     @let bg_color = match spread.answer.as_ref().map(|a| *a == choice[i]) {
                                         _ if spread.answer.as_ref().map(|a| *a == "push").unwrap_or(false) => "bg-orange-300",
+                                        _ if spread.answer.as_ref().map(|a| *a == "unpicked").unwrap_or(false) => "",
                                         Some(true) => "bg-green-300",
                                         Some(false) => "bg-red-300",
                                         None => "bg-grey-300"
@@ -341,7 +345,7 @@ fn table_rows(
                             }
                             (EventContent::UserInput(_), None) => {
                                 td {
-                                    p {"Did Not Answer"}
+                                    p {"No Pick"}
                                 }
                             }
                             _ => {
