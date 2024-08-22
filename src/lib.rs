@@ -170,7 +170,7 @@ pub fn router(auth_layer: AuthManagerLayer<BackendPgDB, PostgresStore>) -> Route
         .merge(home_routes)
         // ^ Home Routes ^
         .route("/team-search", get(search::team))
-        .nest_service("/assets", ServeDir::new("assets"))
+        // .nest_service("/assets", ServeDir::new("assets"))
         // ------------------^ Logged in Routes ^------------------
         .route_layer(login_required!(BackendPgDB, login_url = "/login"))
         .nest_service("/public", ServeDir::new("public"))

@@ -15,8 +15,8 @@ where
                     }
                 }
                 @for chapter in chapters {
-                    li class="p-3 h-30 w-60" {
-                        div class="justify-center object-fill max-w-sm overflow-hidden bg-white rounded-lg shadow-lg" {
+                    li {
+                        div class="justify-center p-3 m-3 bg-white rounded-lg shadow-lg h-30 w-60" {
                             a href={"/book/"(book_id)"/chapter/"(chapter.chapter_id)"/"} class="object-fill" {
                                 (chapter.title)
                             }
