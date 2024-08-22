@@ -302,6 +302,7 @@ fn table_rows(
                             (EventContent::SpreadGroup(spreads), Some(ChapterPick::SpreadGroup { choice, wager, .. })) => {
                                 @for (i, spread) in spreads.iter().enumerate() {
                                     @let bg_color = match spread.answer.as_ref().map(|a| *a == choice[i]) {
+                                        _ if spread.answer.as_ref().map(|a| *a == "push").unwrap_or(false) => "bg-orange-300",
                                         Some(true) => "bg-green-300",
                                         Some(false) => "bg-red-300",
                                         None => "bg-grey-300"
@@ -322,7 +323,7 @@ fn table_rows(
                             (EventContent::SpreadGroup(spreads), None) => {
                                 @for _ in spreads {
                                     td {
-                                        p {"Did Not Answer"}
+                                        p {"No Pick"}
                                     }
                                 }
                             },

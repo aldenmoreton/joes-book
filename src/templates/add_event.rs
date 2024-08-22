@@ -4,7 +4,7 @@ pub fn markup(ty: AddEventType) -> maud::Markup {
     maud::html! {
         @match ty {
             AddEventType::SpreadGroup => {
-                fieldset form="submit-event" name="events" me-insert="array" class="self-center justify-center p-2 m-3 bg-white border border-gray-300 rounded-lg shadow-md w-fit" {
+                fieldset form="submit-events" name="events" me-insert="array" class="self-center justify-center p-2 m-3 bg-white border border-gray-300 rounded-lg shadow-md w-fit" {
                     h3 class="font-semibold" { "Spread Group" }
                     input type="hidden" name="type" value="spread-group";
                     (spread_group_spread())
@@ -15,7 +15,7 @@ pub fn markup(ty: AddEventType) -> maud::Markup {
             },
             AddEventType::SpreadGroupAppend => (spread_group_spread()),
             AddEventType::UserInput => {
-                fieldset form="submit-event" name="events" me-insert="array" class="self-center justify-center m-3 bg-white border border-gray-300 rounded-lg shadow-md w-fit" {
+                fieldset form="submit-events" name="events" me-insert="array" class="self-center justify-center m-3 bg-white border border-gray-300 rounded-lg shadow-md w-fit" {
                     h3 class="font-semibold" { "User Input" }
                     input type="hidden" name="type" value="user-input";
                     input type="text" name="title" placeholder="Title" form="submit-events" required class="text-center";
