@@ -43,7 +43,7 @@ pub fn markup(
                         p { "No Events in this Chapter" }
                     }
                     @for (i, (event, pick)) in user_picks.into_iter().enumerate() {
-                        fieldset name="events" me-insert="array" class="self-center justify-center m-3 bg-white border border-gray-300 rounded-lg shadow-md w-fit" {
+                        fieldset name="events" me-insert="array" {
                             input type="hidden" name="event-id" value=(event.id);
                             @match event.contents.0 {
                                 EventContent::SpreadGroup(spreads) => (spread_group(spreads, pick, i, &relevent_teams)),
@@ -83,40 +83,42 @@ fn spread_group(
     let num_spreads = spreads.len();
 
     html! {
-        p { "Spread Group" }
-        input type="hidden" name="type" value="spread-group";
-        @for (i, (spread, choice, wager)) in izip!(spreads, choices, wagers).enumerate() {
-            fieldset name="spreads" me-insert="array" {
-                div class="grid grid-flow-col grid-cols-2 gap-4 p-5" {
-                    div class="col-span-1" {
-                        input type="radio" name=(format!("selection[{}-{}]", index, i)) class="opacity-0 peer" value="home" id=(format!("{}-{}-home", index, i)) required checked[matches!(&choice, serde_json::Value::String(s) if s == "home")];
-                        label for=(format!("{}-{}-home", index, i)) class="inline-grid w-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100" {
-                            div {
-                                h3 class="font-semibold" { "Home" }
-                                img src=(relevent_teams[&spread.home_id].1.to_owned().unwrap_or_default()) width="150" height="150" alt="Home Team Logo";
-                                p { (format!("{:+}", spread.home_spread)) " " (relevent_teams[&spread.home_id].0) }
+        div class="m-3 bg-white border border-gray-300 rounded-lg shadow-md" {
+            p { "Spread Group" }
+            input type="hidden" name="type" value="spread-group";
+            @for (i, (spread, choice, wager)) in izip!(spreads, choices, wagers).enumerate() {
+                fieldset name="spreads" me-insert="array" {
+                    div class="grid grid-flow-col grid-cols-2 gap-4 p-5" {
+                        div class="col-span-1" {
+                            input type="radio" name=(format!("selection[{}-{}]", index, i)) class="opacity-0 peer" value="home" id=(format!("{}-{}-home", index, i)) required checked[matches!(&choice, serde_json::Value::String(s) if s == "home")];
+                            label for=(format!("{}-{}-home", index, i)) class="inline-grid w-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100" {
+                                div {
+                                    h3 class="font-semibold" { "Home" }
+                                    img src=(relevent_teams[&spread.home_id].1.to_owned().unwrap_or_default()) width="150" height="150" alt="Home Team Logo";
+                                    p { (format!("{:+}", spread.home_spread)) " " (relevent_teams[&spread.home_id].0) }
+                                }
+                            }
+                        }
+
+                        div class="col-span-1" {
+                            input type="radio" name=(format!("selection[{}-{}]", index, i)) class="opacity-0 peer" value="away" id=(format!("{}-{}-away", index, i)) required checked[matches!(&choice, serde_json::Value::String(s) if s == "away")];
+                            label for=(format!("{}-{}-away", index, i)) class="inline-grid w-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100" {
+                                div {
+                                    h3 class="font-semibold" { "Away" }
+                                    img src=(relevent_teams[&spread.away_id].1.to_owned().unwrap_or_default()) width="150" height="150" alt="Away Team Logo";
+                                    p { (format!("{:+}", -1. * spread.home_spread)) " " (relevent_teams[&spread.away_id].0) }
+                                }
                             }
                         }
                     }
 
-                    div class="col-span-1" {
-                        input type="radio" name=(format!("selection[{}-{}]", index, i)) class="opacity-0 peer" value="away" id=(format!("{}-{}-away", index, i)) required checked[matches!(&choice, serde_json::Value::String(s) if s == "away")];
-                        label for=(format!("{}-{}-away", index, i)) class="inline-grid w-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100" {
-                            div {
-                                h3 class="font-semibold" { "Away" }
-                                img src=(relevent_teams[&spread.away_id].1.to_owned().unwrap_or_default()) width="150" height="150" alt="Away Team Logo";
-                                p { (format!("{:+}", -1. * spread.home_spread)) " " (relevent_teams[&spread.away_id].0) }
-                            }
-                        }
-                    }
-                }
-
-                ul {
-                    @for j in 1..=num_spreads {
-                        li class="inline-flex items-center p-1" {
-                            input type="radio" value=(j) name=(format!("num-points[{}-{}]", index, i)) id=(format!("{}-{}-{}", index, i, j)) class="opacity-0 peer" required checked[matches!(&wager, serde_json::Value::Number(n) if n == &serde_json::Number::from(j))];
-                            label for=(format!("{}-{}-{}", index, i, j)) class="inline-grid w-5 h-5 p-5 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100" {
-                                (j)
+                    ul {
+                        @for j in 1..=num_spreads {
+                            li class="inline-flex items-center p-1" {
+                                input type="radio" value=(j) name=(format!("num-points[{}-{}]", index, i)) id=(format!("{}-{}-{}", index, i, j)) class="opacity-0 peer" required checked[matches!(&wager, serde_json::Value::Number(n) if n == &serde_json::Number::from(j))];
+                                label for=(format!("{}-{}-{}", index, i, j)) class="inline-grid w-5 h-5 p-5 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100" {
+                                    (j)
+                                }
                             }
                         }
                     }
@@ -128,26 +130,30 @@ fn spread_group(
 
 fn user_input(input: UserInput, pick: Option<Pick>) -> Markup {
     html! {
-        h3 class="text-lg font-semibold" { (input.title) }
-        input type="hidden" name="type" value="user-input";
-        @if let Some(description) = input.description {
-            h4 { (description) }
-        }
-
-        label class="block mb-2 text-sm font-medium" {
-            "Your Answer"
-            @let value = pick.and_then(|p| if let serde_json::Value::String(input) = p.choice {Some(input)} else {None});
-            input type="text" name="user-input" placeholder="Make Pick" value=[value] required class="block p-1 ml-1 mr-1 text-sm text-center text-gray-900 border rounded-lg focus:ring-blue-500 focus:border-blue-500";
-        }
-
-        @if input.points == 1 {
-            p {
-                "(" (input.points) " Point)"
+        div {
+        div class="p-2 m-3 bg-white border border-gray-300 rounded-lg shadow-md w-fit" {
+            h3 class="text-lg font-semibold" { (input.title) }
+            input type="hidden" name="type" value="user-input";
+            @if let Some(description) = input.description {
+                h4 { (description) }
             }
-        } @else {
-            p {
-                "(" (input.points) " Points)"
+
+            label class="block mb-2 text-sm font-medium" {
+                "Your Answer"
+                @let value = pick.and_then(|p| if let serde_json::Value::String(input) = p.choice {Some(input)} else {None});
+                input type="text" name="user-input" placeholder="Make Pick" value=[value] required class="block p-1 ml-1 mr-1 text-sm text-center text-gray-900 border rounded-lg focus:ring-blue-500 focus:border-blue-500";
             }
+
+            @if input.points == 1 {
+                p {
+                    "(" (input.points) " Point)"
+                }
+            } @else {
+                p {
+                    "(" (input.points) " Points)"
+                }
+            }
+        }
         }
     }
 }

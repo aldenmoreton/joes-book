@@ -152,15 +152,17 @@ fn spread_group(
 
 fn user_input(input: UserInput, event_id: i32, _index: usize) -> maud::Markup {
     maud::html! {
-        h3 {
-            (input.title)
-        }
-        @if let Some(description) = input.description {
-            p { (description) }
-        }
-        div hx-get={"user-input?event-id="(event_id)} hx-swap="outerHTML" hx-trigger="load" {
-            p {
-                "Loading..."
+        div class="p-2" {
+            h3 {
+                (input.title)
+            }
+            @if let Some(description) = input.description {
+                p { (description) }
+            }
+            div hx-get={"user-input?event-id="(event_id)} hx-swap="outerHTML" hx-trigger="load" {
+                p {
+                    "Loading..."
+                }
             }
         }
     }
