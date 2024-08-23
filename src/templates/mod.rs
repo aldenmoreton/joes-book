@@ -2,7 +2,6 @@ use maud::{html, Markup, DOCTYPE};
 
 pub mod add_event;
 pub mod book_list;
-pub mod book_page;
 pub mod chapter_admin;
 pub mod chapter_create;
 pub mod chapter_list;
