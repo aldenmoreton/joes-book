@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            SUB1.USERNAME,\n            COALESCE(SUM(POINTS), 0)::INT AS \"point_total!\"\n        FROM\n            (\n                SELECT\n                    USERS.ID AS USER_ID,\n                    USERS.USERNAME\n                FROM\n                    USERS\n                    JOIN SUBSCRIPTIONS ON USERS.ID = SUBSCRIPTIONS.USER_ID\n                WHERE\n                    SUBSCRIPTIONS.BOOK_ID = $1\n            ) AS SUB1\n            LEFT JOIN (\n                SELECT\n                    PICKS.USER_ID,\n                    PICKS.POINTS\n                FROM\n                    PICKS\n                WHERE\n                    PICKS.BOOK_ID = $1\n            ) AS SUB2 ON SUB1.USER_ID = SUB2.USER_ID\n        GROUP BY\n            SUB1.USER_ID,\n            SUB1.USERNAME\n        ORDER BY\n            \"point_total!\",\n            USERNAME\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "username",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "point_total!",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "b2cdaa7ad5f77d4bd6ea0764ff0ddd69f4fe215c13ca5c8a1b7ff8b972e429ed"
+}
