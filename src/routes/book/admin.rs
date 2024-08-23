@@ -17,6 +17,7 @@ pub async fn handler(
         JOIN subscriptions AS s ON u.id=s.user_id
         JOIN books AS b on s.book_id=b.id
         WHERE b.id = $1 AND u.id != $2
+        ORDER BY u.id
         ",
         book_subscription.book_id,
         book_subscription.user_id
