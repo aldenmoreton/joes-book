@@ -15,8 +15,14 @@ pub fn markup(
         username,
         Some(&book_subscription.name),
         None,
-        None,
         Some(maud::html! {
+            p {
+                a href="/" class="text-blue-400 hover:underline" {"Home"} " > "
+                a { (book_subscription.name) }
+            }
+        }),
+        Some(maud::html! {
+            h1 class="text-4xl font-extrabold" {(book_subscription.name)}
             @if book_subscription.role == BookRole::Admin {
                 a href="chapter/create/" {
                     button class="px-2 py-2 mt-1 font-bold text-white bg-orange-600 rounded hover:bg-orange-700" {

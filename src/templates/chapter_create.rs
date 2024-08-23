@@ -1,6 +1,6 @@
 use crate::templates::authenticated;
 
-pub fn markup(username: &str) -> maud::Markup {
+pub fn markup(username: &str, book_name: &str) -> maud::Markup {
     authenticated(
         username,
         Some("Create Chapter"),
@@ -8,7 +8,13 @@ pub fn markup(username: &str) -> maud::Markup {
             script src="/public/js/my-enc.js" {}
             script src="/public/js/json-enc.js" {}
         }),
-        None,
+        Some(maud::html! {
+            p {
+                a href="/" class="text-blue-400 hover:underline" {"Home"} " > "
+                a href="../.." class="text-blue-400 hover:underline" { (book_name) } " > "
+                a {"Create Chapter"}
+            }
+        }),
         Some(maud::html! {
             input type="text" name="chapter-name" placeholder="Chapter Name" form="submit-events" required;
             div id="event-spaces" {}

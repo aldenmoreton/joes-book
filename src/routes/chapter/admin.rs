@@ -6,6 +6,7 @@ use axum_ctx::{RespErr, RespErrCtx, RespErrExt, StatusCode};
 use crate::{
     auth::{AuthSession, BackendPgDB},
     db::{
+        book::BookSubscription,
         chapter::Chapter,
         event::{get_events, EventContent},
         team::get_chapter_teams,
@@ -15,6 +16,7 @@ use crate::{
 
 pub async fn handler(
     auth_session: AuthSession,
+    Extension(book_subscription): Extension<BookSubscription>,
     Extension(chapter): Extension<Chapter>,
 ) -> Result<maud::Markup, RespErr> {
     let user = auth_session.user.ok_or(AppError::BackendUser)?;
@@ -30,6 +32,7 @@ pub async fn handler(
 
     Ok(crate::templates::chapter_admin::markup(
         &user.username,
+        &book_subscription.name,
         chapter,
         events,
         relevent_teams,

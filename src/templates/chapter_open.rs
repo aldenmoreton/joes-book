@@ -14,6 +14,7 @@ use super::authenticated;
 
 pub fn markup(
     username: &str,
+    book_name: &str,
     chapter: &Chapter,
     user_picks: Vec<UserPick>,
     is_admin: bool,
@@ -28,7 +29,13 @@ pub fn markup(
             link rel="stylesheet" href="/public/styles/alertify-main.css";
             link rel="stylesheet" href="/public/styles/alertify-theme.css";
         }),
-        None,
+        Some(maud::html! {
+            p {
+                a href="/" class="text-blue-400 hover:underline" {"Home"} " > "
+                a href="../.." class="text-blue-400 hover:underline" { (book_name) } " > "
+                a {(chapter.title)}
+            }
+        }),
         Some(html! {
             @if is_admin {
                 a href="admin/" {

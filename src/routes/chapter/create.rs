@@ -3,7 +3,7 @@ use axum::{
     extract::{Path, Query},
     http::{Response, StatusCode},
     response::IntoResponse,
-    Json,
+    Extension, Json,
 };
 use axum_ctx::{RespErr, RespErrCtx, RespErrExt};
 use itertools::Itertools;
@@ -11,6 +11,7 @@ use itertools::Itertools;
 use crate::{
     auth::AuthSession,
     db::{
+        book::BookSubscription,
         event::{EventContent, EventType},
         spread::Spread,
         user_input::UserInput,
@@ -18,9 +19,15 @@ use crate::{
     AppError,
 };
 
-pub async fn get(auth_session: AuthSession) -> Result<maud::Markup, RespErr> {
+pub async fn get(
+    auth_session: AuthSession,
+    Extension(book_subscription): Extension<BookSubscription>,
+) -> Result<maud::Markup, RespErr> {
     let username = auth_session.user.ok_or(AppError::BackendUser)?.username;
-    Ok(crate::templates::chapter_create::markup(&username))
+    Ok(crate::templates::chapter_create::markup(
+        &username,
+        &book_subscription.name,
+    ))
 }
 
 #[derive(serde::Deserialize, Debug)]

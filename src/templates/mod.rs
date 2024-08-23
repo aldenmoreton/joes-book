@@ -63,12 +63,12 @@ pub fn authenticated(
         head,
         Some(html! {
             nav {
-                a href="/" { p { "Home" } }
-                button hx-post="/logout" { "Logout" }
+                // a href="/" { p { "Home" } }
+                // button hx-post="/logout" { "Logout" }
                 p { (username) }
+                (header.unwrap_or_default())
                 hr;
             }
-            (header.unwrap_or_default())
         }),
         main,
         footer,

@@ -11,6 +11,7 @@ use super::authenticated;
 
 pub fn markup(
     username: &str,
+    book_name: &str,
     chapter: Chapter,
     events: Vec<Event>,
     relevent_teams: HashMap<i32, (String, Option<String>)>,
@@ -24,7 +25,14 @@ pub fn markup(
             link rel="stylesheet" href="/public/styles/alertify-main.css";
             link rel="stylesheet" href="/public/styles/alertify-theme.css";
         }),
-        None,
+        Some(maud::html! {
+            p {
+                a href="/" class="text-blue-400 hover:underline" {"Home"} " > "
+                a href="../../.." class="text-blue-400 hover:underline" { (book_name) } " > "
+                a href=".." class="text-blue-400 hover:underline" {(chapter.title)} " > "
+                a {"Admin"}
+            }
+        }),
         Some(maud::html! {
             a href = ".." {
                 button class="px-2 py-2 mt-1 font-bold text-white bg-orange-600 rounded hover:bg-orange-700" {

@@ -29,7 +29,13 @@ pub async fn handler(
         &user.username,
         Some(format!("{} - Admin", book_subscription.name).as_str()),
         None,
-        None,
+        Some(maud::html! {
+            p {
+                a href="/" class="text-blue-400 hover:underline" {"Home"} " > "
+                a href=".." class="text-blue-400 hover:underline" { (book_subscription.name) } " > "
+                a {"Admin"}
+            }
+        }),
         Some(maud::html! {
             div class="flex flex-col items-center justify-center" {
                 div class="relative mt-5 overflow-x-auto rounded-lg" {
@@ -45,7 +51,7 @@ pub async fn handler(
                     tbody {
                         tr class="bg-white" {
                             td scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap" { (user.username) }
-                            td class="px-6 py-4" { (format!("{:?}", book_subscription.role)) }
+                            td class="px-6 py-4" { "admin" }
                             td class="px-6 py-4" { button { "Heavy is The Head" br; "That Wears The Crown" } }
                         }
 

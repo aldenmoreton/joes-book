@@ -33,6 +33,7 @@ pub async fn open_book(
 
     Ok(crate::templates::chapter_open::markup(
         &user.username,
+        &book_subscription.name,
         &chapter,
         user_picks,
         book_subscription.role == BookRole::Admin,
