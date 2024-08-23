@@ -230,7 +230,7 @@ pub async fn closed_book(
         .await
         .map_err(AppError::from)?;
 
-    let users = get_chapter_users(chapter.chapter_id, &pool).await?;
+    let users = get_chapter_users(book_subscription.book_id, chapter.chapter_id, &pool).await?;
 
     let user_picks = get_chapter_picks(chapter.chapter_id, &pool).await?;
 
@@ -240,7 +240,13 @@ pub async fn closed_book(
         Some(maud::html!(
             link rel="stylesheet" id="tailwind" href="/public/styles/chapter-table.css";
         )),
-        None,
+        Some(maud::html! {
+            p {
+                a href="/" class="text-blue-400 hover:underline" {"Home"} " > "
+                a href="../.." class="text-blue-400 hover:underline" { (book_subscription.name) } " > "
+                a {(chapter.title)}
+            }
+        }),
         Some(maud::html! {
             @if book_subscription.role == BookRole::Admin {
                 a href="admin/" {

@@ -44,6 +44,7 @@ pub struct ChapterUser {
 }
 
 pub async fn get_chapter_users(
+    book_id: i32,
     chapter_id: i32,
     pool: &PgPool,
 ) -> Result<Vec<ChapterUser>, AppError> {
@@ -53,20 +54,25 @@ pub async fn get_chapter_users(
         SELECT user_id, username, COALESCE(total_points, 0)::INT as "total_points!"
         FROM (
             SELECT
-                USERS.ID AS user_id,
-                USERS.USERNAME,
-                SUM(COALESCE(PICKS.POINTS, 0)) AS TOTAL_POINTS
-            FROM
-                USERS
-                LEFT JOIN PICKS ON USERS.ID = PICKS.USER_ID
+                sub1.id AS user_id,
+                sub1.USERNAME,
+                SUM(COALESCE(picks.POINTS, 0)) AS TOTAL_POINTS
+            FROM (
+                SELECT users.id, users.username
+                FROM users
+                JOIN subscriptions on users.id = subscriptions.user_id
+                WHERE book_id = $1
+            ) as sub1
+            LEFT JOIN picks on sub1.id = picks.user_id
             WHERE
-                PICKS.CHAPTER_ID = $1 OR PICKS.CHAPTER_ID IS NULL
+                picks.CHAPTER_ID = $2 OR picks.CHAPTER_ID IS NULL
             GROUP BY
-                USERS.ID,
-                USERS.USERNAME
-        ) AS sub
+                sub1.ID,
+                sub1.USERNAME
+        ) AS sub2
         ORDER BY total_points DESC, username
         "#,
+        book_id,
         chapter_id
     )
     .fetch_all(pool)
