@@ -27,7 +27,7 @@ pub fn base(
                 meta name="viewport" content="width=device-width, initial-scale=1.0";
                 title {(page_title.unwrap_or("Joe's Book"))}
                 link rel="icon" type="image/ico" href="/public/favicon.ico";
-                link rel="mainfest" href="/public/manifest.json";
+                link rel="manifest" href="/public/manifest.json";
                 link rel="stylesheet" id="tailwind" href="/public/styles/bookie.css";
                 script src="/public/js/htmx.js" {}
                 (head.unwrap_or_default())
