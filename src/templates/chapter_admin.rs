@@ -34,11 +34,6 @@ pub fn markup(
             }
         }),
         Some(maud::html! {
-            a href = ".." {
-                button class="px-2 py-2 mt-1 font-bold text-white bg-orange-600 rounded hover:bg-orange-700" {
-                            "Return to Chapter"
-                }
-            }
             div class="flex flex-col items-center justify-center" {
                 div class="self-center justify-center p-2 m-3 bg-white border border-gray-300 rounded-lg shadow-md w-fit" {
                     (chapter_open_button(chapter.is_open))
@@ -46,9 +41,9 @@ pub fn markup(
                     (chapter_visible_button(chapter.is_visible))
                 }
 
-                form class="items-center self-center justify-center" hx-post="." hx-ext="my-enc" hx-swap="afterend" {
+                form hx-post="." hx-ext="my-enc" hx-swap="afterend" {
                     @for (i, event) in events.into_iter().enumerate() {
-                        fieldset name="events" me-insert="array" class="items-center self-center justify-center m-3 bg-white border border-gray-300 rounded-lg shadow-md w-fit" {
+                        fieldset name="events" me-insert="array" class="flex items-center justify-center" {
                             input type="hidden" name="event-id" value=(event.id);
                             @match event.contents.0 {
                                 EventContent::SpreadGroup(spreads) => {
@@ -116,42 +111,44 @@ fn spread_group(
     relevent_teams: &HashMap<i32, (String, Option<String>)>,
 ) -> maud::Markup {
     maud::html! {
-        @for (i, spread) in spreads.into_iter().enumerate() {
-            div class="grid grid-flow-col grid-cols-2 p-2" {
-                div class="col-span-1 mr-0.5" {
-                    input type="radio" name={"selections["(index)"-"(i)"]"} me-insert="array" class="absolute opacity-0 peer" value="home" id={(index)"-"(i)"-home"} checked[spread.answer == Some("home".into())];
-                    label for={(index)"-"(i)"-home"} class="inline-grid w-full h-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100" {
-                        div {
-                            p class="font-semibold" { "Home" }
-                            img src=(relevent_teams[&spread.home_id].1.to_owned().unwrap_or_default()) width="150" height="150" alt="Home Team Logo";
-                            p { (format!("{:+}", spread.home_spread)) " " (relevent_teams[&spread.home_id].0) }
+        div class="m-3 bg-white border border-gray-300 rounded-lg shadow-md w-fit" {
+            @for (i, spread) in spreads.into_iter().enumerate() {
+                div class="grid grid-flow-col grid-cols-2 p-2" {
+                    div class="col-span-1 mr-0.5" {
+                        input type="radio" name={"selections["(index)"-"(i)"]"} me-insert="array" class="absolute opacity-0 peer" value="home" id={(index)"-"(i)"-home"} checked[spread.answer == Some("home".into())];
+                        label for={(index)"-"(i)"-home"} class="inline-grid w-full h-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100" {
+                            div {
+                                p class="font-semibold" { "Home" }
+                                img src=(relevent_teams[&spread.home_id].1.to_owned().unwrap_or_default()) width="150" height="150" alt="Home Team Logo";
+                                p { (format!("{:+}", spread.home_spread)) " " (relevent_teams[&spread.home_id].0) }
+                            }
                         }
                     }
-                }
 
-                div class="col-span-1 ml-0.5" {
-                    input type="radio" name={"selections["(index)"-"(i)"]"} me-insert="array" class="absolute opacity-0 peer" value="away" id={(index)"-"(i)"-away"} checked[spread.answer == Some("away".into())];
-                    label for={(index)"-"(i)"-away"} class="inline-grid w-full h-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100" {
-                        div {
-                            h3 class="font-semibold" { "Away" }
-                            img src=(relevent_teams[&spread.away_id].1.to_owned().unwrap_or_default()) width="150" height="150" alt="Away Team Logo";
-                            p { (format!("{:+}", -1. * spread.home_spread)) " " (relevent_teams[&spread.away_id].0) }
+                    div class="col-span-1 ml-0.5" {
+                        input type="radio" name={"selections["(index)"-"(i)"]"} me-insert="array" class="absolute opacity-0 peer" value="away" id={(index)"-"(i)"-away"} checked[spread.answer == Some("away".into())];
+                        label for={(index)"-"(i)"-away"} class="inline-grid w-full h-full p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100" {
+                            div {
+                                h3 class="font-semibold" { "Away" }
+                                img src=(relevent_teams[&spread.away_id].1.to_owned().unwrap_or_default()) width="150" height="150" alt="Away Team Logo";
+                                p { (format!("{:+}", -1. * spread.home_spread)) " " (relevent_teams[&spread.away_id].0) }
+                            }
                         }
                     }
+
                 }
 
-            }
-
-            div {
-                input type="radio" name={"selections["(index)"-"(i)"]"} me-insert="array" class="absolute opacity-0 peer" value="push" id={(index)"-"(i)"-push"} checked[spread.answer == Some("push".into())];
-                label for={(index)"-"(i)"-push"} class="inline-grid w-10/12 p-5 pt-0 pb-0 mb-1 border border-black rounded-lg cursor-pointer hover:border-orange-700 peer-checked:bg-orange-500 peer-checked:border-orange-600 hover:bg-orange-100" {
-                    p class="px-1 font-semibold" { "Push" }
+                div {
+                    input type="radio" name={"selections["(index)"-"(i)"]"} me-insert="array" class="absolute opacity-0 peer" value="push" id={(index)"-"(i)"-push"} checked[spread.answer == Some("push".into())];
+                    label for={(index)"-"(i)"-push"} class="inline-grid w-10/12 p-5 pt-0 pb-0 mb-1 border border-black rounded-lg cursor-pointer hover:border-orange-700 peer-checked:bg-orange-500 peer-checked:border-orange-600 hover:bg-orange-100" {
+                        p class="px-1 font-semibold" { "Push" }
+                    }
                 }
-            }
-            div {
-                input type="radio" name={"selections["(index)"-"(i)"]"} me-insert="array" class="absolute opacity-0 peer" value="unpicked" id={(index)"-"(i)"-unpicked"} checked[spread.answer.is_none() || spread.answer == Some("unpicked".into())];
-                label for={(index)"-"(i)"-unpicked"} class="inline-grid w-10/12 p-5 pt-0 pb-0 mb-1 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100" {
-                    p class="px-1 font-semibold" { "Unpicked" }
+                div {
+                    input type="radio" name={"selections["(index)"-"(i)"]"} me-insert="array" class="absolute opacity-0 peer" value="unpicked" id={(index)"-"(i)"-unpicked"} checked[spread.answer.is_none() || spread.answer == Some("unpicked".into())];
+                    label for={(index)"-"(i)"-unpicked"} class="inline-grid w-10/12 p-5 pt-0 pb-0 mb-1 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100" {
+                        p class="px-1 font-semibold" { "Unpicked" }
+                    }
                 }
             }
         }
@@ -160,8 +157,8 @@ fn spread_group(
 
 fn user_input(input: UserInput, event_id: i32, _index: usize) -> maud::Markup {
     maud::html! {
-        div class="p-2" {
-            h3 {
+        div class="p-2 m-3 bg-white border border-gray-300 rounded-lg shadow-md w-fit" {
+            h3 class="text-lg font-bold" {
                 (input.title)
             }
             @if let Some(description) = input.description {
