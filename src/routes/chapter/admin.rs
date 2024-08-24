@@ -1,6 +1,6 @@
 use std::{borrow::BorrowMut, collections::HashMap};
 
-use axum::{extract::Query, Extension, Json};
+use axum::{extract::Query, response::IntoResponse, Extension, Json};
 use axum_ctx::{RespErr, RespErrCtx, RespErrExt, StatusCode};
 
 use crate::{
@@ -301,4 +301,50 @@ pub async fn user_input(
             }
         }
     })
+}
+
+pub async fn delete(
+    auth_session: AuthSession,
+    Extension(chapter): Extension<Chapter>,
+) -> Result<impl IntoResponse, RespErr> {
+    let pool = auth_session.backend.0;
+
+    let mut transaction = pool.begin().await.map_err(AppError::from)?;
+
+    sqlx::query!(
+        "
+        DELETE FROM picks
+        WHERE chapter_id = $1
+        ",
+        chapter.chapter_id
+    )
+    .execute(&mut *transaction)
+    .await
+    .map_err(AppError::from)?;
+
+    sqlx::query!(
+        "
+        DELETE FROM events
+        WHERE chapter_id = $1
+        ",
+        chapter.chapter_id
+    )
+    .execute(&mut *transaction)
+    .await
+    .map_err(AppError::from)?;
+
+    sqlx::query!(
+        "
+        DELETE FROM chapters
+        WHERE id = $1
+        ",
+        chapter.chapter_id
+    )
+    .execute(&mut *transaction)
+    .await
+    .map_err(AppError::from)?;
+
+    transaction.commit().await.map_err(AppError::from)?;
+
+    Ok([("HX-Redirect", "../../..")].into_response())
 }

@@ -42,7 +42,7 @@ pub enum AppError<'a> {
     #[error("No Backend User")]
     BackendUser,
     #[error("Unauthorized: {0}")]
-    Unauthorized(String),
+    Unauthorized(&'a str),
     #[error("Parsing: {0}")]
     Parse(&'a str),
     #[error("Database Error: {0}")]
@@ -52,18 +52,18 @@ pub enum AppError<'a> {
 impl From<AppError<'_>> for RespErr {
     fn from(value: AppError) -> Self {
         match &value {
-            AppError::BackendUser => RespErr::new(StatusCode::INTERNAL_SERVER_ERROR)
-                .log_msg(value.to_string())
-                .user_msg("Could not get user account"),
+            AppError::BackendUser => {
+                RespErr::new(StatusCode::INTERNAL_SERVER_ERROR).log_msg(value.to_string())
+            }
             AppError::Unauthorized(_) => RespErr::new(StatusCode::UNAUTHORIZED)
                 .user_msg(value.to_string())
                 .log_msg(value.to_string()),
             AppError::Parse(_) => RespErr::new(StatusCode::BAD_REQUEST)
                 .user_msg(value.to_string())
                 .log_msg(value.to_string()),
-            AppError::Sqlx(_) => RespErr::new(StatusCode::INTERNAL_SERVER_ERROR)
-                // .user_msg(value.to_string())
-                .log_msg(value.to_string()),
+            AppError::Sqlx(_) => {
+                RespErr::new(StatusCode::INTERNAL_SERVER_ERROR).log_msg(value.to_string())
+            }
         }
     }
 }
@@ -151,7 +151,12 @@ pub fn router(auth_layer: AuthManagerLayer<BackendPgDB, PostgresStore>) -> Route
         .nest(
             "/:chapter_id/admin/",
             Router::new()
-                .route("/", get(chapter::admin::handler).post(chapter::admin::post))
+                .route(
+                    "/",
+                    get(chapter::admin::handler)
+                        .post(chapter::admin::post)
+                        .delete(chapter::admin::delete),
+                )
                 .route("/user-input", get(chapter::admin::user_input))
                 .route("/open", post(chapter::admin::open))
                 .route("/visible", post(chapter::admin::visible)),

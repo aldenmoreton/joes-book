@@ -39,6 +39,18 @@ pub fn markup(
                     (chapter_visible_button(chapter.is_visible))
                 }
 
+                details {
+                    summary {
+                        span class="text-red-500" {"Danger Zone"}
+                    }
+                    button
+                        hx-delete="."
+                        hx-confirm="Are you sure you wish to delete this chapter and all the picks within FOREVER?"
+                        class="p-0.5 font-bold text-white bg-red-600 rounded hover:bg-red-700" {
+                        "Delete Chapter"
+                    }
+                }
+
                 form hx-post="." hx-ext="my-enc" hx-swap="afterend" {
                     @for (i, event) in events.into_iter().enumerate() {
                         fieldset name="events" me-insert="array" class="flex items-center justify-center" {

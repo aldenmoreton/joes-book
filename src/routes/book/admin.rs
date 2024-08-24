@@ -101,11 +101,6 @@ pub async fn add_user(
 ) -> Result<maud::Markup, RespErr> {
     let pool = auth_session.backend.0;
 
-    // let user_id = user_params
-    //     .user_id
-    //     .parse::<i32>()
-    //     .map_err(|_| AppError::Parse("Could not parse user id"))?;
-
     let res = sqlx::query!(
         "
             INSERT INTO subscriptions (user_id, book_id, role)
