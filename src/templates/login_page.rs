@@ -9,7 +9,7 @@ pub fn markup() -> maud::Markup {
                     form hx-post="/login" class="px-8 pt-6 pb-8 mb-4 bg-white rounded shadow-md" {
                         h1 { "Log In" }
                         label class="block mb-2 text-sm font-bold text-gray-700" {
-                            "User ID:"
+                            "Username:"
                             input type="text" placeholder="Username" maxlength="32" name="username" class="w-full px-3 py-2 leading-tight text-gray-700 border rounded shadow appearance-none focus:outline-none focus:shadow-outline";
                         }
                         // br;

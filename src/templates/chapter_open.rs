@@ -59,6 +59,7 @@ pub fn markup(
                     "Submit"
                 }
             }
+            div {}
         }),
         None,
     )
@@ -142,9 +143,8 @@ fn user_input(input: UserInput, pick: Option<Pick>) -> Markup {
             }
 
             label class="block mb-2 text-sm font-medium" {
-                p class="text-left" {"Your Answer"}
                 @let value = pick.and_then(|p| if let serde_json::Value::String(input) = p.choice {Some(input)} else {None});
-                input type="text" name="user-input" placeholder="Make Pick" value=[value] required class="block p-1 ml-1 mr-1 text-sm text-center text-gray-900 border rounded-lg focus:ring-blue-500 focus:border-blue-500";
+                input type="text" name="user-input" placeholder="Make Pick" value=[value] required class="block p-1 ml-1 mr-1 text-sm text-center text-gray-900 border border-green-300 rounded-lg focus:ring-blue-500 focus:border-blue-500";
             }
 
             @if input.points == 1 {

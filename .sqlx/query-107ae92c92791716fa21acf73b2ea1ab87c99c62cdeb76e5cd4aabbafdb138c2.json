@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        DELETE FROM events\n        WHERE book_id = $1\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "107ae92c92791716fa21acf73b2ea1ab87c99c62cdeb76e5cd4aabbafdb138c2"
+}
