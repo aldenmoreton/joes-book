@@ -5,7 +5,6 @@ use axum::{
     Extension, Json,
 };
 use axum_ctx::{RespErr, RespErrCtx, RespErrExt};
-use itertools::Itertools;
 
 use crate::{
     auth::AuthSession,
@@ -91,27 +90,6 @@ pub struct EventSubmissions {
     events: Vec<EventSubmissionType>,
 }
 
-fn validate_name(chapter_name: &str) -> Result<(), RespErr> {
-    if chapter_name.len() > 30 {
-        return Err(
-            RespErr::new(StatusCode::BAD_REQUEST).user_msg("Chapter Name too long (> 30 chars)")
-        );
-    }
-
-    let name_invalid_chars = chapter_name
-        .chars()
-        .filter(|c| !c.is_alphabetic() && *c != ' ')
-        .join(",");
-
-    if !name_invalid_chars.is_empty() {
-        return Err(RespErr::new(StatusCode::BAD_REQUEST).user_msg(format!(
-            "Chaper name includes invalid characters: {name_invalid_chars}"
-        )));
-    }
-
-    Ok(())
-}
-
 fn validate_events(events: Vec<EventSubmissionType>) -> Result<Vec<EventContent>, RespErr> {
     let events = events
         .into_iter()
@@ -180,7 +158,12 @@ pub async fn post(
     Path(book_id): Path<i32>,
     Json(chapter_submission): Json<EventSubmissions>,
 ) -> Result<impl IntoResponse, AppNotification> {
-    validate_name(&chapter_submission.chapter_name)?;
+    if chapter_submission.chapter_name.len() > 30 {
+        return Err(AppNotification(
+            StatusCode::BAD_GATEWAY,
+            "Chapter Name too long (> 30 chars)".into(),
+        ));
+    }
     let events = validate_events(chapter_submission.events)?;
 
     let pool = auth_session.backend.0;

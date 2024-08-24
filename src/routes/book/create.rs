@@ -14,9 +14,9 @@ pub async fn handler(
     auth_session: AuthSession,
     Form(Params { book_name }): Form<Params>,
 ) -> Result<Redirect, RespErr> {
-    if book_name.len() > 30 || book_name.chars().any(|c| !c.is_alphabetic() && c != ' ') {
+    if book_name.len() > 30 {
         return Err(RespErr::new(StatusCode::BAD_REQUEST)
-            .user_msg("Book name must be less than 30 characters and be alphabetic & spaces"));
+            .user_msg("Book name must be less than 30 characters"));
     }
 
     let user = auth_session.user.ok_or(AppError::BackendUser)?;
