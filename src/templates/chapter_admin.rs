@@ -58,7 +58,7 @@ pub fn markup(
                         }
                     }
 
-                    button type="submit" class="px-2 py-2 mt-1 mb-5 font-bold text-white bg-green-600 rounded hover:bg-green-700" {
+                    button type="submit" class="px-2 py-2 mt-1 mb-10 font-bold text-white bg-green-600 rounded hover:bg-green-700" {
                         "Submit"
                     }
                 }

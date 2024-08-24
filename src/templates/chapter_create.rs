@@ -27,7 +27,7 @@ pub fn markup(username: &str, book_name: &str) -> maud::Markup {
             }
 
             form id="submit-events" hx-post="." hx-ext="my-enc" {
-                button type="submit" class="p-2 mt-3 text-black bg-white border border-green-500 hover:border-black hover:bg-green-500 hover:text-white rounded-2xl" {
+                button type="submit" class="p-2 mt-3 mb-10 text-black bg-white border border-green-500 hover:border-black hover:bg-green-500 hover:text-white rounded-2xl" {
                     "Submit"
                 }
             }
