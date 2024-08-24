@@ -36,11 +36,13 @@ pub fn base(
                 @if let Some(header_markup) = header {
                     header { (header_markup) }
                 }
+                hr;
 
                 @if let Some(header_markup) = main {
                     main { (header_markup) }
                 }
 
+                hr;
                 @if let Some(header_markup) = footer {
                     footer { (header_markup) }
                 }
@@ -66,7 +68,6 @@ pub fn authenticated(
                 // button hx-post="/logout" { "Logout" }
                 p { (username) }
                 (header.unwrap_or_default())
-                hr;
             }
         }),
         main,
@@ -81,15 +82,11 @@ pub fn alertify() -> maud::Markup {
         link rel="stylesheet" href="/public/styles/alertify-theme.css";
         script {
             "window.onload = function() {
-                console.log('loading');
                 document.body.addEventListener('htmx:beforeOnLoad', function (evt) {
-                    console.log(evt);
                     if (evt.detail.xhr.getResponseHeader('content-type') === 'text/html; charset=utf-8') {
-                        console.log('swapping');
                         evt.detail.shouldSwap = true;
                         evt.detail.isError = false;
                     }
-                    console.log('swap params');
                 });
             }"
         }
