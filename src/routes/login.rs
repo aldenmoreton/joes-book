@@ -2,13 +2,15 @@ use axum::{
     body::Body,
     extract::Query,
     http::{HeaderMap, Response, StatusCode, Uri},
-    response::{Html, IntoResponse, Redirect},
+    response::{IntoResponse, Redirect},
     Form,
 };
-use axum_ctx::RespErr;
 use serde::Deserialize;
 
-use crate::auth::{AuthSession, LoginCreds};
+use crate::{
+    auth::{AuthSession, LoginCreds},
+    AppNotification,
+};
 
 pub async fn login_page(auth_session: AuthSession) -> Response<Body> {
     if auth_session.user.is_some() {
@@ -29,29 +31,30 @@ pub async fn login_form(
     mut auth_session: AuthSession,
     headers: HeaderMap,
     Form(creds): Form<LoginCreds>,
-) -> Result<impl IntoResponse, RespErr> {
+) -> Result<impl IntoResponse, AppNotification> {
     let auth = auth_session.authenticate(creds).await;
 
     let user = match auth {
         Ok(Some(user)) => user,
         Ok(None) => {
-            return Ok(Html(
-                "
-                <script>
-                    alertify.set('notifier','position', 'bottom-center');
-                    alertify.error('Invalid Username or Password');
-                </script>
-                ",
-            )
-            .into_response());
+            return Err(AppNotification(
+                StatusCode::UNAUTHORIZED,
+                "Invalid Username or Password".into(),
+            ));
         }
         Err(_) => {
-            return Err(RespErr::new(StatusCode::INTERNAL_SERVER_ERROR).user_msg("Error logging in"))
+            return Err(AppNotification(
+                StatusCode::REQUEST_TIMEOUT,
+                "Our Fault! Please try again.".into(),
+            ))
         }
     };
 
     if auth_session.login(&user).await.is_err() {
-        return Err(RespErr::new(StatusCode::INTERNAL_SERVER_ERROR).user_msg("Error logging in"));
+        return Err(AppNotification(
+            StatusCode::REQUEST_TIMEOUT,
+            "Our Fault! Please try again.".into(),
+        ));
     }
 
     let desired_redirect = headers

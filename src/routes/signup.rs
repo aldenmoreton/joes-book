@@ -1,10 +1,10 @@
 use axum::{
-    response::{Html, IntoResponse, Redirect},
+    response::{IntoResponse, Redirect},
     Form,
 };
-use axum_ctx::{RespErr, RespErrCtx, RespErrExt, StatusCode};
+use axum_ctx::{RespErrCtx, RespErrExt, StatusCode};
 
-use crate::{auth::AuthSession, templates::base, AppError};
+use crate::{auth::AuthSession, templates::base, AppError, AppNotification};
 
 pub async fn signup_page(auth_session: AuthSession) -> impl IntoResponse {
     if auth_session.user.is_some() {
@@ -20,7 +20,7 @@ pub async fn signup_page(auth_session: AuthSession) -> impl IntoResponse {
 		Some(maud::html!(
 		div class="flex flex-col items-center justify-center pt-10" {
 			div class="w-full max-w-xs" {
-				form hx-post="/signup" hx-target="next script" hx-swap="outerHTML" class="px-8 pt-6 pb-8 mb-4 bg-white rounded shadow-md" {
+				form hx-post="/signup" class="px-8 pt-6 pb-8 mb-4 bg-white rounded shadow-md" {
 					div class="mb-4" {
 						label class="block mb-2 text-sm font-bold text-gray-700" for="username" {
 							"Username"
@@ -42,7 +42,6 @@ pub async fn signup_page(auth_session: AuthSession) -> impl IntoResponse {
 						a class="text-green-500 hover:text-green-800" href="/login" { "Sign In" }
 					}
 				}
-				script {}
 			}
 		}
     )),
@@ -58,18 +57,14 @@ pub struct SignUpForm {
 pub async fn signup_form(
     mut auth_session: AuthSession,
     form: Form<SignUpForm>,
-) -> Result<impl IntoResponse, RespErr> {
+) -> Result<impl IntoResponse, AppNotification> {
     let pool = auth_session.backend.0.clone();
 
     if form.password != form.password_confirmation {
-        return Ok(Html(
-            "
-        <script>
-            alertify.set('notifier','position', 'top-center');
-            alertify.error('Password does not match confirmation', 2);
-        </script>",
-        )
-        .into_response());
+        return Err(AppNotification(
+            StatusCode::CONFLICT,
+            "Password does not match confirmation".into(),
+        ));
     }
 
     let existing_user = sqlx::query!(
@@ -85,14 +80,10 @@ pub async fn signup_form(
     .map_err(AppError::from)?;
 
     if existing_user.is_some() {
-        return Ok(Html(
-            "
-        <script>
-            alertify.set('notifier','position', 'top-center');
-            alertify.error('Username already taken', 2);
-        </script>",
-        )
-        .into_response());
+        return Err(AppNotification(
+            StatusCode::CONFLICT,
+            "Username already taken".into(),
+        ));
     }
 
     let user = auth_session

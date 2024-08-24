@@ -1,6 +1,6 @@
 use std::{borrow::BorrowMut, collections::HashMap};
 
-use axum::{extract::Query, response::Html, Extension, Json};
+use axum::{extract::Query, Extension, Json};
 use axum_ctx::{RespErr, RespErrCtx, RespErrExt, StatusCode};
 
 use crate::{
@@ -11,7 +11,7 @@ use crate::{
         event::{get_events, EventContent},
         team::get_chapter_teams,
     },
-    AppError,
+    AppError, AppNotification,
 };
 
 pub async fn handler(
@@ -69,7 +69,7 @@ pub async fn post(
     Json(AnswerSubmission {
         events: event_submissions,
     }): Json<AnswerSubmission>,
-) -> Result<Html<&'static str>, RespErr> {
+) -> Result<AppNotification, AppNotification> {
     let pool = auth_session.backend.0;
 
     let events = get_events(chapter.chapter_id, &pool)
@@ -207,14 +207,7 @@ pub async fn post(
 
     transaction.commit().await.map_err(AppError::from)?;
 
-    Ok(Html(
-        "
-        <script>
-            alertify.set('notifier','position', 'top-center');
-            alertify.success('Answers Saved', 2);
-        </script>
-        ",
-    ))
+    Ok(AppNotification(StatusCode::OK, "Answers Saved".into()))
 }
 
 #[derive(Debug, serde::Deserialize)]

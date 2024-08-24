@@ -6,7 +6,7 @@ pub fn markup() -> maud::Markup {
         Some(maud::html! {
             div class="flex flex-col items-center justify-center pt-10" {
                 div class="w-full max-w-xs" {
-                    form hx-post="/login" hx-swap="outerHTML" hx-target="next script" class="px-8 pt-6 pb-8 mb-4 bg-white rounded shadow-md" {
+                    form hx-post="/login" class="px-8 pt-6 pb-8 mb-4 bg-white rounded shadow-md" {
                         h1 { "Log In" }
                         label class="block mb-2 text-sm font-bold text-gray-700" {
                             "User ID:"
@@ -27,7 +27,6 @@ pub fn markup() -> maud::Markup {
                             "Log In"
                         }
                     }
-                    script {}
                     div class="pt-3 text-sm font-bold" {
                         p { "Don't have an account?" }
                         a class="text-green-500 hover:text-green-800" href="/signup" { "Create Account" }

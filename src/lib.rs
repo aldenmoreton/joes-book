@@ -80,6 +80,8 @@ impl axum::response::IntoResponse for AppNotification {
                     "alertify.set('notifier','position', 'top-center');"
                     @if self.0.is_success() {
                         "alertify.success('"(self.1)"');"
+                    } @else if self.0.is_server_error() {
+                        "alertify.error('Our Fault! Please Try Again.');"
                     } @else {
                         "alertify.error('"(self.1)"');"
                     }

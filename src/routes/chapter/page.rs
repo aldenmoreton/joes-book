@@ -7,13 +7,13 @@ use crate::db::event::{
 };
 use crate::db::team::get_chapter_teams;
 
+use crate::AppNotification;
 use crate::{
     auth::{AuthSession, BackendPgDB},
     db::{book::BookSubscription, chapter::Chapter},
     AppError,
 };
 
-use axum::response::Html;
 use axum::{Extension, Json};
 use axum_ctx::{RespErr, RespErrCtx, RespErrExt, StatusCode};
 
@@ -74,7 +74,7 @@ pub async fn submit(
     auth_session: AuthSession,
     Extension(chapter): Extension<Chapter>,
     Json(picks): Json<PickSubmission>,
-) -> Result<Html<&'static str>, RespErr> {
+) -> Result<AppNotification, AppNotification> {
     let pool = auth_session.backend.0;
     let user_id = auth_session.user.ok_or(AppError::BackendUser)?.id;
 
@@ -101,14 +101,7 @@ pub async fn submit(
     .await
     .map_err(AppError::from)?;
 
-    Ok(Html(
-        "
-        <script>
-            alertify.set('notifier','position', 'top-center');
-            alertify.success('Picks Saved', 2);
-        </script>
-        ",
-    ))
+    Ok(AppNotification(StatusCode::OK, "Picks Saved".into()))
 }
 
 async fn validate_picks(

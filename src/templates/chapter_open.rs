@@ -42,7 +42,7 @@ pub fn markup(
                     }
                 }
             }
-            form id="submit-picks" hx-post="." hx-ext="my-enc" hx-target="next script" hx-swap="outerHTML" {
+            form id="submit-picks" hx-post="." hx-ext="my-enc" {
                 @if user_picks.is_empty() {
                     p { "No Events in this Chapter" }
                 }
@@ -59,7 +59,6 @@ pub fn markup(
                     "Submit"
                 }
             }
-            script {}
         }),
         None,
     )
