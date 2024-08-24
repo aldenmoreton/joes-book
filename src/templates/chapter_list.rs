@@ -16,8 +16,8 @@ where
                 }
                 @for chapter in chapters {
                     li {
-                        div class="justify-center p-3 m-3 bg-white rounded-lg shadow-lg h-30 w-60" {
-                            a href={"/book/"(book_id)"/chapter/"(chapter.chapter_id)"/"} class="object-fill" {
+                        a href={"/book/"(book_id)"/chapter/"(chapter.chapter_id)"/"} class="object-fill" {
+                            div class="justify-center p-3 m-3 bg-white rounded-lg shadow-lg h-30 w-60" {
                                 (chapter.title)
                             }
                         }
