@@ -295,9 +295,11 @@ pub async fn user_input(
 
     Ok(maud::html! {
         @for (i, choice) in choices.into_iter().enumerate() {
-            input type="checkbox" name=(format!("choices[{event_id}-{i}]"))  me-insert="array" value=(choice.choice) class="absolute opacity-0 peer" id={"user-input-"(event_id)"-"(i)} checked[choice.correct];
-            label for={"user-input-"(event_id)"-"(i)} class="w-10/12 p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100" {
-                (choice.choice)
+            div {
+                input type="checkbox" name=(format!("choices[{event_id}-{i}]"))  me-insert="array" value=(choice.choice) class="absolute opacity-0 peer" id={"user-input-"(event_id)"-"(i)} checked[choice.correct];
+                label for={"user-input-"(event_id)"-"(i)} class="w-10/12 p-5 pt-0 pb-0 border border-black rounded-lg cursor-pointer hover:border-green-700 peer-checked:bg-green-500 peer-checked:border-green-600 hover:bg-green-100" {
+                    (choice.choice)
+                }
             }
         }
     })
