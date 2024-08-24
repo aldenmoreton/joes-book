@@ -81,14 +81,14 @@ pub fn alertify() -> maud::Markup {
         link rel="stylesheet" href="/public/styles/alertify-main.css";
         link rel="stylesheet" href="/public/styles/alertify-theme.css";
         script {
-            "window.addEventListener("load", function() {
+            "window.addEventListener('load', function() {
                 document.body.addEventListener('htmx:beforeOnLoad', function (evt) {
                     if (evt.detail.xhr.getResponseHeader('content-type') === 'text/html; charset=utf-8') {
                         evt.detail.shouldSwap = true;
                         evt.detail.isError = false;
                     }
                 });
-            }"
+            })"
         }
     }
 }

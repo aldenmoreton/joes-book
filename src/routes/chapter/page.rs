@@ -124,8 +124,11 @@ async fn validate_picks(
                                             .ctx(StatusCode::BAD_REQUEST)
                                             .user_msg("Could not parse Spread Group Points")?;
 
-                                if amount < min_points || amount > max_points || point_choices[amount as usize - 1] {
-                                    return Err(RespErr::new(StatusCode::BAD_REQUEST).user_msg("Points must be valid and cannot be repeated"))
+                                if amount < min_points || amount > max_points {
+                                    return Err(RespErr::new(StatusCode::BAD_REQUEST).user_msg(format!("Points must be in range {min_points}-{max_points}")))
+                                }
+                                if point_choices[amount as usize - 1] {
+                                    return Err(RespErr::new(StatusCode::BAD_REQUEST).user_msg(format!("Points can't be repeated: {amount}")))
                                 }
                                 point_choices[amount as usize - 1] = true;
                                 Ok((
