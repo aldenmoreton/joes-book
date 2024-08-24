@@ -1,4 +1,4 @@
-use axum::{extract::Query, Extension, Form};
+use axum::{extract::Query, response::IntoResponse, Extension, Form};
 use axum_ctx::RespErr;
 
 use crate::{auth::AuthSession, db::book::BookSubscription, templates::authenticated, AppError};
@@ -39,6 +39,18 @@ pub async fn handler(
         }),
         Some(maud::html! {
             div class="flex flex-col items-center justify-center" {
+                details {
+                    summary {
+                        span class="text-red-500" {"Danger Zone"}
+                    }
+                    button
+                        hx-delete="."
+                        hx-confirm="Are you sure you wish to delete this book, all chapters, and all picks within FOREVER?"
+                        class="p-0.5 font-bold text-white bg-red-600 rounded hover:bg-red-700" {
+                        "Delete Book"
+                    }
+                }
+
                 div class="relative mt-5 overflow-x-auto rounded-lg" {
                 table class="w-full text-sm text-left text-gray-500 rtl:text-right" {
                     thead class="text-xs text-gray-700 uppercase bg-gray-100" {
@@ -75,7 +87,8 @@ pub async fn handler(
                                     hx-target="next ul"
                                     type="search"
                                     autocomplete="off"
-                                    placeholder="username";
+                                    placeholder="username"
+                                    class="border border-green-300";
                                ul {}
                             }
                         }
@@ -208,4 +221,72 @@ pub async fn remove_user(
     .map_err(AppError::from)?;
 
     Ok(())
+}
+
+pub async fn delete(
+    auth_session: AuthSession,
+    Extension(book_subscription): Extension<BookSubscription>,
+) -> Result<impl IntoResponse, RespErr> {
+    let pool = auth_session.backend.0;
+
+    let mut transaction = pool.begin().await.map_err(AppError::from)?;
+
+    sqlx::query!(
+        "
+        DELETE FROM picks
+        WHERE book_id = $1
+        ",
+        book_subscription.book_id
+    )
+    .execute(&mut *transaction)
+    .await
+    .map_err(AppError::from)?;
+
+    sqlx::query!(
+        "
+        DELETE FROM events
+        WHERE book_id = $1
+        ",
+        book_subscription.book_id
+    )
+    .execute(&mut *transaction)
+    .await
+    .map_err(AppError::from)?;
+
+    sqlx::query!(
+        "
+        DELETE FROM chapters
+        WHERE book_id = $1
+        ",
+        book_subscription.book_id
+    )
+    .execute(&mut *transaction)
+    .await
+    .map_err(AppError::from)?;
+
+    sqlx::query!(
+        "
+        DELETE FROM subscriptions
+        WHERE book_id = $1
+        ",
+        book_subscription.book_id
+    )
+    .execute(&mut *transaction)
+    .await
+    .map_err(AppError::from)?;
+
+    sqlx::query!(
+        "
+        DELETE FROM books
+        WHERE id = $1
+        ",
+        book_subscription.book_id
+    )
+    .execute(&mut *transaction)
+    .await
+    .map_err(AppError::from)?;
+
+    transaction.commit().await.map_err(AppError::from)?;
+
+    Ok([("HX-Redirect", "/")].into_response())
 }

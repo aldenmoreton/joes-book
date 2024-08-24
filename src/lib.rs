@@ -178,7 +178,7 @@ pub fn router(auth_layer: AuthManagerLayer<BackendPgDB, PostgresStore>) -> Route
         .nest(
             "/:book_id/admin/",
             Router::new()
-                .route("/", get(book::admin::handler))
+                .route("/", get(book::admin::handler).delete(book::admin::delete))
                 .route("/user-search", get(book::admin::search_user))
                 .route("/add-user", post(book::admin::add_user))
                 .route("/remove-user", post(book::admin::remove_user))
