@@ -102,7 +102,7 @@ pub async fn leaderboard(
             SUB1.USER_ID,
             SUB1.USERNAME
         ORDER BY
-            "point_total!",
+            "point_total!" DESC,
             USERNAME
         "#,
         book_subscription.book_id
