@@ -35,15 +35,15 @@ pub fn base(
                 script {"0"}
                 @if let Some(header_markup) = header {
                     header { (header_markup) }
+                    hr;
                 }
-                hr;
 
                 @if let Some(header_markup) = main {
                     main { (header_markup) }
                 }
 
-                hr;
                 @if let Some(header_markup) = footer {
+                    hr;
                     footer { (header_markup) }
                 }
             }
@@ -81,7 +81,7 @@ pub fn alertify() -> maud::Markup {
         link rel="stylesheet" href="/public/styles/alertify-main.css";
         link rel="stylesheet" href="/public/styles/alertify-theme.css";
         script {
-            "window.onload = function() {
+            "window.addEventListener("load", function() {
                 document.body.addEventListener('htmx:beforeOnLoad', function (evt) {
                     if (evt.detail.xhr.getResponseHeader('content-type') === 'text/html; charset=utf-8') {
                         evt.detail.shouldSwap = true;
