@@ -1,11 +1,7 @@
 pub fn markup() -> maud::Markup {
     crate::templates::base(
         Some("Login"),
-        Some(maud::html!(
-            script src="/public/js/alertify.js" {}
-            link rel="stylesheet" href="/public/styles/alertify-main.css";
-            link rel="stylesheet" href="/public/styles/alertify-theme.css";
-        )),
+        Some(maud::html!((crate::templates::alertify()))),
         None,
         Some(maud::html! {
             div class="flex flex-col items-center justify-center pt-10" {

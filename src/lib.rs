@@ -68,6 +68,40 @@ impl From<AppError<'_>> for RespErr {
     }
 }
 
+pub struct AppNotification(StatusCode, String);
+
+impl axum::response::IntoResponse for AppNotification {
+    fn into_response(self) -> axum::response::Response {
+        (
+            self.0,
+            [("HX-Retarget", "body"), ("HX-Reswap", "beforeend")],
+            maud::html! {
+                script {
+                    "alertify.set('notifier','position', 'top-center');"
+                    @if self.0.is_success() {
+                        "alertify.success('"(self.1)"');"
+                    } @else {
+                        "alertify.error('"(self.1)"');"
+                    }
+                }
+            },
+        )
+            .into_response()
+    }
+}
+
+impl From<RespErr> for AppNotification {
+    fn from(value: RespErr) -> Self {
+        AppNotification(value.status_code, value.to_string())
+    }
+}
+
+impl From<AppError<'_>> for AppNotification {
+    fn from(value: AppError) -> Self {
+        AppNotification::from(RespErr::from(value))
+    }
+}
+
 pub fn router(auth_layer: AuthManagerLayer<BackendPgDB, PostgresStore>) -> Router {
     let admin_routes = Router::new().route(
         "/",

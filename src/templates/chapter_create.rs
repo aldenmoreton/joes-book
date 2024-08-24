@@ -7,6 +7,7 @@ pub fn markup(username: &str, book_name: &str) -> maud::Markup {
         Some(maud::html! {
             script src="/public/js/my-enc.js" {}
             script src="/public/js/json-enc.js" {}
+            (crate::templates::alertify())
         }),
         Some(maud::html! {
             p {

@@ -25,9 +25,7 @@ pub fn markup(
         Some(&chapter.title),
         Some(html! {
             script src="/public/js/my-enc.js" {}
-            script src="/public/js/alertify.js" {}
-            link rel="stylesheet" href="/public/styles/alertify-main.css";
-            link rel="stylesheet" href="/public/styles/alertify-theme.css";
+            (crate::templates::alertify())
         }),
         Some(maud::html! {
             p {

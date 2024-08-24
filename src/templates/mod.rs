@@ -73,3 +73,25 @@ pub fn authenticated(
         footer,
     )
 }
+
+pub fn alertify() -> maud::Markup {
+    maud::html! {
+        script src="/public/js/alertify.js" {}
+        link rel="stylesheet" href="/public/styles/alertify-main.css";
+        link rel="stylesheet" href="/public/styles/alertify-theme.css";
+        script {
+            "window.onload = function() {
+                console.log('loading');
+                document.body.addEventListener('htmx:beforeOnLoad', function (evt) {
+                    console.log(evt);
+                    if (evt.detail.xhr.getResponseHeader('content-type') === 'text/html; charset=utf-8') {
+                        console.log('swapping');
+                        evt.detail.shouldSwap = true;
+                        evt.detail.isError = false;
+                    }
+                    console.log('swap params');
+                });
+            }"
+        }
+    }
+}

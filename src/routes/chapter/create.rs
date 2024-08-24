@@ -1,7 +1,6 @@
 use axum::{
-    body::Body,
     extract::{Path, Query},
-    http::{Response, StatusCode},
+    http::StatusCode,
     response::IntoResponse,
     Extension, Json,
 };
@@ -16,7 +15,7 @@ use crate::{
         spread::Spread,
         user_input::UserInput,
     },
-    AppError,
+    AppError, AppNotification,
 };
 
 pub async fn get(
@@ -180,7 +179,7 @@ pub async fn post(
     auth_session: AuthSession,
     Path(book_id): Path<i32>,
     Json(chapter_submission): Json<EventSubmissions>,
-) -> Result<Response<Body>, RespErr> {
+) -> Result<impl IntoResponse, AppNotification> {
     validate_name(&chapter_submission.chapter_name)?;
     let events = validate_events(chapter_submission.events)?;
 
@@ -237,5 +236,5 @@ pub async fn post(
 
     let new_chapter_uri = format!("/book/{book_id}/chapter/{}/", record.id);
 
-    Ok([("HX-Redirect", new_chapter_uri)].into_response())
+    Ok([("HX-Redirect", new_chapter_uri)])
 }
