@@ -800,6 +800,14 @@ video {
   overflow-x: auto;
 }
 
+.overflow-y-auto {
+  overflow-y: auto;
+}
+
+.overflow-x-scroll {
+  overflow-x: scroll;
+}
+
 .whitespace-nowrap {
   white-space: nowrap;
 }
@@ -852,6 +860,11 @@ video {
 .border-green-500 {
   --tw-border-opacity: 1;
   border-color: rgb(34 197 94 / var(--tw-border-opacity));
+}
+
+.border-red-500 {
+  --tw-border-opacity: 1;
+  border-color: rgb(239 68 68 / var(--tw-border-opacity));
 }
 
 .bg-gray-100 {
