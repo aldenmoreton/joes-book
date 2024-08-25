@@ -247,18 +247,19 @@ pub async fn closed_book(
             }
         }),
         Some(maud::html! {
-            @if book_subscription.role == BookRole::Admin {
-                a href="admin/" {
-                    button class="px-2 py-2 mt-1 font-bold text-white bg-orange-600 rounded hover:bg-orange-700" {
-                        "Go to Admin Page"
+            div class="flex flex-col flex-grow overflow-scroll border border-black" {
+                @if book_subscription.role == BookRole::Admin {
+                    div {
+                        a href="admin/" {
+                            button class="px-2 py-2 mt-1 font-bold text-white bg-orange-600 rounded hover:bg-orange-700" {
+                                "Go to Admin Page"
+                            }
+                        }
                     }
                 }
-
-                div class="h-screen overflow-auto border border-black" {
-                    table class="picktable" {
-                        (table_header(&events, &relevent_teams))
-                        (table_rows(&events, &users, &user_picks, &relevent_teams))
-                    }
+                table class="m-1 overflow-auto picktable h-fit w-fit" {
+                    (table_header(&events, &relevent_teams))
+                    (table_rows(&events, &users, &user_picks, &relevent_teams))
                 }
             }
         }),
