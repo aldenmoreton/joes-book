@@ -16,6 +16,7 @@ use crate::{
 
 use axum::{Extension, Json};
 use axum_ctx::{RespErr, RespErrCtx, RespErrExt, StatusCode};
+use itertools::Itertools;
 
 pub async fn open_book(
     auth_session: AuthSession,
@@ -113,7 +114,7 @@ async fn validate_picks(
         .map(|event| match event {
             SubmissionEvent::SpreadGroup { event_id, spreads } => {
                 let (min_points, max_points) = (1, spreads.len() as i32);
-                let mut point_choices = vec![false; spreads.len()];
+                let mut point_choices = vec![0; spreads.len()];
                 let (choices, wagers) =
                         spreads
                             .into_iter()
@@ -127,10 +128,8 @@ async fn validate_picks(
                                 if amount < min_points || amount > max_points {
                                     return Err(RespErr::new(StatusCode::BAD_REQUEST).user_msg(format!("Points must be in range {min_points}-{max_points}")))
                                 }
-                                if point_choices[amount as usize - 1] {
-                                    return Err(RespErr::new(StatusCode::BAD_REQUEST).user_msg(format!("Points can't be repeated: {amount}")))
-                                }
-                                point_choices[amount as usize - 1] = true;
+
+                                point_choices[amount as usize - 1] += 1;
                                 Ok((
                                     serde_json::Value::String(spread.selection),
                                     serde_json::Value::Number(amount.into()),
@@ -149,7 +148,11 @@ async fn validate_picks(
                                     Ok::<_, RespErr>((choices, wagers))
                                 },
                             )?;
-
+                    let double_used = point_choices.iter().enumerate().filter_map(|(i, count)| (*count > 1).then_some(i+1)).join(",");
+                    if !double_used.is_empty() {
+                        let unused = point_choices.iter().enumerate().filter_map(|(i, count)| (*count < 1).then_some(i+1)).join(",");
+                        return Err(RespErr::new(StatusCode::BAD_REQUEST).user_msg(format!("Points Used<br/>Multiple Times: {double_used}<br/>Point(s) available: {unused}")))
+                    }
                 Ok((
                     event_id,
                     serde_json::Value::Array(choices),
