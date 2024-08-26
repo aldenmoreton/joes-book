@@ -44,7 +44,7 @@ pub async fn login_form(
             })
             .await;
 
-    tracing::info!("{cf_validate:?}");
+    tracing::debug!("{cf_validate:?}");
 
     if !cf_validate.map(|v| v.success).unwrap_or(false) {
         return Err(AppNotification(
