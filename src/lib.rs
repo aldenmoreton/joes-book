@@ -9,9 +9,8 @@ use axum::{
     Extension, Router,
 };
 use axum_ctx::{RespErr, StatusCode};
-use axum_login::{login_required, AuthManagerLayer};
+use axum_login::login_required;
 use tower_http::services::ServeDir;
-use tower_sessions::PostgresStore;
 
 use crate::routes::*;
 
@@ -22,7 +21,7 @@ pub mod routes {
     pub mod book;
     pub mod chapter;
     pub mod home;
-    pub mod login;
+    pub mod session;
     pub mod signup;
 }
 
@@ -37,75 +36,18 @@ pub mod db {
 
 pub mod templates;
 
-#[derive(Debug, thiserror::Error)]
-pub enum AppError<'a> {
-    #[error("No Backend User")]
-    BackendUser,
-    #[error("Unauthorized: {0}")]
-    Unauthorized(&'a str),
-    #[error("Parsing: {0}")]
-    Parse(&'a str),
-    #[error("Database Error: {0}")]
-    Sqlx(#[from] sqlx::Error),
+type AppStateRef = &'static AppState;
+pub struct AppState {
+    pub turnstile: TurnstileState,
 }
 
-impl From<AppError<'_>> for RespErr {
-    fn from(value: AppError) -> Self {
-        match &value {
-            AppError::BackendUser => {
-                RespErr::new(StatusCode::INTERNAL_SERVER_ERROR).log_msg(value.to_string())
-            }
-            AppError::Unauthorized(_) => RespErr::new(StatusCode::UNAUTHORIZED)
-                .user_msg(value.to_string())
-                .log_msg(value.to_string()),
-            AppError::Parse(_) => RespErr::new(StatusCode::BAD_REQUEST)
-                .user_msg(value.to_string())
-                .log_msg(value.to_string()),
-            AppError::Sqlx(_) => {
-                RespErr::new(StatusCode::INTERNAL_SERVER_ERROR).log_msg(value.to_string())
-            }
-        }
-    }
+pub struct TurnstileState {
+    pub site_key: String,
+    pub client: cf_turnstile::TurnstileClient,
 }
 
-pub struct AppNotification(StatusCode, String);
-
-impl axum::response::IntoResponse for AppNotification {
-    fn into_response(self) -> axum::response::Response {
-        (
-            self.0,
-            [("HX-Retarget", "body"), ("HX-Reswap", "beforeend")],
-            maud::html! {
-                script {
-                    "alertify.set('notifier', 'position', 'top-center');"
-                    @if self.0.is_success() {
-                        "alertify.success("(maud::PreEscaped("\"")) (maud::PreEscaped(self.1)) (maud::PreEscaped("\""))");"
-                    } @else if self.0.is_server_error() {
-                        "alertify.error('Our Fault! Please Try Again.');"
-                    } @else {
-                        "alertify.error("(maud::PreEscaped("\"")) (maud::PreEscaped(self.1)) (maud::PreEscaped("\""))");"
-                    }
-                }
-            },
-        )
-            .into_response()
-    }
-}
-
-impl From<RespErr> for AppNotification {
-    fn from(value: RespErr) -> Self {
-        AppNotification(value.status_code, value.to_string())
-    }
-}
-
-impl From<AppError<'_>> for AppNotification {
-    fn from(value: AppError) -> Self {
-        AppNotification::from(RespErr::from(value))
-    }
-}
-
-pub fn router(auth_layer: AuthManagerLayer<BackendPgDB, PostgresStore>) -> Router {
-    let admin_routes = Router::new().route(
+pub fn router() -> Router<AppStateRef> {
+    let site_admin_routes = Router::new().route(
         "/",
         get(|| async { Html("<p>You're on the admin page</p>") }),
     );
@@ -193,26 +135,14 @@ pub fn router(auth_layer: AuthManagerLayer<BackendPgDB, PostgresStore>) -> Route
         );
 
     let home_routes = Router::new()
-        .route("/logout", post(auth::logout))
-        // .nest("/nav", Router::new().route("/", get(nav::user)))
-        .nest(
-            "/home",
-            Router::new().route("/logout", post(auth::logout)), // .nest("/nav", Router::new().route("/", get(nav::user))),
-        )
+        .route("/logout", post(session::logout))
         .route("/", get(home::handler));
 
     Router::new()
-        // v Site Admin Routes v
-        .nest("/admin", admin_routes)
-        // ^ Site Admin Routes ^
-        // v Book Member Routes v
+        .nest("/admin", site_admin_routes)
         .nest("/book", book_routes)
-        // ^ Book Member Routes ^
-        // v Home Routes v
         .merge(home_routes)
-        // ^ Home Routes ^
         .route("/team-search", get(search::team))
-        // .nest_service("/assets", ServeDir::new("assets"))
         // ------------------^ Logged in Routes ^------------------
         .route_layer(login_required!(BackendPgDB, login_url = "/login"))
         .nest_service("/public", ServeDir::new("public"))
@@ -222,11 +152,76 @@ pub fn router(auth_layer: AuthManagerLayer<BackendPgDB, PostgresStore>) -> Route
         )
         .route(
             "/login",
-            get(crate::login::login_page).post(crate::login::login_form),
+            get(crate::session::login_page).post(crate::session::login_form),
         )
-        .layer(auth_layer)
-        .layer(tower_http::trace::TraceLayer::new_for_http())
         .fallback(get(|| async {
             (StatusCode::NOT_FOUND, "Could not find your route")
         })) // TODO: Add funny status page
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum AppError<'a> {
+    #[error("No Backend User")]
+    BackendUser,
+    #[error("Unauthorized: {0}")]
+    Unauthorized(&'a str),
+    #[error("Parsing: {0}")]
+    Parse(&'a str),
+    #[error("Database Error: {0}")]
+    Sqlx(#[from] sqlx::Error),
+}
+
+impl From<AppError<'_>> for RespErr {
+    fn from(value: AppError) -> Self {
+        match &value {
+            AppError::BackendUser => {
+                RespErr::new(StatusCode::INTERNAL_SERVER_ERROR).log_msg(value.to_string())
+            }
+            AppError::Unauthorized(_) => RespErr::new(StatusCode::UNAUTHORIZED)
+                .user_msg(value.to_string())
+                .log_msg(value.to_string()),
+            AppError::Parse(_) => RespErr::new(StatusCode::BAD_REQUEST)
+                .user_msg(value.to_string())
+                .log_msg(value.to_string()),
+            AppError::Sqlx(_) => {
+                RespErr::new(StatusCode::INTERNAL_SERVER_ERROR).log_msg(value.to_string())
+            }
+        }
+    }
+}
+
+pub struct AppNotification(StatusCode, String);
+
+impl axum::response::IntoResponse for AppNotification {
+    fn into_response(self) -> axum::response::Response {
+        (
+            self.0,
+            [("HX-Retarget", "body"), ("HX-Reswap", "beforeend")],
+            maud::html! {
+                script {
+                    "alertify.set('notifier', 'position', 'top-center');"
+                    @if self.0.is_success() {
+                        "alertify.success("(maud::PreEscaped("\"")) (maud::PreEscaped(self.1)) (maud::PreEscaped("\""))");"
+                    } @else if self.0.is_server_error() {
+                        "alertify.error('Our Fault! Please Try Again.');"
+                    } @else {
+                        "alertify.error("(maud::PreEscaped("\"")) (maud::PreEscaped(self.1)) (maud::PreEscaped("\""))");"
+                    }
+                }
+            },
+        )
+            .into_response()
+    }
+}
+
+impl From<RespErr> for AppNotification {
+    fn from(value: RespErr) -> Self {
+        AppNotification(value.status_code, value.to_string())
+    }
+}
+
+impl From<AppError<'_>> for AppNotification {
+    fn from(value: AppError) -> Self {
+        AppNotification::from(RespErr::from(value))
+    }
 }

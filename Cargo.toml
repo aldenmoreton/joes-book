@@ -9,6 +9,7 @@ axum = "0.7.4"
 axum-ctx = "0.4.0"
 axum-login = "0.12.0"
 bcrypt = "0.15.0"
+cf-turnstile = "0.1.0"
 dotenvy = "0.15.7"
 itertools = "0.12.1"
 maud = { version = "0.26.0", features = ["axum"] }

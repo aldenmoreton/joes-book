@@ -1,4 +1,4 @@
-pub fn markup() -> maud::Markup {
+pub fn markup(site_key: &str) -> maud::Markup {
     crate::templates::base(
         Some("Login"),
         Some(maud::html!(
@@ -7,10 +7,9 @@ pub fn markup() -> maud::Markup {
             script {
                 "window.onloadTurnstileCallback = function () {
                     turnstile.render('#example-container', {
-                        sitekey: '1x00000000000000000000AA',
+                        sitekey: '"(site_key)"',
                         callback: function(token) {
                             document.getElementById('submit-button').disabled = false;
-                            console.log(`Challenge Success ${token}`);
                         },
                         theme: 'light',
                         action: 'login',

@@ -1,10 +1,4 @@
-use axum::{
-    async_trait,
-    body::Body,
-    http::{Response, StatusCode},
-    response::IntoResponse,
-};
-use axum_ctx::{RespErr, RespErrCtx, RespErrExt};
+use axum::async_trait;
 use axum_login::{AuthSession as AxumLoginAuthSession, AuthUser, AuthnBackend, UserId};
 use serde::Deserialize;
 use sqlx::PgPool;
@@ -24,6 +18,8 @@ pub struct BackendUser {
 pub struct LoginCreds {
     pub username: String,
     pub password: String,
+    #[serde(rename = "cf-turnstile-response")]
+    pub turnstile_response: String,
 }
 
 impl AuthUser for BackendUser {
@@ -83,10 +79,15 @@ impl BackendPgDB {
     }
 }
 
+pub struct UserCredentials {
+    pub username: String,
+    pub password: String,
+}
+
 #[async_trait]
 impl AuthnBackend for BackendPgDB {
     type User = BackendUser;
-    type Credentials = LoginCreds;
+    type Credentials = UserCredentials;
     type Error = sqlx::Error;
 
     async fn authenticate(
@@ -134,17 +135,6 @@ impl AuthnBackend for BackendPgDB {
             })
         })
     }
-}
-
-pub async fn logout(mut auth_session: self::AuthSession) -> Result<Response<Body>, RespErr> {
-    auth_session
-        .logout()
-        .await
-        .ctx(StatusCode::INTERNAL_SERVER_ERROR)
-        .log_msg("Could not log out user")
-        .user_msg("Logout unsuccessful")?;
-
-    Ok([("HX-Redirect", "/login")].into_response())
 }
 
 pub mod authz {
