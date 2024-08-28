@@ -100,6 +100,17 @@ pub async fn signup_form(
         ));
     }
 
+    if form
+        .username
+        .chars()
+        .any(|c| c.is_whitespace() || !c.is_ascii_alphanumeric())
+    {
+        return Err(AppNotification(
+            StatusCode::BAD_REQUEST,
+            "Username is not allowed".into(),
+        ));
+    }
+
     let pool = auth_session.backend.0.clone();
 
     if form.password != form.password_confirmation {
@@ -130,7 +141,7 @@ pub async fn signup_form(
 
     let user = auth_session
         .backend
-        .signup(&form.username, &form.password)
+        .signup(&form.username.to_lowercase(), &form.password)
         .await
         .map_err(AppError::from)?;
 
