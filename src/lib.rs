@@ -11,6 +11,8 @@ use axum::{
 use axum_ctx::{RespErr, StatusCode};
 use axum_login::login_required;
 use tower_http::services::ServeDir;
+use tower_service::Service;
+use worker::*;
 
 use crate::routes::*;
 
@@ -44,6 +46,61 @@ pub struct AppState {
 pub struct TurnstileState {
     pub site_key: String,
     pub client: cf_turnstile::TurnstileClient,
+}
+
+#[event(fetch)]
+async fn main(
+    req: HttpRequest,
+    _env: Env,
+    _ctx: Context,
+) -> Result<axum::http::Response<axum::body::Body>> {
+    dotenvy::dotenv().ok();
+
+    let auth_layer = {
+        let database_url = std::env::var("DATABASE_URL").expect("Unable to read DATABASE_URL ENV");
+
+        let pool = sqlx::postgres::PgPoolOptions::new()
+            .connect(&database_url)
+            .await
+            .expect("Could not make pool.");
+
+        let backend = BackendPgDB(pool.clone());
+        backend.init_admin().await.ok();
+
+        let session_store = tower_sessions::PostgresStore::new(pool);
+        session_store
+            .migrate()
+            .await
+            .expect("Could not migrate database");
+        let session_layer = tower_sessions::SessionManagerLayer::new(session_store)
+            .with_secure(false)
+            .with_expiry(tower_sessions::Expiry::OnInactivity(
+                tower_sessions::cookie::time::Duration::weeks(2),
+            ));
+        axum_login::AuthManagerLayerBuilder::new(backend, session_layer).build()
+    };
+
+    let state: crate::AppState = {
+        let turnstile_site_key: String = std::env::var("TURNSTILE_SITE_KEY")
+            .unwrap_or_else(|_| "1x00000000000000000000AA".into());
+
+        let turnstile_secret = std::env::var("TURNSTILE_SECRET_KEY")
+            .unwrap_or_else(|_| "1x0000000000000000000000000000000AA".into());
+
+        crate::AppState {
+            turnstile: crate::TurnstileState {
+                site_key: turnstile_site_key,
+                client: cf_turnstile::TurnstileClient::new(turnstile_secret.into()),
+            },
+        }
+    };
+
+    let mut app = router()
+        .layer(auth_layer)
+        .layer(tower_http::trace::TraceLayer::new_for_http())
+        .with_state(&*Box::leak(Box::new(state)));
+
+    Ok(app.call(req).await?)
 }
 
 pub fn router() -> Router<AppStateRef> {
