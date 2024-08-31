@@ -4,6 +4,7 @@ pub fn markup(username: &str, book_name: &str) -> maud::Markup {
     authenticated(
         username,
         Some("Create Chapter"),
+        None,
         Some(maud::html! {
             script src="/public/js/my-enc.js" {}
             script src="/public/js/json-enc.js" {}

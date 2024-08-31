@@ -30,6 +30,7 @@ pub async fn handler(
         &user.username,
         Some(format!("{} - Admin", book_subscription.name).as_str()),
         None,
+        None,
         Some(maud::html! {
             p {
                 a href="/" class="text-blue-400 hover:underline" {"Home"} " > "

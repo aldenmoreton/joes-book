@@ -236,6 +236,7 @@ pub async fn closed_book(
     Ok(crate::templates::authenticated(
         &curr_user.username,
         None,
+        None,
         Some(maud::html!(
             link rel="stylesheet" id="tailwind" href="/public/styles/chapter-table.css";
         )),

@@ -23,6 +23,7 @@ pub fn markup(
     authenticated(
         username,
         Some(&chapter.title),
+        None,
         Some(html! {
             script src="/public/js/my-enc.js" {}
             (crate::templates::alertify())

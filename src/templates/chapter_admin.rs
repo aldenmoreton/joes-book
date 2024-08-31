@@ -19,6 +19,7 @@ pub fn markup(
     authenticated(
         username,
         Some(&format!("{} - Admin", chapter.title)),
+        None,
         Some(maud::html! {
             script src="/public/js/my-enc.js" {}
             (crate::templates::alertify())

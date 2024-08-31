@@ -13,6 +13,7 @@ pub mod team_select;
 
 pub fn base(
     page_title: Option<&str>,
+    open_graph: Option<Markup>,
     head: Option<Markup>,
     header: Option<Markup>,
     main: Option<Markup>,
@@ -29,6 +30,22 @@ pub fn base(
                 link rel="manifest" href="/public/manifest.json";
                 link rel="stylesheet" id="tailwind" href="/public/styles/bookie.css";
                 script src="/public/js/htmx.js" {}
+
+                @if let Some(graph) = open_graph {
+                    (graph)
+                } @else {
+                    meta property="og:title" content="Joe's Book";
+                    meta property="og:image" content="/public/icon-512x512.png";
+                    meta property="og:image:type" content="image/png";
+                    meta property="og:image:width" content="512";
+                    meta property="og:image:height" content="512";
+                    meta property="og:image:alt" content="Site Logo";
+                    meta
+                        property="og:description"
+                        content="Sports Picks";
+                }
+                meta property="og:site_name" content="Joe's Book";
+
                 (head.unwrap_or_default())
             }
             body class="justify-center text-center bg-green-50" {
@@ -54,6 +71,7 @@ pub fn base(
 pub fn authenticated(
     username: &str,
     page_title: Option<&str>,
+    open_graph: Option<Markup>,
     head: Option<Markup>,
     header: Option<Markup>,
     main: Option<Markup>,
@@ -61,6 +79,7 @@ pub fn authenticated(
 ) -> Markup {
     base(
         page_title,
+        open_graph,
         head,
         Some(html! {
             nav {

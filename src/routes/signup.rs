@@ -17,6 +17,7 @@ pub async fn signup_page(
 
     base(
 		Some("Sign Up"),
+        None,
 		Some(maud::html!(
             (crate::templates::alertify())
             script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onloadTurnstileCallback" defer {}

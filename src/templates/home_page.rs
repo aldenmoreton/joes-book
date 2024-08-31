@@ -7,6 +7,7 @@ pub fn markup(username: &str, is_admin: bool, books: Vec<BookSubscription>) -> m
         username,
         Some("Home"),
         None,
+        None,
         Some(maud::html! {
              p {
                 a {"Home"}
