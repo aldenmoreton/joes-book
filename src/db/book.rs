@@ -44,7 +44,7 @@ pub struct BookSubscription {
     pub role: BookRole,
 }
 
-pub async fn get_books(user_id: i32, pool: &PgPool) -> Result<Vec<BookSubscription>, sqlx::Error> {
+pub async fn get_books(user_id: i32, pool: &PgPool) -> Result<Vec<BookSubscription>, AppError> {
     let result = sqlx::query_as!(
         BookSubscription,
         r#"	SELECT b.id AS book_id, b.name, s.role, s.user_id

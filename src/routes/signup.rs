@@ -1,20 +1,9 @@
-use axum::{
-    extract::State,
-    response::{IntoResponse, Redirect},
-    Form,
-};
+use axum::{extract::State, response::IntoResponse, Form};
 use axum_ctx::{RespErrCtx, RespErrExt, StatusCode};
 
 use crate::{auth::AuthSession, templates::base, AppError, AppNotification, AppStateRef};
 
-pub async fn signup_page(
-    auth_session: AuthSession,
-    State(state): State<AppStateRef>,
-) -> impl IntoResponse {
-    if auth_session.user.is_some() {
-        return Redirect::to("/").into_response();
-    }
-
+pub async fn signup_page(State(state): State<AppStateRef>) -> impl IntoResponse {
     base(
 		Some("Sign Up"),
         None,
@@ -53,7 +42,7 @@ pub async fn signup_page(
                             label class="block mb-2 text-sm font-bold text-gray-700" for="password_confirmation" { "Confirm Password" }
                             input id="password_confirmation" name="password_confirmation" type="password" placeholder="Password" class="w-full px-3 py-2 mb-3 leading-tight text-gray-700 border rounded shadow appearance-none focus:outline-none focus:shadow-outline";
                         }
-                        button id="submit-button" class="px-4 py-2 font-bold text-white bg-green-500 rounded disabled:cursor-wait disabled:bg-gray-400 hover:bg-green-700 focus:outline-none focus:shadow-outline" type="submit" {
+                        button disabled id="submit-button" class="px-4 py-2 font-bold text-white bg-green-500 rounded disabled:cursor-wait disabled:bg-gray-400 hover:bg-green-700 focus:outline-none focus:shadow-outline" type="submit" {
                             "Sign Up"
                         }
                     }
@@ -101,10 +90,11 @@ pub async fn signup_form(
         ));
     }
 
-    if form
-        .username
-        .chars()
-        .any(|c| c.is_whitespace() || !c.is_ascii_alphanumeric())
+    if form.username.is_empty()
+        || form
+            .username
+            .chars()
+            .any(|c| c.is_whitespace() || !c.is_ascii_alphanumeric())
     {
         return Err(AppNotification(
             StatusCode::BAD_REQUEST,

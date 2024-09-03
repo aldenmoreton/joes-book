@@ -1,4 +1,4 @@
-use axum_ctx::RespErr;
+use axum::response::ErrorResponse;
 
 use crate::{
     auth::{authz::has_perm, AuthSession},
@@ -6,11 +6,11 @@ use crate::{
     AppError,
 };
 
-pub async fn handler(session: AuthSession) -> Result<maud::Markup, RespErr> {
+pub async fn handler(session: AuthSession) -> Result<maud::Markup, ErrorResponse> {
     let user = session.user.ok_or(AppError::BackendUser)?;
 
     let crate::auth::BackendPgDB(pool) = session.backend;
-    let books = get_books(user.id, &pool).await.map_err(AppError::from)?;
+    let books = get_books(user.id, &pool).await?;
 
     let is_admin = has_perm("admin", user.id, &pool).await.unwrap_or(false);
 

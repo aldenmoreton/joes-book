@@ -4,7 +4,7 @@ use auth::{authz, BackendPgDB};
 use axum::{
     handler::Handler,
     middleware,
-    response::Html,
+    response::{Html, IntoResponse},
     routing::{get, post},
     Extension, Router,
 };
@@ -20,6 +20,7 @@ pub mod search;
 pub mod routes {
     pub mod book;
     pub mod chapter;
+    pub mod finish_signup;
     pub mod home;
     pub mod session;
     pub mod signup;
@@ -38,7 +39,10 @@ pub mod templates;
 
 type AppStateRef = &'static AppState;
 pub struct AppState {
+    pub pool: sqlx::PgPool,
+    pub requests: reqwest::Client,
     pub turnstile: TurnstileState,
+    pub google_oauth: oauth2::basic::BasicClient,
 }
 
 pub struct TurnstileState {
@@ -138,6 +142,34 @@ pub fn router() -> Router<AppStateRef> {
         .route("/logout", post(session::logout))
         .route("/", get(home::handler));
 
+    let session_routes = Router::new()
+        .route("/api/auth/google", get(session::google::google_oauth))
+        .route(
+            "/finish-signup",
+            get(finish_signup::get).post(finish_signup::post),
+        )
+        // .route(
+        //     "/signup",
+        //     get(crate::signup::signup_page).post(crate::signup::signup_form),
+        // )
+        .route(
+            "/legacy-login",
+            get(crate::session::legacy_login_page).post(crate::session::legacy_login_form),
+        )
+        .route(
+            "/login/explaination",
+            get(crate::session::login_explaination),
+        )
+        .route("/login", get(crate::session::login_page))
+        .route_layer(middleware::from_fn(
+            |auth_session: auth::AuthSession, request, next: middleware::Next| async move {
+                if auth_session.user.is_some() {
+                    return axum::response::Redirect::to("/").into_response();
+                }
+                next.run(request).await.into_response()
+            },
+        ));
+
     Router::new()
         .nest("/admin", site_admin_routes)
         .nest("/book", book_routes)
@@ -146,14 +178,7 @@ pub fn router() -> Router<AppStateRef> {
         // ------------------^ Logged in Routes ^------------------
         .route_layer(login_required!(BackendPgDB, login_url = "/login"))
         .nest_service("/public", ServeDir::new("public"))
-        .route(
-            "/signup",
-            get(crate::signup::signup_page).post(crate::signup::signup_form),
-        )
-        .route(
-            "/login",
-            get(crate::session::login_page).post(crate::session::login_form),
-        )
+        .merge(session_routes)
         .fallback(get(|| async {
             (StatusCode::NOT_FOUND, "Could not find your route")
         })) // TODO: Add funny status page
@@ -161,6 +186,8 @@ pub fn router() -> Router<AppStateRef> {
 
 #[derive(Debug, thiserror::Error)]
 pub enum AppError<'a> {
+    #[error("Internal Server Error")]
+    Internal,
     #[error("No Backend User")]
     BackendUser,
     #[error("Unauthorized: {0}")]
@@ -174,6 +201,9 @@ pub enum AppError<'a> {
 impl From<AppError<'_>> for RespErr {
     fn from(value: AppError) -> Self {
         match &value {
+            AppError::Internal => {
+                RespErr::new(StatusCode::INTERNAL_SERVER_ERROR).log_msg(value.to_string())
+            }
             AppError::BackendUser => {
                 RespErr::new(StatusCode::INTERNAL_SERVER_ERROR).log_msg(value.to_string())
             }
@@ -187,6 +217,12 @@ impl From<AppError<'_>> for RespErr {
                 RespErr::new(StatusCode::INTERNAL_SERVER_ERROR).log_msg(value.to_string())
             }
         }
+    }
+}
+
+impl axum::response::IntoResponse for AppError<'_> {
+    fn into_response(self) -> axum::response::Response {
+        RespErr::from(self).into_response()
     }
 }
 

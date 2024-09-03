@@ -194,7 +194,7 @@ pub mod authz {
                 Ok(true) => (),
                 Ok(false) => {
                     return Err(AppError::Unauthorized(
-                        "You do not have permission to create a book".into(),
+                        "You do not have permission to create a book",
                     )
                     .into())
                 }

@@ -36,7 +36,7 @@ pub mod mw {
             Ok(BookSubscription {
                 role: BookRole::Unauthorized,
                 ..
-            }) => return Err(AppError::Unauthorized("Not a member of this book".into()).into()),
+            }) => return Err(AppError::Unauthorized("Not a member of this book").into()),
             Err(_) => {
                 return Err(RespErr::new(StatusCode::NOT_FOUND).user_msg("Could not find book"))
             }
@@ -53,10 +53,9 @@ pub mod mw {
         next: Next,
     ) -> Result<Response<Body>, RespErr> {
         if book_subscription.role != BookRole::Admin {
-            return Err(AppError::Unauthorized(
-                "You do not have admin privilages for this book".into(),
-            )
-            .into());
+            return Err(
+                AppError::Unauthorized("You do not have admin privilages for this book").into(),
+            );
         }
 
         Ok(next.run(request).await)
