@@ -27,7 +27,7 @@ pub async fn login_page(State(state): State<AppStateRef>) -> impl IntoResponse {
                 div class="px-4 py-4 bg-white shadow-lg rounded-xl" {
                     h1 class="text-2xl font-bold" { "Sign In" }
                     div class="flex items-center justify-center my-16 h-fit" {
-                        a href={"https://accounts.google.com/o/oauth2/v2/auth?scope=openid%20profile%20email&client_id="(state.google_oauth.client_id().as_str())"&response_type=code&redirect_uri=http://localhost:8000/api/auth/google"} {
+                        a href={"https://accounts.google.com/o/oauth2/v2/auth?scope=openid%20profile%20email&client_id="(state.google.oauth.client_id().as_str())"&response_type=code&redirect_uri="(state.google.redirect_url)} {
                             button class="gsi-material-button" {
                                 div class="gsi-material-button-state" {}
                                 div class="gsi-material-button-content-wrapper" {
@@ -226,7 +226,8 @@ pub mod google {
         Query(query): Query<GoogleAuthRequest>,
     ) -> Result<impl IntoResponse, ErrorResponse> {
         let token = state
-            .google_oauth
+            .google
+            .oauth
             .exchange_code(oauth2::AuthorizationCode::new(query.code))
             .request_async(oauth2::reqwest::async_http_client)
             .await

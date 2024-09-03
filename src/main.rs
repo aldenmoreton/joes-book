@@ -2,7 +2,7 @@ use axum_login::{
     tower_sessions::{cookie::time::Duration, Expiry, SessionManagerLayer},
     AuthManagerLayerBuilder,
 };
-use joes_book::{auth::BackendPgDB, router};
+use joes_book::{auth::BackendPgDB, router, GoogleState};
 use sqlx::postgres::PgPoolOptions;
 
 use tower_sessions::PostgresStore;
@@ -45,6 +45,10 @@ pub async fn shuttle(
             .get("TURNSTILE_SECRET_KEY")
             .unwrap_or_else(|| "1x0000000000000000000000000000000AA".into());
 
+        let google_redirect_url = secrets
+            .get("GOOGLE_OAUTH_REDIRECT")
+            .unwrap_or("http://localhost:8000/api/auth/google".to_string());
+
         let google_oauth = oauth2::basic::BasicClient::new(
             oauth2::ClientId::new(secrets.get("GOOGLE_OAUTH_CLIENT_ID").unwrap()),
             Some(oauth2::ClientSecret::new(
@@ -55,9 +59,7 @@ pub async fn shuttle(
                 oauth2::TokenUrl::new("https://www.googleapis.com/oauth2/v3/token".into()).unwrap(),
             ),
         )
-        .set_redirect_uri(
-            oauth2::RedirectUrl::new("http://localhost:8000/api/auth/google".into()).unwrap(),
-        );
+        .set_redirect_uri(oauth2::RedirectUrl::new(google_redirect_url.clone()).unwrap());
 
         joes_book::AppState {
             pool,
@@ -66,7 +68,10 @@ pub async fn shuttle(
                 site_key: turnstile_site_key,
                 client: cf_turnstile::TurnstileClient::new(turnstile_secret.into()),
             },
-            google_oauth,
+            google: GoogleState {
+                redirect_url: google_redirect_url,
+                oauth: google_oauth,
+            },
         }
     };
 

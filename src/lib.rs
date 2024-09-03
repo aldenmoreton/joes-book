@@ -42,12 +42,17 @@ pub struct AppState {
     pub pool: sqlx::PgPool,
     pub requests: reqwest::Client,
     pub turnstile: TurnstileState,
-    pub google_oauth: oauth2::basic::BasicClient,
+    pub google: GoogleState,
 }
 
 pub struct TurnstileState {
     pub site_key: String,
     pub client: cf_turnstile::TurnstileClient,
+}
+
+pub struct GoogleState {
+    pub redirect_url: String,
+    pub oauth: oauth2::basic::BasicClient,
 }
 
 pub fn router() -> Router<AppStateRef> {
