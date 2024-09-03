@@ -105,7 +105,7 @@ impl AuthnBackend for BackendPgDB {
 
         let Some(user) = res else { return Ok(None) };
 
-        if !bcrypt::verify(creds.password, &user.password).unwrap() {
+        if !bcrypt::verify(creds.password, &user.password).unwrap_or(false) {
             return Ok(None);
         };
 
@@ -161,7 +161,7 @@ pub mod authz {
         user_id: i32,
         pool: &sqlx::PgPool,
     ) -> Result<bool, sqlx::Error> {
-        let result = sqlx::query!(
+        sqlx::query!(
             "SELECT token
             FROM user_permissions
             WHERE user_id = $1 AND token = $2",
@@ -169,9 +169,8 @@ pub mod authz {
             perm
         )
         .fetch_optional(pool)
-        .await;
-
-        result.map(|r| r.is_some())
+        .await
+        .map(|r| r.is_some())
     }
 
     pub mod mw {
