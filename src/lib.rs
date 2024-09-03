@@ -252,7 +252,12 @@ impl axum::response::IntoResponse for AppNotification {
 
 impl From<RespErr> for AppNotification {
     fn from(value: RespErr) -> Self {
-        AppNotification(value.status_code, value.to_string())
+        let text = value.to_string();
+        let status = value.status_code;
+
+        value.into_response();
+
+        AppNotification(status, text)
     }
 }
 

@@ -243,7 +243,7 @@ pub mod google {
             .await
             .map_err(|_| AppError::Internal)?;
 
-        let pool = auth_session.backend.0.clone();
+        let pool = &state.pool;
 
         let user = sqlx::query_as!(
             crate::auth::BackendUser,
@@ -256,7 +256,7 @@ pub mod google {
             profile.sub,
             "google"
         )
-        .fetch_optional(&pool)
+        .fetch_optional(pool)
         .await
         .map_err(AppError::from)?;
 
@@ -280,7 +280,7 @@ pub mod google {
             "google",
             content
         )
-        .execute(&pool)
+        .execute(pool)
         .await
         .map_err(AppError::from)?;
 
@@ -293,7 +293,7 @@ pub mod google {
             profile.sub,
             "google"
         )
-        .fetch_one(&pool)
+        .fetch_one(pool)
         .await
         .map_err(AppError::from)?
         .token;

@@ -1,6 +1,10 @@
 use std::{borrow::BorrowMut, collections::HashMap};
 
-use axum::{extract::Query, response::IntoResponse, Extension, Json};
+use axum::{
+    extract::{Query, State},
+    response::IntoResponse,
+    Extension, Json,
+};
 use axum_ctx::{RespErr, RespErrCtx, RespErrExt, StatusCode};
 
 use crate::{
@@ -11,7 +15,7 @@ use crate::{
         event::{get_events, EventContent},
         team::get_chapter_teams,
     },
-    AppError, AppNotification,
+    AppError, AppNotification, AppStateRef,
 };
 
 pub async fn handler(
@@ -64,13 +68,13 @@ pub enum AnswerEventContent {
 }
 
 pub async fn post(
-    auth_session: AuthSession,
+    State(state): State<AppStateRef>,
     Extension(chapter): Extension<Chapter>,
     Json(AnswerSubmission {
         events: event_submissions,
     }): Json<AnswerSubmission>,
 ) -> Result<AppNotification, AppNotification> {
-    let pool = auth_session.backend.0;
+    let pool = &state.pool;
 
     let events = get_events(chapter.chapter_id, &pool)
         .await
@@ -216,11 +220,11 @@ pub struct ToggleParam {
 }
 
 pub async fn open(
-    auth_session: AuthSession,
+    State(state): State<AppStateRef>,
     Extension(chapter): Extension<Chapter>,
     Query(ToggleParam { toggle }): Query<ToggleParam>,
-) -> Result<maud::Markup, RespErr> {
-    let pool = auth_session.backend.0;
+) -> Result<maud::Markup, AppError<'static>> {
+    let pool = &state.pool;
 
     sqlx::query!(
         r#"
@@ -231,19 +235,18 @@ pub async fn open(
         toggle,
         chapter.book_id
     )
-    .execute(&pool)
-    .await
-    .map_err(AppError::from)?;
+    .execute(pool)
+    .await?;
 
     Ok(crate::templates::chapter_admin::chapter_open_button(toggle))
 }
 
 pub async fn visible(
-    auth_session: AuthSession,
+    State(state): State<AppStateRef>,
     Extension(chapter): Extension<Chapter>,
     Query(ToggleParam { toggle }): Query<ToggleParam>,
-) -> Result<maud::Markup, RespErr> {
-    let pool = auth_session.backend.0;
+) -> Result<maud::Markup, AppError<'static>> {
+    let pool = &state.pool;
 
     sqlx::query!(
         r#"
@@ -255,9 +258,8 @@ pub async fn visible(
         toggle,
         chapter.book_id
     )
-    .fetch_one(&pool)
-    .await
-    .map_err(AppError::from)?;
+    .fetch_one(pool)
+    .await?;
 
     Ok(crate::templates::chapter_admin::chapter_visible_button(
         toggle,
@@ -271,10 +273,10 @@ pub struct UserInputParams {
 }
 
 pub async fn user_input(
-    auth_session: AuthSession,
+    State(state): State<AppStateRef>,
     Query(UserInputParams { event_id }): Query<UserInputParams>,
-) -> Result<maud::Markup, RespErr> {
-    let BackendPgDB(pool) = auth_session.backend;
+) -> Result<maud::Markup, AppError<'static>> {
+    let pool = &state.pool;
 
     let choices = sqlx::query!(
         r#"
@@ -289,9 +291,8 @@ pub async fn user_input(
         "#,
         event_id
     )
-    .fetch_all(&pool)
-    .await
-    .map_err(AppError::from)?;
+    .fetch_all(pool)
+    .await?;
 
     Ok(maud::html! {
         @for (i, choice) in choices.into_iter().enumerate() {
@@ -306,12 +307,10 @@ pub async fn user_input(
 }
 
 pub async fn delete(
-    auth_session: AuthSession,
+    State(state): State<AppStateRef>,
     Extension(chapter): Extension<Chapter>,
-) -> Result<impl IntoResponse, RespErr> {
-    let pool = auth_session.backend.0;
-
-    let mut transaction = pool.begin().await.map_err(AppError::from)?;
+) -> Result<impl IntoResponse, AppError<'static>> {
+    let mut transaction = state.pool.begin().await?;
 
     sqlx::query!(
         "
@@ -321,8 +320,7 @@ pub async fn delete(
         chapter.chapter_id
     )
     .execute(&mut *transaction)
-    .await
-    .map_err(AppError::from)?;
+    .await?;
 
     sqlx::query!(
         "
@@ -332,8 +330,7 @@ pub async fn delete(
         chapter.chapter_id
     )
     .execute(&mut *transaction)
-    .await
-    .map_err(AppError::from)?;
+    .await?;
 
     sqlx::query!(
         "
@@ -343,10 +340,9 @@ pub async fn delete(
         chapter.chapter_id
     )
     .execute(&mut *transaction)
-    .await
-    .map_err(AppError::from)?;
+    .await?;
 
-    transaction.commit().await.map_err(AppError::from)?;
+    transaction.commit().await?;
 
     Ok([("HX-Redirect", "../../..")].into_response())
 }

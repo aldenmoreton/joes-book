@@ -76,8 +76,8 @@ pub async fn submit(
     Extension(chapter): Extension<Chapter>,
     Json(picks): Json<PickSubmission>,
 ) -> Result<AppNotification, AppNotification> {
-    let pool = auth_session.backend.0;
     let user_id = auth_session.user.ok_or(AppError::BackendUser)?.id;
+    let pool = auth_session.backend.0;
 
     let (event_ids, choices, wagers) = validate_picks(picks.events, &pool).await?;
 
@@ -250,13 +250,17 @@ pub async fn closed_book(
         Some(maud::html! {
             div class="flex flex-col flex-grow overflow-scroll border border-black" {
                 @if book_subscription.role == BookRole::Admin {
-                    div {
-                        a href="admin/" {
-                            button class="px-2 py-2 mt-1 font-bold text-white bg-orange-600 rounded hover:bg-orange-700" {
-                                "Go to Admin Page"
+                    div class="flex justify-center" {
+                        fieldset class="w-1/2 border border-orange-600 max-w-60" {
+                            legend class="ml-3" { "Admin Section" }
+                            a href="admin/" {
+                                button class="px-2 py-2 mt-1 font-bold text-white bg-orange-600 rounded hover:bg-orange-700" {
+                                    "Go to Admin Page"
+                                }
                             }
                         }
                     }
+
                 }
                 table class="m-1 overflow-auto picktable h-fit w-fit" {
                     (table_header(&events, &relevent_teams))

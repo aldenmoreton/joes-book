@@ -176,7 +176,6 @@ pub mod authz {
 
     pub mod mw {
         use axum::{body::Body, extract::Request, http::Response, middleware::Next};
-        use axum_ctx::RespErr;
 
         use crate::{auth::AuthSession, AppError};
 
@@ -186,19 +185,14 @@ pub mod authz {
             auth_session: AuthSession,
             request: Request,
             next: Next,
-        ) -> Result<Response<Body>, RespErr> {
+        ) -> Result<Response<Body>, AppError<'static>> {
             let user = auth_session.user.ok_or(AppError::BackendUser)?;
             let pool = auth_session.backend.0;
 
-            match has_perm("admin", user.id, &pool).await {
-                Ok(true) => (),
-                Ok(false) => {
-                    return Err(AppError::Unauthorized(
-                        "You do not have permission to create a book",
-                    )
-                    .into())
-                }
-                Err(e) => return Err(AppError::Sqlx(e).into()),
+            if !has_perm("admin", user.id, &pool).await? {
+                return Err(AppError::Unauthorized(
+                    "You don't have permission to create a book",
+                ));
             }
 
             Ok(next.run(request).await)

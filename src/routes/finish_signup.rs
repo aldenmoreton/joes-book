@@ -12,12 +12,12 @@ use super::session::OauthProfile;
 pub async fn get(
     cookie_jar: axum_extra::extract::CookieJar,
     State(state): State<crate::AppStateRef>,
-) -> Result<impl IntoResponse, axum_ctx::RespErr> {
+) -> Result<impl IntoResponse, ErrorResponse> {
     let pool = &state.pool;
 
-    let Some(signup_token) = cookie_jar.get("signup_token") else {
-        return Ok(Redirect::to("/login").into_response());
-    };
+    let signup_token = cookie_jar
+        .get("signup_token")
+        .ok_or(Redirect::to("/login"))?;
 
     let oauth_profile = sqlx::query!(
         "
@@ -30,11 +30,8 @@ pub async fn get(
     )
     .fetch_optional(pool)
     .await
-    .map_err(AppError::from)?;
-
-    let Some(oauth_profile) = oauth_profile else {
-        return Ok(Redirect::to("/login").into_response());
-    };
+    .map_err(AppError::from)?
+    .ok_or(Redirect::to("/login"))?;
 
     let OauthProfile::Google(profile) =
         serde_json::from_value(oauth_profile.content).map_err(|_| AppError::Internal)?;

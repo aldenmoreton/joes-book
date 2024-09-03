@@ -1,7 +1,6 @@
-use axum::extract::Query;
-use axum_ctx::RespErr;
+use axum::extract::{Query, State};
 
-use crate::{auth::AuthSession, db::team::search, AppError};
+use crate::{db::team::search, AppError, AppStateRef};
 
 #[derive(Debug, serde::Deserialize)]
 pub struct TeamSearchParams {
@@ -10,17 +9,15 @@ pub struct TeamSearchParams {
 }
 
 pub async fn team(
-    auth_session: AuthSession,
+    State(state): State<AppStateRef>,
     Query(TeamSearchParams { location, name }): Query<TeamSearchParams>,
-) -> Result<maud::Markup, RespErr> {
+) -> Result<maud::Markup, AppError<'static>> {
     if name.is_empty() {
         return Ok(crate::templates::team_search::markup(Vec::new(), &location));
     }
 
-    let pool = auth_session.backend.0;
-    let teams = search(&name, Some(10), &pool)
-        .await
-        .map_err(AppError::from)?;
+    let pool = &state.pool;
+    let teams = search(&name, Some(10), pool).await?;
 
     Ok(crate::templates::team_search::markup(teams, &location))
 }

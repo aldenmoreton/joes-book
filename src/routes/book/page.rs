@@ -1,4 +1,4 @@
-use axum::Extension;
+use axum::{extract::State, Extension};
 use axum_ctx::RespErr;
 
 use crate::{
@@ -8,7 +8,7 @@ use crate::{
         chapter::get_chapters,
     },
     templates::chapter_list,
-    AppError,
+    AppError, AppStateRef,
 };
 
 pub async fn handler(
@@ -73,10 +73,10 @@ pub async fn handler(
 }
 
 pub async fn leaderboard(
-    auth_session: AuthSession,
+    State(state): State<AppStateRef>,
     book_subscription: Extension<BookSubscription>,
-) -> Result<maud::Markup, RespErr> {
-    let pool = auth_session.backend.0;
+) -> Result<maud::Markup, AppError<'static>> {
+    let pool = &state.pool;
 
     let rankings = sqlx::query!(
         r#"
@@ -112,9 +112,8 @@ pub async fn leaderboard(
         "#,
         book_subscription.book_id
     )
-    .fetch_all(&pool)
-    .await
-    .map_err(AppError::from)?;
+    .fetch_all(pool)
+    .await?;
 
     Ok(maud::html! {
         div class="flex justify-center align-middle" {

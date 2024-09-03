@@ -102,7 +102,7 @@ pub async fn signup_form(
         ));
     }
 
-    let pool = auth_session.backend.0.clone();
+    let pool = &state.pool;
 
     if form.password != form.password_confirmation {
         return Err(AppNotification(
@@ -119,7 +119,7 @@ pub async fn signup_form(
 		",
         form.username
     )
-    .fetch_optional(&pool)
+    .fetch_optional(pool)
     .await
     .map_err(AppError::from)?;
 

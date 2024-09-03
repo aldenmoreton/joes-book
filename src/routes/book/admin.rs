@@ -1,14 +1,22 @@
-use axum::{extract::Query, response::IntoResponse, Extension, Form};
+use axum::{
+    extract::{Query, State},
+    response::{ErrorResponse, IntoResponse},
+    Extension, Form,
+};
 use axum_ctx::RespErr;
+use reqwest::StatusCode;
 
-use crate::{auth::AuthSession, db::book::BookSubscription, templates::authenticated, AppError};
+use crate::{
+    auth::AuthSession, db::book::BookSubscription, templates::authenticated, AppError, AppStateRef,
+};
 
 pub async fn handler(
     auth_session: AuthSession,
     Extension(book_subscription): Extension<BookSubscription>,
-) -> Result<maud::Markup, RespErr> {
+) -> Result<maud::Markup, AppError<'static>> {
     let user = auth_session.user.ok_or(AppError::BackendUser)?;
-    let pool = auth_session.backend.0;
+
+    let pool = &auth_session.backend.0;
 
     let users = sqlx::query!(
         "
@@ -22,9 +30,8 @@ pub async fn handler(
         book_subscription.book_id,
         book_subscription.user_id
     )
-    .fetch_all(&pool)
-    .await
-    .map_err(AppError::from)?;
+    .fetch_all(pool)
+    .await?;
 
     Ok(authenticated(
         &user.username,
@@ -109,13 +116,13 @@ pub struct AddUserParams {
 }
 
 pub async fn add_user(
-    auth_session: AuthSession,
+    State(state): State<AppStateRef>,
     Extension(book_subscription): Extension<BookSubscription>,
     user_params: Form<AddUserParams>,
-) -> Result<maud::Markup, RespErr> {
-    let pool = auth_session.backend.0;
+) -> Result<maud::Markup, ErrorResponse> {
+    let pool = &state.pool;
 
-    let res = sqlx::query!(
+    sqlx::query!(
         "
             INSERT INTO subscriptions (user_id, book_id, role)
             VALUES ($1, $2, 'participant')
@@ -126,13 +133,10 @@ pub async fn add_user(
         user_params.user_id,
         book_subscription.book_id
     )
-    .fetch_optional(&pool)
+    .fetch_optional(pool)
     .await
-    .map_err(AppError::from)?;
-
-    if res.is_none() {
-        return Ok(maud::html!());
-    }
+    .map_err(AppError::from)?
+    .ok_or(RespErr::new(StatusCode::BAD_REQUEST).user_msg("Could not find user to add"))?;
 
     Ok(maud::html! {
         tr class="bg-white" hx-target="this" {
@@ -149,13 +153,13 @@ pub struct UserSearchParams {
 }
 
 pub async fn search_user(
-    auth_session: AuthSession,
+    State(state): State<AppStateRef>,
     Query(UserSearchParams {
         username: search_username,
     }): Query<UserSearchParams>,
     Extension(book_subscription): Extension<BookSubscription>,
-) -> Result<maud::Markup, RespErr> {
-    let pool = auth_session.backend.0;
+) -> Result<maud::Markup, AppError<'static>> {
+    let pool = &state.pool;
 
     if search_username.is_empty() {
         return Ok(maud::html!());
@@ -175,9 +179,8 @@ pub async fn search_user(
         search_username,
         book_subscription.book_id
     )
-    .fetch_all(&pool)
-    .await
-    .map_err(AppError::from)?;
+    .fetch_all(pool)
+    .await?;
 
     Ok(maud::html!(
         @for user in matching_users {
@@ -203,11 +206,11 @@ pub struct RemoveUserForm {
 }
 
 pub async fn remove_user(
-    auth_session: AuthSession,
+    State(state): State<AppStateRef>,
     book: Extension<BookSubscription>,
     form: Form<RemoveUserForm>,
-) -> Result<(), RespErr> {
-    let pool = auth_session.backend.0;
+) -> Result<(), AppError<'static>> {
+    let pool = &state.pool;
 
     sqlx::query!(
         "
@@ -217,20 +220,17 @@ pub async fn remove_user(
         form.user_id,
         book.book_id
     )
-    .execute(&pool)
-    .await
-    .map_err(AppError::from)?;
+    .execute(pool)
+    .await?;
 
     Ok(())
 }
 
 pub async fn delete(
-    auth_session: AuthSession,
+    State(state): State<AppStateRef>,
     Extension(book_subscription): Extension<BookSubscription>,
-) -> Result<impl IntoResponse, RespErr> {
-    let pool = auth_session.backend.0;
-
-    let mut transaction = pool.begin().await.map_err(AppError::from)?;
+) -> Result<impl IntoResponse, AppError<'static>> {
+    let mut transaction = state.pool.begin().await?;
 
     sqlx::query!(
         "
@@ -240,8 +240,7 @@ pub async fn delete(
         book_subscription.book_id
     )
     .execute(&mut *transaction)
-    .await
-    .map_err(AppError::from)?;
+    .await?;
 
     sqlx::query!(
         "
@@ -251,8 +250,7 @@ pub async fn delete(
         book_subscription.book_id
     )
     .execute(&mut *transaction)
-    .await
-    .map_err(AppError::from)?;
+    .await?;
 
     sqlx::query!(
         "
@@ -262,8 +260,7 @@ pub async fn delete(
         book_subscription.book_id
     )
     .execute(&mut *transaction)
-    .await
-    .map_err(AppError::from)?;
+    .await?;
 
     sqlx::query!(
         "
@@ -273,8 +270,7 @@ pub async fn delete(
         book_subscription.book_id
     )
     .execute(&mut *transaction)
-    .await
-    .map_err(AppError::from)?;
+    .await?;
 
     sqlx::query!(
         "
@@ -284,10 +280,9 @@ pub async fn delete(
         book_subscription.book_id
     )
     .execute(&mut *transaction)
-    .await
-    .map_err(AppError::from)?;
+    .await?;
 
-    transaction.commit().await.map_err(AppError::from)?;
+    transaction.commit().await?;
 
     Ok([("HX-Redirect", "/")].into_response())
 }
