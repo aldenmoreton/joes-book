@@ -10,7 +10,7 @@ use tower_sessions::PostgresStore;
 #[shuttle_runtime::main]
 pub async fn shuttle(
     #[shuttle_runtime::Secrets] secrets: shuttle_runtime::SecretStore,
-    #[shuttle_shared_db::Postgres(local_uri = "postgresql://postgres:postgres@localhost/new")]
+    #[shuttle_shared_db::Postgres(local_uri = "postgresql://postgres:postgres@localhost/new2")]
     database_url: String,
 ) -> shuttle_axum::ShuttleAxum {
     let pool = PgPoolOptions::new()

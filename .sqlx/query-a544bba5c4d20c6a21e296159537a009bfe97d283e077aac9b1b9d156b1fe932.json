@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO oauth(sub, provider, content)\n            VALUES ($1, $2, jsonb_build_object('google', $3::JSONB))\n            ON CONFLICT (sub, provider)\n            DO NOTHING\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a544bba5c4d20c6a21e296159537a009bfe97d283e077aac9b1b9d156b1fe932"
+}

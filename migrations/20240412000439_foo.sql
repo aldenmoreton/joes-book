@@ -2,8 +2,25 @@
 CREATE TABLE IF NOT EXISTS users (
 	"id"			SERIAL NOT NULL PRIMARY KEY,
 	"username"		TEXT NOT NULL UNIQUE,
-	"password"		TEXT NOT NULL,
+	"password"		TEXT NOT NULL DEFAULT md5((gen_random_uuid())::text),
 	"created_at"	TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS oauth (
+    user_id integer REFERENCES users(id),
+    sub text NOT NULL,
+    provider text NOT NULL,
+    content jsonb NOT NULL,
+    created_at timestamp DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT oauth_pkey PRIMARY KEY (sub, provider)
+);
+
+CREATE TABLE IF NOT EXISTS signup_tokens (
+    sub text NOT NULL,
+    provider text NOT NULL,
+    token text NOT NULL DEFAULT md5((gen_random_uuid())::text),
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT signup_tokens_pkey PRIMARY KEY (token)
 );
 
 CREATE TABLE IF NOT EXISTS user_permissions (
