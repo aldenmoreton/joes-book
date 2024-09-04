@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            username,\n            earned_points AS \"earned_points!\",\n            added_points AS \"added_points!\",\n            earned_points + added_points AS \"total_points!\"\n        FROM\n            (\n                SELECT\n                    SUB1.USERNAME,\n                    COALESCE(SUM(SUB2.POINTS), 0)::INT AS earned_points,\n                    COALESCE(SUM(SUB3.POINTS), 0)::INT AS added_points\n                FROM\n                    (\n                        SELECT\n                            USERS.ID AS USER_ID,\n                            USERS.USERNAME\n                        FROM\n                            USERS\n                            JOIN SUBSCRIPTIONS ON USERS.ID = SUBSCRIPTIONS.USER_ID\n                        WHERE\n                            SUBSCRIPTIONS.BOOK_ID = $1\n                    ) AS SUB1\n                    LEFT JOIN (\n                        SELECT\n                            PICKS.USER_ID,\n                            PICKS.POINTS\n                        FROM\n                            PICKS\n                        WHERE\n                            PICKS.BOOK_ID = $1\n                    ) AS SUB2 ON SUB1.USER_ID = SUB2.USER_ID\n                    LEFT JOIN (\n                        SELECT\n                            added_points.USER_ID,\n                            added_points.POINTS\n                        FROM\n                            added_points\n                        WHERE\n                            added_points.BOOK_ID = $1\n                    ) AS SUB3 ON SUB1.USER_ID = SUB3.USER_ID\n                GROUP BY\n                    SUB1.USER_ID,\n                    SUB1.USERNAME\n            ) AS SUB4\n        ORDER BY\n            \"total_points!\" DESC,\n            USERNAME\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "username",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "earned_points!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "added_points!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "total_points!",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "625f2bedd4c47d10104372b5c2bde95eeed7a8d25ef78ae13bff557b3cc845f9"
+}

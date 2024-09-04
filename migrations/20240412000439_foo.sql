@@ -13,6 +13,10 @@ CREATE TABLE IF NOT EXISTS oauth (
     content jsonb NOT NULL,
     created_at timestamp DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT oauth_pkey PRIMARY KEY (sub, provider)
+	CONSTRAINT oauth_user_id_fkey FOREIGN KEY (user_id)
+        REFERENCES users (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
 );
 
 CREATE TABLE IF NOT EXISTS signup_tokens (
@@ -21,6 +25,11 @@ CREATE TABLE IF NOT EXISTS signup_tokens (
     token text NOT NULL DEFAULT md5((gen_random_uuid())::text),
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT signup_tokens_pkey PRIMARY KEY (token)
+	CONSTRAINT signup_tokens_sub_provider_fkey FOREIGN KEY (sub, provider)
+        REFERENCES oauth (sub, provider) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+        NOT VALID
 );
 
 CREATE TABLE IF NOT EXISTS user_permissions (
@@ -39,6 +48,14 @@ CREATE TABLE IF NOT EXISTS subscriptions (
 	"user_id"	SERIAL NOT NULL REFERENCES users(id),
 	"book_id"	SERIAL NOT NULL REFERENCES books(id),
 	"role"		TEXT NOT NULL
+	CONSTRAINT subscriptions_book_id_fkey FOREIGN KEY (book_id)
+        REFERENCES books (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT subscriptions_user_id_fkey FOREIGN KEY (user_id)
+        REFERENCES users (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
 );
 
 CREATE TABLE IF NOT EXISTS chapters (
@@ -83,3 +100,22 @@ CREATE TABLE IF NOT EXISTS picks (
 
 ALTER TABLE IF EXISTS picks
 ADD UNIQUE (book_id, chapter_id, event_id, user_id);
+
+CREATE TABLE IF NOT EXISTS added_points(
+    id SERIAL NOT NULL,
+    user_id integer NOT NULL,
+    book_id integer NOT NULL,
+    points integer NOT NULL,
+    reason text NOT NULL,
+    CONSTRAINT added_points_pkey PRIMARY KEY (id),
+    CONSTRAINT added_points_book_id_fkey FOREIGN KEY (book_id)
+        REFERENCES books (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+        NOT VALID,
+    CONSTRAINT added_points_user_id_fkey FOREIGN KEY (user_id)
+        REFERENCES users (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+        NOT VALID
+);

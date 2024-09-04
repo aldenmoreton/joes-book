@@ -56,11 +56,11 @@ pub async fn handler(
             }
 
             div class="flex items-center justify-center" {
-                details class="w-60" {
+                details class="flex items-center w-max" {
                     summary class="p-3 my-1 align-middle bg-green-500 rounded-lg shadow-md select-none" {
                         "Leaderboard"
                     }
-                    div hx-get="leaderboard" hx-trigger="load" hx-swap="outerhtml" {
+                    div hx-get="leaderboard" hx-trigger="load" hx-swap="outerhtml" class="flex items-center" {
                         "Loading..."
                     }
                 }
@@ -81,33 +81,51 @@ pub async fn leaderboard(
     let rankings = sqlx::query!(
         r#"
         SELECT
-            SUB1.USERNAME,
-            COALESCE(SUM(POINTS), 0)::INT AS "point_total!"
+            username,
+            earned_points AS "earned_points!",
+            added_points AS "added_points!",
+            earned_points + added_points AS "total_points!"
         FROM
             (
                 SELECT
-                    USERS.ID AS USER_ID,
-                    USERS.USERNAME
+                    SUB1.USERNAME,
+                    COALESCE(SUM(SUB2.POINTS), 0)::INT AS earned_points,
+                    COALESCE(SUM(SUB3.POINTS), 0)::INT AS added_points
                 FROM
-                    USERS
-                    JOIN SUBSCRIPTIONS ON USERS.ID = SUBSCRIPTIONS.USER_ID
-                WHERE
-                    SUBSCRIPTIONS.BOOK_ID = $1
-            ) AS SUB1
-            LEFT JOIN (
-                SELECT
-                    PICKS.USER_ID,
-                    PICKS.POINTS
-                FROM
-                    PICKS
-                WHERE
-                    PICKS.BOOK_ID = $1
-            ) AS SUB2 ON SUB1.USER_ID = SUB2.USER_ID
-        GROUP BY
-            SUB1.USER_ID,
-            SUB1.USERNAME
+                    (
+                        SELECT
+                            USERS.ID AS USER_ID,
+                            USERS.USERNAME
+                        FROM
+                            USERS
+                            JOIN SUBSCRIPTIONS ON USERS.ID = SUBSCRIPTIONS.USER_ID
+                        WHERE
+                            SUBSCRIPTIONS.BOOK_ID = $1
+                    ) AS SUB1
+                    LEFT JOIN (
+                        SELECT
+                            PICKS.USER_ID,
+                            PICKS.POINTS
+                        FROM
+                            PICKS
+                        WHERE
+                            PICKS.BOOK_ID = $1
+                    ) AS SUB2 ON SUB1.USER_ID = SUB2.USER_ID
+                    LEFT JOIN (
+                        SELECT
+                            added_points.USER_ID,
+                            added_points.POINTS
+                        FROM
+                            added_points
+                        WHERE
+                            added_points.BOOK_ID = $1
+                    ) AS SUB3 ON SUB1.USER_ID = SUB3.USER_ID
+                GROUP BY
+                    SUB1.USER_ID,
+                    SUB1.USERNAME
+            ) AS SUB4
         ORDER BY
-            "point_total!" DESC,
+            "total_points!" DESC,
             USERNAME
         "#,
         book_subscription.book_id
@@ -116,8 +134,8 @@ pub async fn leaderboard(
     .await?;
 
     Ok(maud::html! {
-        div class="flex justify-center align-middle" {
-            table class="text-sm max-w-30" {
+        div class="flex justify-center w-max" {
+            table class="text-sm w-max" {
                 thead class="text-xs text-gray-700 uppercase bg-green-400" {
                     tr {
                         th scope="col" class="px-6 py-3" { "Rank" }
@@ -130,8 +148,14 @@ pub async fn leaderboard(
                     @for (i, rank) in rankings.iter().enumerate() {
                         tr class="bg-white" {
                             td class="px-6 py-4" {(i+1)}
-                            td class="px-6 py-4" {(rank.username)}
-                            td class="px-6 py-4" {(rank.point_total)}
+                            td class="px-6 py-4" {
+                                (rank.username)
+                                br;
+                                @if rank.added_points > 0 {
+                                    span class="text-red-500" {"Added Points: "(rank.added_points)}
+                                }
+                            }
+                            td class="px-6 py-4" {(rank.total_points)}
                         }
                     }
                 }
