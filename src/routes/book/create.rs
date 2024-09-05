@@ -2,7 +2,7 @@ use axum::{http::StatusCode, response::Redirect, Form};
 use axum_ctx::RespErr;
 use serde::Deserialize;
 
-use crate::{auth::AuthSession, AppError};
+use crate::{auth::AuthSession, db::book::BookRole, AppError};
 
 #[derive(Deserialize)]
 pub struct Params {
@@ -40,7 +40,7 @@ pub async fn handler(
             VALUES ($1, $2, $3)",
         user.id,
         record.id,
-        "admin"
+        serde_json::to_value(BookRole::Admin).map_err(|_| AppError::Internal)?
     )
     .execute(&mut *transaction)
     .await

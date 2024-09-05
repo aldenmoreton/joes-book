@@ -27,7 +27,7 @@ pub async fn handler(
         WHERE b.id = $1 AND u.id != $2
         ORDER BY u.id
         ",
-        book_subscription.book_id,
+        book_subscription.id,
         book_subscription.user_id
     )
     .fetch_all(pool)
@@ -125,13 +125,13 @@ pub async fn add_user(
     sqlx::query!(
         "
             INSERT INTO subscriptions (user_id, book_id, role)
-            VALUES ($1, $2, 'participant')
+            VALUES ($1, $2, to_jsonb('participant'::TEXT))
             ON CONFLICT (user_id, book_id)
             DO NOTHING
             RETURNING user_id
         ",
         user_params.user_id,
-        book_subscription.book_id
+        book_subscription.id
     )
     .fetch_optional(pool)
     .await
@@ -177,7 +177,7 @@ pub async fn search_user(
             WHERE LOWER(u.username) LIKE '%' || LOWER($1) || '%' AND s.user_id IS NULL
             ",
         search_username,
-        book_subscription.book_id
+        book_subscription.id
     )
     .fetch_all(pool)
     .await?;
@@ -188,7 +188,7 @@ pub async fn search_user(
                 button
                     name="username"
                     value=(user.username)
-                    hx-post={"/book/"(book_subscription.book_id)"/admin/add-user"}
+                    hx-post={"/book/"(book_subscription.id)"/admin/add-user"}
                     hx-vals={r#"{"user_id":""#(user.id)r#""}"#}
                     hx-target="previous tbody"
                     hx-on-click=r#"document.querySelector('input[type="search"]').value=""; document.querySelector('ul').innerHTML="";"#
@@ -218,7 +218,7 @@ pub async fn remove_user(
         WHERE user_id = $1 AND book_id = $2
         ",
         form.user_id,
-        book.book_id
+        book.id
     )
     .execute(pool)
     .await?;
@@ -237,7 +237,7 @@ pub async fn delete(
         DELETE FROM picks
         WHERE book_id = $1
         ",
-        book_subscription.book_id
+        book_subscription.id
     )
     .execute(&mut *transaction)
     .await?;
@@ -247,7 +247,7 @@ pub async fn delete(
         DELETE FROM events
         WHERE book_id = $1
         ",
-        book_subscription.book_id
+        book_subscription.id
     )
     .execute(&mut *transaction)
     .await?;
@@ -257,7 +257,7 @@ pub async fn delete(
         DELETE FROM chapters
         WHERE book_id = $1
         ",
-        book_subscription.book_id
+        book_subscription.id
     )
     .execute(&mut *transaction)
     .await?;
@@ -267,7 +267,7 @@ pub async fn delete(
         DELETE FROM subscriptions
         WHERE book_id = $1
         ",
-        book_subscription.book_id
+        book_subscription.id
     )
     .execute(&mut *transaction)
     .await?;
@@ -277,7 +277,7 @@ pub async fn delete(
         DELETE FROM books
         WHERE id = $1
         ",
-        book_subscription.book_id
+        book_subscription.id
     )
     .execute(&mut *transaction)
     .await?;

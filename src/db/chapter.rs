@@ -17,6 +17,7 @@ pub async fn get_chapters(book_id: i32, pool: &PgPool) -> Result<Vec<Chapter>, s
         r#"	SELECT id AS chapter_id, book_id, is_open, title, is_visible
 			FROM chapters
 			WHERE book_id = $1
+            ORDER BY created_at DESC
 		"#,
         book_id
     )
@@ -61,7 +62,7 @@ pub async fn get_chapter_users(
                 SELECT users.id, users.username
                 FROM users
                 JOIN subscriptions on users.id = subscriptions.user_id
-                WHERE book_id = $1
+                WHERE book_id = $1 AND COALESCE(((subscriptions.role->'guest'->'chapter_ids') @> to_jsonb(1)), true)
             ) as sub1
             LEFT JOIN (
                 SELECT picks.user_id, picks.points

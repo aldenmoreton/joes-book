@@ -229,7 +229,7 @@ pub async fn closed_book(
         .await
         .map_err(AppError::from)?;
 
-    let users = get_chapter_users(book_subscription.book_id, chapter.chapter_id, &pool).await?;
+    let users = get_chapter_users(book_subscription.id, chapter.chapter_id, &pool).await?;
 
     let user_picks = get_chapter_picks(chapter.chapter_id, &pool).await?;
 

@@ -37,8 +37,10 @@ pub mod mw {
                 role: BookRole::Unauthorized,
                 ..
             }) => return Err(AppError::Unauthorized("Not a member of this book").into()),
-            Err(_) => {
-                return Err(RespErr::new(StatusCode::NOT_FOUND).user_msg("Could not find book"))
+            Err(e) => {
+                return Err(RespErr::new(StatusCode::NOT_FOUND)
+                    .user_msg("Could not find book")
+                    .log_msg(e.to_string()))
             }
             Ok(user) => user,
         };
