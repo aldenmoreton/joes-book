@@ -22,3 +22,8 @@ Joe.db
 migration.ipynb
 .env
 objects.ipynb
+college_teams.csv
+fly.toml
+Secrets.dev.toml
+Secrets.toml
+public/styles/bookie.css
