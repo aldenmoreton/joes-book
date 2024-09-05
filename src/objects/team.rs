@@ -1,9 +1,9 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 pub struct Team {
-	pub id: i64,
-	pub name: String,
-	pub logo: String
+    pub id: i32,
+    pub name: String,
+    pub logo: String,
 }

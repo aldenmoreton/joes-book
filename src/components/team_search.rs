@@ -1,25 +1,14 @@
 use leptos::*;
 
-use crate::{
-    server::search_team,
-    objects::Team
-};
+use crate::{objects::Team, server::search_team};
 
 #[component]
-pub fn TeamSelect(
-    cx: Scope,
-	team_selector: WriteSignal<Option<Team>>
-) -> impl IntoView {
-	let (query, set_query) = create_signal(cx, "-1".to_string());
+pub fn TeamSelect(team_selector: WriteSignal<Option<Team>>) -> impl IntoView {
+    let (query, set_query) = create_signal("-1".to_string());
 
-	let teams = create_resource(
-		cx,
-		move || query.get(),
-		move |_| { search_team(cx, query.get()) }
-	);
+    let teams = create_resource(move || query.get(), move |_| search_team(query.get()));
 
     view! {
-        cx,
         <div>
             <label for="default-search" class="mb-2 text-sm font-medium text-black sr-only dark:text-black">Search</label>
             <div class="relative">
@@ -33,37 +22,36 @@ pub fn TeamSelect(
                         let new_query = event_target_value(&ev);
                         if new_query.len() >= 3 {
                             set_query.set(new_query);
-                        } else if new_query.len() == 0 {
+                        } else if new_query.is_empty() {
                             set_query.set("-1".into());
                         }
                     }/>
             </div>
-			<Transition fallback=move || view! {cx, <p>"Loading..."</p> }>
+            <Transition fallback=move || view! { <p>"Loading..."</p> }>
                 {move || {
                     let teams_list_items = {
                         move || {
-                            teams.read(cx)
+                            teams.get()
                                 .map(move |teams| match teams {
                                     Err(e) => {
-                                        view! { cx, <pre class="error">"Server Error: " {e.to_string()}</pre>}.into_view(cx)
+                                        view! {<pre class="error">"Server Error: " {e.to_string()}</pre>}.into_view()
                                     }
                                     Ok(teams) => {
                                         if teams.is_empty() {
-                                            view! { cx, <p></p> }.into_view(cx)
+                                            view! { <p></p> }.into_view()
                                         } else {
                                             teams
                                                 .into_iter()
                                                 .map(move |team| {
-													let team_select = team.clone();
-                                                    view! {
-                                                        cx,
+                                                    let team_select = team.clone();
+                                                    view!{
                                                         <li>
-															<img src=team.logo width="25" height="25"/>
-															<button on:click=move |_| {set_query.set("-1".into()); team_selector.set(Some(team_select.clone()))}>{team.name}</button>
+                                                            <img src=team.logo width="25" height="25"/>
+                                                            <button on:click=move |_| {set_query.set("-1".into()); team_selector.set(Some(team_select.clone()))}>{team.name}</button>
                                                         </li>
                                                     }
                                                 })
-                                                .collect_view(cx)
+                                                .collect_view()
                                         }
                                     }
                                 }
@@ -71,8 +59,7 @@ pub fn TeamSelect(
                         }
                     };
 
-                    view! {
-                        cx,
+                    view!{
                         <ul>
                             {teams_list_items}
                         </ul>

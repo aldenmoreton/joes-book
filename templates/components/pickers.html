@@ -1,0 +1,5 @@
+{% macro spreadgroup(group) %}
+	{% for pick in group %}
+		<p>{{ pick.0.id }}</p>
+	{% endfor %}
+{% endmacro %}

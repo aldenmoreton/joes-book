@@ -3,36 +3,38 @@ use cfg_if::cfg_if;
 cfg_if! {
 if #[cfg(feature = "ssr")] {
     use axum::{
-        response::{Response, IntoResponse, Redirect},
+        response::{Response, IntoResponse, Redirect, Html},
         routing::get,
-        extract::{Path, State, RawQuery},
-        http::{Request, header::HeaderMap, StatusCode},
+        extract::State,
+        http::{Request, StatusCode},
         body::Body as AxumBody,
         Router,
+        handler::HandlerWithoutStateExt
     };
-    use joes_book::app::*;
-    use joes_book::server::*;
-    use joes_book::objects::*;
-    use joes_book::state::AppState;
-    use joes_book::fallback::file_and_error_handler;
+    use tower::ServiceBuilder;
+    use tower_http::services::ServeDir;
+
     use leptos_axum::{generate_route_list, LeptosRoutes, handle_server_fns_with_context};
-    use leptos::{log, view, provide_context, get_configuration};
+    use leptos::{view, provide_context, get_configuration};
     use sqlx::{PgPool, postgres::PgPoolOptions};
     use axum_session::{SessionConfig, SessionLayer, SessionStore};
     use axum_session_auth::{AuthSessionLayer, AuthConfig, SessionPgPool};
 
+    use joes_book::app::*;
+    use joes_book::server::*;
+    use joes_book::objects::*;
+    use joes_book::state::AppState;
+
+    #[axum::debug_handler]
     async fn server_fn_handler(
         State(app_state): State<AppState>,
         auth_session: AuthSession,
-        path: Path<String>,
-        headers: HeaderMap,
-        raw_query: RawQuery,
         request: Request<AxumBody>
     ) -> impl IntoResponse {
 
-        let response = handle_server_fns_with_context(path, headers, raw_query, move |cx| {
-            provide_context(cx, auth_session.clone());
-            provide_context(cx, app_state.pool.clone());
+        let response = handle_server_fns_with_context(move || {
+            provide_context(auth_session.clone());
+            provide_context(app_state.pool.clone());
         }, request).await.into_response();
 
         response
@@ -41,9 +43,6 @@ if #[cfg(feature = "ssr")] {
     async fn secure_server_fn_handler(
         State(app_state): State<AppState>,
         auth_session: AuthSession,
-        path: Path<String>,
-        headers: HeaderMap,
-        raw_query: RawQuery,
         request: Request<AxumBody>
     ) -> impl IntoResponse {
 
@@ -52,12 +51,9 @@ if #[cfg(feature = "ssr")] {
         }
 
         handle_server_fns_with_context(
-            path,
-            headers,
-            raw_query,
-            move |cx| {
-                provide_context(cx, auth_session.clone());
-                provide_context(cx, app_state.pool.clone());
+            move || {
+                provide_context(auth_session.clone());
+                provide_context(app_state.pool.clone());
             },
             request
         ).await.into_response()
@@ -73,11 +69,11 @@ if #[cfg(feature = "ssr")] {
 
         let handler = leptos_axum::render_app_to_stream_with_context(
             app_state.leptos_options.clone(),
-            move |cx| {
-                provide_context(cx, auth_session.clone());
-                provide_context(cx, app_state.pool.clone());
+            move || {
+                provide_context(auth_session.clone());
+                provide_context(app_state.pool.clone());
             },
-            |cx| view! { cx, <App/> }
+            || view!{ <App/> }
         );
 
         match (authenticated, uncontrolled_route) {
@@ -94,7 +90,7 @@ if #[cfg(feature = "ssr")] {
         simple_logger::init_with_level(log::Level::Info).expect("couldn't initialize logging");
 
         let database_url = std::env::var("DATABASE_URL").expect("Unable to read DATABASE_URL env var");
-
+        println!("{database_url}");
         let pool = PgPoolOptions::new()
             .connect(&database_url)
             .await
@@ -104,19 +100,24 @@ if #[cfg(feature = "ssr")] {
         let session_config = SessionConfig::default().with_table_name("axum_sessions");
 
         println!("Attempting Migration");
-        // sqlx::migrate!(migrations);
-        sqlx::query_file!("migrations/users.sql").execute(&pool).await.ok();
-        sqlx::query_file!("migrations/user_permissions.sql").execute(&pool).await.ok();
-        sqlx::query_file!("migrations/todos.sql").execute(&pool).await.ok();
-        sqlx::query_file!("migrations/books.sql").execute(&pool).await.ok();
-        sqlx::query_file!("migrations/subscriptions.sql").execute(&pool).await.ok();
-        sqlx::query_file!("migrations/chapters.sql").execute(&pool).await.ok();
-        sqlx::query_file!("migrations/events.sql").execute(&pool).await.ok();
-        sqlx::query_file!("migrations/picks.sql").execute(&pool).await.ok();
+        println!("{:?}", std::env::current_dir());
+        sqlx::migrate!()
+            .run(&pool)
+            .await
+            .ok();
+        // sqlx::query_file!("migrations/users.sql").execute(&pool).await.ok();
+        // sqlx::query_file!("migrations/user_permissions.sql").execute(&pool).await.ok();
+        // sqlx::query_file!("migrations/todos.sql").execute(&pool).await.ok();
+        // sqlx::query_file!("migrations/books.sql").execute(&pool).await.ok();
+        // sqlx::query_file!("migrations/subscriptions.sql").execute(&pool).await.ok();
+        // sqlx::query_file!("migrations/chapters.sql").execute(&pool).await.ok();
+        // sqlx::query_file!("migrations/events.sql").execute(&pool).await.ok();
+        // sqlx::query_file!("migrations/picks.sql").execute(&pool).await.ok();
 
-        let auth_config = AuthConfig::<i64>::default();
-        let session_store = SessionStore::<SessionPgPool>::new(Some(pool.clone().into()), session_config);
-        session_store.initiate().await.unwrap();
+        let auth_config = AuthConfig::<i32>::default();
+        let session_store = SessionStore::<SessionPgPool>::new(Some(pool.clone().into()), session_config)
+            .await
+            .expect("Could not create session store");
 
         BackendUser::add_to_db(
             std::env::var("OWNER_USERNAME").expect("Unable to read OWNER_USERNAME env var"),
@@ -128,7 +129,8 @@ if #[cfg(feature = "ssr")] {
         let conf = get_configuration(None).await.unwrap();
         let leptos_options = conf.leptos_options;
         let addr = leptos_options.site_addr;
-        let routes = generate_route_list(|cx| view! { cx, <App/> }).await;
+        let site_root = leptos_options.site_root.clone();
+        let routes = generate_route_list(App);
 
         let app_state = AppState{
             leptos_options,
@@ -140,18 +142,21 @@ if #[cfg(feature = "ssr")] {
             .route("/api/*fn_name", get(server_fn_handler).post(server_fn_handler))
             .route("/secure/*fn_name", get(secure_server_fn_handler).post(secure_server_fn_handler))
             .leptos_routes_with_handler(routes, get(leptos_routes_handler))
-            .fallback(file_and_error_handler)
-            .layer(AuthSessionLayer::<BackendUser, i64, SessionPgPool, PgPool>::new(Some(pool.clone()))
-            .with_config(auth_config))
-            .layer(SessionLayer::new(session_store))
+            .layer(
+                ServiceBuilder::new()
+                    .layer(SessionLayer::new(session_store))
+                    .layer(AuthSessionLayer::<BackendUser, i32, SessionPgPool, PgPool>::new(Some(pool.clone()))
+                        .with_config(auth_config)
+                    )
+            )
+            .fallback_service(
+                ServeDir::new(site_root).not_found_service(Html("<p>Could not find page</p>").into_service())
+            )
             .with_state(app_state);
 
         // Run App
-        log!("listening on http://{}", &addr);
-        axum::Server::bind(&addr)
-            .serve(app.into_make_service())
-            .await
-            .unwrap();
+        let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
+        axum::serve(listener, app).await.unwrap();
     }
 }
 
