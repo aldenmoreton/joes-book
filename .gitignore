@@ -30,3 +30,4 @@ fly.toml
 /target
 college_teams.csv
 *secret*
+.vscode/settings.json

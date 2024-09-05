@@ -9,6 +9,7 @@
 ARG RUST_VERSION=1.80.1
 ARG APP_NAME=joes-book
 
+
 ################################################################################
 # Create a stage for building the application.
 
@@ -17,7 +18,7 @@ ARG APP_NAME
 WORKDIR /app
 
 # Install host build dependencies.
-RUN apk add --no-cache clang lld musl-dev git
+RUN apk add --no-cache clang lld musl-dev git pkgconfig openssl-dev openssl-libs-static
 
 # Build the application.
 # Leverage a cache mount to /usr/local/cargo/registry/
@@ -27,14 +28,24 @@ RUN apk add --no-cache clang lld musl-dev git
 # Leverage a bind mount to the src directory to avoid having to copy the
 # source code into the container. Once built, copy the executable to an
 # output directory before the cache mounted /app/target is unmounted.
-RUN --mount=type=bind,source=src,target=src \
+RUN --mount=type=bind,source=.sqlx,target=.sqlx \
+    --mount=type=bind,source=src,target=src \
     --mount=type=bind,source=Cargo.toml,target=Cargo.toml \
     --mount=type=bind,source=Cargo.lock,target=Cargo.lock \
     --mount=type=cache,target=/app/target/ \
     --mount=type=cache,target=/usr/local/cargo/git/db \
     --mount=type=cache,target=/usr/local/cargo/registry/ \
-cargo build --locked --release && \
+cargo build --locked --release --no-default-features && \
 cp ./target/release/$APP_NAME /bin/server
+
+FROM node:18.13.0 AS styles
+
+RUN --mount=type=bind,source=package.json,target=package.json \
+    --mount=type=bind,source=tailwind.config.js,target=tailwind.config.js \
+    --mount=type=bind,source=style,target=style \
+    --mount=type=bind,source=src,target=src \
+    --mount=type=cache,target=node_modules \
+    npx tailwindcss -i style/input.css -o /bookie.css
 
 ################################################################################
 # Create a new stage for running the application that contains the minimal
@@ -62,10 +73,14 @@ RUN adduser \
 USER appuser
 
 # Copy the executable from the "build" stage.
-COPY --from=build /bin/server /bin/
+COPY --from=build /bin/server /bin/server/
+
+# Copy the public folder
+COPY ./public /public
+COPY --from=styles /bookie.css /public/styles/bookie.css
 
 # Expose the port that the application listens on.
 EXPOSE 3000
 
 # What the container should run when it is started.
-CMD ["/bin/server"]
+CMD ["/bin/server/server"]
