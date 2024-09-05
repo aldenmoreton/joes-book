@@ -162,7 +162,7 @@ pub async fn leaderboard(
                     ) AS ADDED_POINTS ON GROUPED_EARNED_POINTS.USER_ID = ADDED_POINTS.USER_ID
                 GROUP BY
                     GROUPED_EARNED_POINTS.USERNAME
-            )
+            ) AS SUB1
         ORDER BY
             "total_points!" DESC
         "#,
