@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO subscriptions (user_id, book_id, role)\n            VALUES ($1, $2, to_jsonb('participant'::TEXT))\n            ON CONFLICT (user_id, book_id)\n            DO NOTHING\n            RETURNING user_id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "c9a8d9dd55b5c8208153895ecd3d63f413e7f502cae38fc6b1c12843c850af2a"
+}

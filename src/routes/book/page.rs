@@ -1,5 +1,4 @@
 use axum::{extract::State, Extension};
-use axum_ctx::RespErr;
 
 use crate::{
     auth::{AuthSession, BackendPgDB},
@@ -14,13 +13,16 @@ use crate::{
 pub async fn handler(
     auth_session: AuthSession,
     Extension(book_subscription): Extension<BookSubscription>,
-) -> Result<maud::Markup, RespErr> {
+) -> Result<maud::Markup, AppError<'static>> {
     let user = auth_session.user.ok_or(AppError::BackendUser)?;
     let BackendPgDB(pool) = auth_session.backend;
 
-    let chapters = get_chapters(book_subscription.book_id, &pool)
-        .await
-        .map_err(AppError::from)?;
+    let chapters = get_chapters(book_subscription.id, &pool).await?;
+    let guest_chapters = if let BookRole::Guest { ref chapter_ids } = book_subscription.role {
+        Some(chapter_ids)
+    } else {
+        None
+    };
 
     Ok(crate::templates::authenticated(
         &user.username,
@@ -50,7 +52,7 @@ pub async fn handler(
                                 "Admin"
                             }
                         }
-                        (chapter_list::markup(book_subscription.book_id, chapters.iter().filter(|c| !c.is_visible).peekable()))
+                        (chapter_list::markup(book_subscription.id, chapters.iter().filter(|c| !c.is_visible).peekable()))
                     }
                 }
             }
@@ -66,7 +68,11 @@ pub async fn handler(
                 }
             }
 
-            (chapter_list::markup(book_subscription.book_id, chapters.iter().filter(|c| c.is_visible).peekable()))
+            @if let Some(guest_chapters) = guest_chapters {
+                (chapter_list::markup(book_subscription.id, chapters.iter().filter(|c| c.is_visible && guest_chapters.contains(&c.chapter_id)).peekable()))
+            } @else {
+                (chapter_list::markup(book_subscription.id, chapters.iter().filter(|c| c.is_visible).peekable()))
+            }
         }),
         None,
     ))
@@ -81,54 +87,86 @@ pub async fn leaderboard(
     let rankings = sqlx::query!(
         r#"
         SELECT
-            username,
-            earned_points AS "earned_points!",
-            added_points AS "added_points!",
-            earned_points + added_points AS "total_points!"
+            USERNAME AS "username!",
+            EARNED_POINTS::INT AS "earned_points!",
+            ADDED_POINTS::INT AS "added_points!",
+            EARNED_POINTS::INT + ADDED_POINTS::INT AS "total_points!"
         FROM
             (
+                -- Join user earned points and added points
                 SELECT
-                    SUB1.USERNAME,
-                    COALESCE(SUM(SUB2.POINTS), 0)::INT AS earned_points,
-                    COALESCE(SUM(SUB3.POINTS), 0)::INT AS added_points
+                    USERNAME,
+                    COALESCE(SUM(EARNED_POINTS), 0) AS EARNED_POINTS,
+                    COALESCE(SUM(ADDED_POINTS), 0) AS ADDED_POINTS
                 FROM
                     (
                         SELECT
-                            USERS.ID AS USER_ID,
-                            USERS.USERNAME
+                            USER_ID,
+                            USERNAME,
+                            SUM(EARNED_POINTS) AS EARNED_POINTS
                         FROM
-                            USERS
-                            JOIN SUBSCRIPTIONS ON USERS.ID = SUBSCRIPTIONS.USER_ID
-                        WHERE
-                            SUBSCRIPTIONS.BOOK_ID = $1
-                    ) AS SUB1
+                            (
+                                -- Get earned points
+                                SELECT
+                                    BOOK_USERS.USER_ID,
+                                    COALESCE(USER_GROUPS.NAME, BOOK_USERS.USERNAME) AS USERNAME,
+                                    COALESCE(PICK_POINTS.POINTS, 0) AS EARNED_POINTS
+                                FROM
+                                    -- Get users in group
+                                    (
+                                        SELECT
+                                            USERS.ID AS USER_ID,
+                                            USERS.USERNAME
+                                        FROM
+                                            USERS
+                                            JOIN SUBSCRIPTIONS ON USERS.ID = SUBSCRIPTIONS.USER_ID
+                                        WHERE
+                                            SUBSCRIPTIONS.BOOK_ID = $1
+                                    ) AS BOOK_USERS
+                                    -- Get earned points
+                                    LEFT JOIN (
+                                        SELECT
+                                            PICKS.USER_ID,
+                                            PICKS.POINTS
+                                        FROM
+                                            PICKS
+                                        WHERE
+                                            PICKS.BOOK_ID = $1
+                                    ) AS PICK_POINTS ON BOOK_USERS.USER_ID = PICK_POINTS.USER_ID
+                                    -- Get user groups
+                                    LEFT JOIN (
+                                        SELECT
+                                            SUBSCRIPTION_GROUPS.USER_ID,
+                                            SUBSCRIPTION_GROUPS.NAME
+                                        FROM
+                                            SUBSCRIPTION_GROUPS
+                                        WHERE
+                                            SUBSCRIPTION_GROUPS.BOOK_ID = $1
+                                    ) AS USER_GROUPS ON BOOK_USERS.USER_ID = USER_GROUPS.USER_ID
+                            ) AS EARNED_POINTS
+                        GROUP BY
+                            USER_ID,
+                            USERNAME
+                    ) AS GROUPED_EARNED_POINTS
+                    -- Get added points
                     LEFT JOIN (
                         SELECT
-                            PICKS.USER_ID,
-                            PICKS.POINTS
+                            USER_ID,
+                            SUM(ADDED_POINTS.POINTS) AS ADDED_POINTS
                         FROM
-                            PICKS
+                            ADDED_POINTS
                         WHERE
-                            PICKS.BOOK_ID = $1
-                    ) AS SUB2 ON SUB1.USER_ID = SUB2.USER_ID
-                    LEFT JOIN (
-                        SELECT
-                            added_points.USER_ID,
-                            added_points.POINTS
-                        FROM
-                            added_points
-                        WHERE
-                            added_points.BOOK_ID = $1
-                    ) AS SUB3 ON SUB1.USER_ID = SUB3.USER_ID
+                            ADDED_POINTS.BOOK_ID = $1
+                        GROUP BY
+                            USER_ID
+                    ) AS ADDED_POINTS ON GROUPED_EARNED_POINTS.USER_ID = ADDED_POINTS.USER_ID
                 GROUP BY
-                    SUB1.USER_ID,
-                    SUB1.USERNAME
-            ) AS SUB4
+                    GROUPED_EARNED_POINTS.USERNAME
+            )
         ORDER BY
-            "total_points!" DESC,
-            USERNAME
+            "total_points!" DESC
         "#,
-        book_subscription.book_id
+        book_subscription.id
     )
     .fetch_all(pool)
     .await?;

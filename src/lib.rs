@@ -90,10 +90,19 @@ pub fn router() -> Router<AppStateRef> {
              Extension(book_subscription): Extension<db::book::BookSubscription>,
              request,
              next: middleware::Next| async move {
-                if !chapter.is_visible && book_subscription.role != db::book::BookRole::Admin {
-                    Err(RespErr::new(StatusCode::LOCKED))
-                } else {
-                    Ok(next.run(request).await)
+                match book_subscription.role {
+                    db::book::BookRole::Owner | db::book::BookRole::Admin => {
+                        Ok(next.run(request).await)
+                    }
+                    db::book::BookRole::Participant if chapter.is_visible => {
+                        Ok(next.run(request).await)
+                    }
+                    db::book::BookRole::Guest { chapter_ids }
+                        if chapter.is_visible && chapter_ids.contains(&chapter.chapter_id) =>
+                    {
+                        Ok(next.run(request).await)
+                    }
+                    _ => Err(RespErr::new(StatusCode::UNAUTHORIZED)),
                 }
             },
         ));
@@ -184,9 +193,7 @@ pub fn router() -> Router<AppStateRef> {
         .route_layer(login_required!(BackendPgDB, login_url = "/login"))
         .nest_service("/public", ServeDir::new("public"))
         .merge(session_routes)
-        .fallback(get(|| async {
-            (StatusCode::NOT_FOUND, "Could not find your route")
-        })) // TODO: Add funny status page
+        .fallback(get((StatusCode::NOT_FOUND, "Could not find your route"))) // TODO: Add funny status page
 }
 
 #[derive(Debug, thiserror::Error)]

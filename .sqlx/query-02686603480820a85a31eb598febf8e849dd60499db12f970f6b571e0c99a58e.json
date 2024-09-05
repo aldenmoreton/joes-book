@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            USERNAME AS \"username!\",\n            EARNED_POINTS::INT AS \"earned_points!\",\n            ADDED_POINTS::INT AS \"added_points!\",\n            EARNED_POINTS::INT + ADDED_POINTS::INT AS \"total_points!\"\n        FROM\n            (\n                -- Join user earned points and added points\n                SELECT\n                    USERNAME,\n                    COALESCE(SUM(EARNED_POINTS), 0) AS EARNED_POINTS,\n                    COALESCE(SUM(ADDED_POINTS), 0) AS ADDED_POINTS\n                FROM\n                    (\n                        SELECT\n                            USER_ID,\n                            USERNAME,\n                            SUM(EARNED_POINTS) AS EARNED_POINTS\n                        FROM\n                            (\n                                -- Get earned points\n                                SELECT\n                                    BOOK_USERS.USER_ID,\n                                    COALESCE(USER_GROUPS.NAME, BOOK_USERS.USERNAME) AS USERNAME,\n                                    COALESCE(PICK_POINTS.POINTS, 0) AS EARNED_POINTS\n                                FROM\n                                    -- Get users in group\n                                    (\n                                        SELECT\n                                            USERS.ID AS USER_ID,\n                                            USERS.USERNAME\n                                        FROM\n                                            USERS\n                                            JOIN SUBSCRIPTIONS ON USERS.ID = SUBSCRIPTIONS.USER_ID\n                                        WHERE\n                                            SUBSCRIPTIONS.BOOK_ID = $1\n                                    ) AS BOOK_USERS\n                                    -- Get earned points\n                                    LEFT JOIN (\n                                        SELECT\n                                            PICKS.USER_ID,\n                                            PICKS.POINTS\n                                        FROM\n                                            PICKS\n                                        WHERE\n                                            PICKS.BOOK_ID = $1\n                                    ) AS PICK_POINTS ON BOOK_USERS.USER_ID = PICK_POINTS.USER_ID\n                                    -- Get user groups\n                                    LEFT JOIN (\n                                        SELECT\n                                            SUBSCRIPTION_GROUPS.USER_ID,\n                                            SUBSCRIPTION_GROUPS.NAME\n                                        FROM\n                                            SUBSCRIPTION_GROUPS\n                                        WHERE\n                                            SUBSCRIPTION_GROUPS.BOOK_ID = $1\n                                    ) AS USER_GROUPS ON BOOK_USERS.USER_ID = USER_GROUPS.USER_ID\n                            ) AS EARNED_POINTS\n                        GROUP BY\n                            USER_ID,\n                            USERNAME\n                    ) AS GROUPED_EARNED_POINTS\n                    -- Get added points\n                    LEFT JOIN (\n                        SELECT\n                            USER_ID,\n                            SUM(ADDED_POINTS.POINTS) AS ADDED_POINTS\n                        FROM\n                            ADDED_POINTS\n                        WHERE\n                            ADDED_POINTS.BOOK_ID = $1\n                        GROUP BY\n                            USER_ID\n                    ) AS ADDED_POINTS ON GROUPED_EARNED_POINTS.USER_ID = ADDED_POINTS.USER_ID\n                GROUP BY\n                    GROUPED_EARNED_POINTS.USERNAME\n            )\n        ORDER BY\n            \"total_points!\" DESC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "username!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "earned_points!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "added_points!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "total_points!",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "02686603480820a85a31eb598febf8e849dd60499db12f970f6b571e0c99a58e"
+}

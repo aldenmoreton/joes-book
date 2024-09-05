@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS books (
 CREATE TABLE IF NOT EXISTS subscriptions (
 	"user_id"	SERIAL NOT NULL REFERENCES users(id),
 	"book_id"	SERIAL NOT NULL REFERENCES books(id),
-	"role"		TEXT NOT NULL
+	"role"		JOSNB NOT NULL
 	CONSTRAINT subscriptions_book_id_fkey FOREIGN KEY (book_id)
         REFERENCES books (id) MATCH SIMPLE
         ON UPDATE NO ACTION
@@ -118,4 +118,11 @@ CREATE TABLE IF NOT EXISTS added_points(
         ON UPDATE NO ACTION
         ON DELETE NO ACTION
         NOT VALID
+);
+
+CREATE TABLE IF NOT EXISTS subscription_groups (
+    name text NOT NULL,
+    user_id integer NOT NULL,
+    book_id integer NOT NULL,
+    CONSTRAINT subscription_groups_pkey PRIMARY KEY (user_id, name, book_id)
 );
