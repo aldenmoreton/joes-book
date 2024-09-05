@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n\t\tSELECT oauth.content AS content\n\t\tFROM signup_tokens\n\t\tJOIN oauth ON signup_tokens.sub = oauth.sub AND signup_tokens.provider = oauth.provider\n\t\tWHERE token = $1\n\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "content",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "ae34176dac15466d4ee7522f55238e60de156b7f154f7b4d594dee6639fe27f8"
+}

@@ -1,165 +1,115 @@
-use cfg_if::cfg_if;
+use axum_login::{
+    tower_sessions::{cookie::time::Duration, Expiry, SessionManagerLayer},
+    AuthManagerLayerBuilder,
+};
+use joes_book::{auth::BackendPgDB, router, GoogleState};
+use sqlx::postgres::PgPoolOptions;
 
-cfg_if! {
-if #[cfg(feature = "ssr")] {
-    use axum::{
-        response::{Response, IntoResponse, Redirect},
-        routing::get,
-        extract::{Path, State, RawQuery},
-        http::{Request, header::HeaderMap, StatusCode},
-        body::Body as AxumBody,
-        Router,
+use tower_sessions::PostgresStore;
+
+#[shuttle_runtime::main]
+pub async fn shuttle(
+    #[shuttle_runtime::Secrets] secrets: shuttle_runtime::SecretStore,
+    #[shuttle_shared_db::Postgres(local_uri = "postgresql://postgres:postgres@localhost/new2")]
+    database_url: String,
+) -> shuttle_axum::ShuttleAxum {
+    let pool = PgPoolOptions::new()
+        .connect(&database_url)
+        .await
+        .expect("Could not make pool.");
+
+    let auth_layer = {
+        let backend = BackendPgDB(pool.clone());
+        backend.init_admin().await.ok();
+
+        let session_store = PostgresStore::new(pool.clone());
+        session_store
+            .migrate()
+            .await
+            .expect("Could not migrate database");
+        let session_layer = SessionManagerLayer::new(session_store)
+            .with_same_site(tower_sessions::cookie::SameSite::Lax)
+            .with_name("book_session")
+            // .with_secure(false)
+            .with_expiry(Expiry::OnInactivity(Duration::weeks(2)));
+
+        AuthManagerLayerBuilder::new(backend, session_layer).build()
     };
-    use joes_book::app::*;
-    use joes_book::server::*;
-    use joes_book::objects::*;
-    use joes_book::state::AppState;
-    use joes_book::fallback::file_and_error_handler;
-    use leptos_axum::{generate_route_list, LeptosRoutes, handle_server_fns_with_context};
-    use leptos::{log, view, provide_context, get_configuration};
-    use sqlx::{PgPool, postgres::PgPoolOptions};
-    use axum_session::{SessionConfig, SessionLayer, SessionStore};
-    use axum_session_auth::{AuthSessionLayer, AuthConfig, SessionPgPool};
 
-    async fn server_fn_handler(
-        State(app_state): State<AppState>,
-        auth_session: AuthSession,
-        path: Path<String>,
-        headers: HeaderMap,
-        raw_query: RawQuery,
-        request: Request<AxumBody>
-    ) -> impl IntoResponse {
+    let state: joes_book::AppState = {
+        let turnstile_site_key: String = secrets
+            .get("TURNSTILE_SITE_KEY")
+            .unwrap_or_else(|| "1x00000000000000000000AA".into());
 
-        let response = handle_server_fns_with_context(path, headers, raw_query, move |cx| {
-            provide_context(cx, auth_session.clone());
-            provide_context(cx, app_state.pool.clone());
-        }, request).await.into_response();
+        let turnstile_secret = secrets
+            .get("TURNSTILE_SECRET_KEY")
+            .unwrap_or_else(|| "1x0000000000000000000000000000000AA".into());
 
-        response
-    }
+        let google_redirect_url = secrets
+            .get("GOOGLE_OAUTH_REDIRECT")
+            .unwrap_or("http://localhost:8000/api/auth/google".to_string());
 
-    async fn secure_server_fn_handler(
-        State(app_state): State<AppState>,
-        auth_session: AuthSession,
-        path: Path<String>,
-        headers: HeaderMap,
-        raw_query: RawQuery,
-        request: Request<AxumBody>
-    ) -> impl IntoResponse {
+        let google_oauth = oauth2::basic::BasicClient::new(
+            oauth2::ClientId::new(secrets.get("GOOGLE_OAUTH_CLIENT_ID").unwrap()),
+            Some(oauth2::ClientSecret::new(
+                secrets.get("GOOGLE_OAUTH_SECRET").unwrap(),
+            )),
+            oauth2::AuthUrl::new("https://accounts.google.com/o/oauth2/v2/auth".into()).unwrap(),
+            Some(
+                oauth2::TokenUrl::new("https://www.googleapis.com/oauth2/v3/token".into()).unwrap(),
+            ),
+        )
+        .set_redirect_uri(oauth2::RedirectUrl::new(google_redirect_url.clone()).unwrap());
 
-        if !auth_session.is_authenticated() {
-            return StatusCode::BAD_REQUEST.into_response()
-        }
-
-        handle_server_fns_with_context(
-            path,
-            headers,
-            raw_query,
-            move |cx| {
-                provide_context(cx, auth_session.clone());
-                provide_context(cx, app_state.pool.clone());
+        joes_book::AppState {
+            pool,
+            requests: reqwest::Client::new(),
+            turnstile: joes_book::TurnstileState {
+                site_key: turnstile_site_key,
+                client: cf_turnstile::TurnstileClient::new(turnstile_secret.into()),
             },
-            request
-        ).await.into_response()
-    }
-
-    async fn leptos_routes_handler(
-        auth_session: AuthSession,
-        State(app_state): State<AppState>,
-        req: Request<AxumBody>
-    ) -> Response{
-        let authenticated = auth_session.is_authenticated();
-        let uncontrolled_route = req.uri() == "/login" || req.uri() == "/signup";
-
-        let handler = leptos_axum::render_app_to_stream_with_context(
-            app_state.leptos_options.clone(),
-            move |cx| {
-                provide_context(cx, auth_session.clone());
-                provide_context(cx, app_state.pool.clone());
+            google: GoogleState {
+                redirect_url: google_redirect_url,
+                oauth: google_oauth,
             },
-            |cx| view! { cx, <App/> }
-        );
-
-        match (authenticated, uncontrolled_route) {
-            (true, true) => Redirect::to("/").into_response(),
-            (false, false) => Redirect::to("/login").into_response(),
-            (true, false) | (false, true) => handler(req).await.into_response(),
         }
-    }
+    };
 
-    #[tokio::main]
-    async fn main() {
-        let _ = dotenvy::dotenv();
+    let app = router()
+        .layer(auth_layer)
+        .layer(tower_http::trace::TraceLayer::new_for_http())
+        .with_state(&*Box::leak(Box::new(state)));
 
-        simple_logger::init_with_level(log::Level::Info).expect("couldn't initialize logging");
-
-        let database_url = std::env::var("DATABASE_URL").expect("Unable to read DATABASE_URL env var");
-
-        let pool = PgPoolOptions::new()
-            .connect(&database_url)
-            .await
-            .expect("Could not make pool.");
-
-        // Auth section
-        let session_config = SessionConfig::default().with_table_name("axum_sessions");
-
-        println!("Attempting Migration");
-        // sqlx::migrate!(migrations);
-        sqlx::query_file!("migrations/users.sql").execute(&pool).await.ok();
-        sqlx::query_file!("migrations/user_permissions.sql").execute(&pool).await.ok();
-        sqlx::query_file!("migrations/todos.sql").execute(&pool).await.ok();
-        sqlx::query_file!("migrations/books.sql").execute(&pool).await.ok();
-        sqlx::query_file!("migrations/subscriptions.sql").execute(&pool).await.ok();
-        sqlx::query_file!("migrations/chapters.sql").execute(&pool).await.ok();
-        sqlx::query_file!("migrations/events.sql").execute(&pool).await.ok();
-        sqlx::query_file!("migrations/picks.sql").execute(&pool).await.ok();
-
-        let auth_config = AuthConfig::<i64>::default();
-        let session_store = SessionStore::<SessionPgPool>::new(Some(pool.clone().into()), session_config);
-        session_store.initiate().await.unwrap();
-
-        BackendUser::add_to_db(
-            std::env::var("OWNER_USERNAME").expect("Unable to read OWNER_USERNAME env var"),
-            std::env::var("OWNER_PASSWORD").expect("Unable to read OWNER_PASSWORD env var"),
-            vec!["owner".into()],
-            pool.clone()
-        ).await.expect("Unable to create owner");
-
-        let conf = get_configuration(None).await.unwrap();
-        let leptos_options = conf.leptos_options;
-        let addr = leptos_options.site_addr;
-        let routes = generate_route_list(|cx| view! { cx, <App/> }).await;
-
-        let app_state = AppState{
-            leptos_options,
-            pool: pool.clone(),
-        };
-
-        // build our application with a route
-        let app = Router::new()
-            .route("/api/*fn_name", get(server_fn_handler).post(server_fn_handler))
-            .route("/secure/*fn_name", get(secure_server_fn_handler).post(secure_server_fn_handler))
-            .leptos_routes_with_handler(routes, get(leptos_routes_handler))
-            .fallback(file_and_error_handler)
-            .layer(AuthSessionLayer::<BackendUser, i64, SessionPgPool, PgPool>::new(Some(pool.clone()))
-            .with_config(auth_config))
-            .layer(SessionLayer::new(session_store))
-            .with_state(app_state);
-
-        // Run App
-        log!("listening on http://{}", &addr);
-        axum::Server::bind(&addr)
-            .serve(app.into_make_service())
-            .await
-            .unwrap();
-    }
+    Ok(shuttle_axum::AxumService(app))
 }
 
-    // client-only stuff for Trunk
-    else {
-        pub fn main() {
-            // This example cannot be built as a trunk standalone CSR-only app.
-            // Only the server may directly connect to the database.
-        }
-    }
-}
+// #[tokio::main]
+// async fn main() {
+//     dotenvy::dotenv().ok();
+//     let database_url = std::env::var("DATABASE_URL").expect("Unable to read DATABASE_URL ENV");
+
+//     let pool = PgPoolOptions::new()
+//         .connect(&database_url)
+//         .await
+//         .expect("Could not make pool.");
+
+//     let backend = BackendPgDB(pool.clone());
+//     backend.init_admin().await.ok();
+
+//     let session_store = PostgresStore::new(pool);
+//     session_store
+//         .migrate()
+//         .await
+//         .expect("Could not migrate database");
+//     let session_layer = SessionManagerLayer::new(session_store)
+//         .with_secure(false)
+//         .with_expiry(Expiry::OnInactivity(Duration::weeks(2)));
+//     let auth_layer = AuthManagerLayerBuilder::new(backend, session_layer).build();
+
+//     let app = router(auth_layer);
+
+//     println!();
+//     println!("Starting server at http://localhost:3000");
+//     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+//     axum::serve(listener, app).await.unwrap();
+// }

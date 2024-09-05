@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE oauth\n        SET user_id = $1\n        WHERE sub = $2 AND provider = $3\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0e8a4387fae0d598ce5b19f85bf5e6f5ad27a6ef8f79f68c76e259fc3be936eb"
+}

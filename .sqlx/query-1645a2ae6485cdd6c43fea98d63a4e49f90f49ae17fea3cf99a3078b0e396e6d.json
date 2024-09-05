@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO events (book_id, chapter_id, event_type, contents)\n        SELECT $1 AS book_id, $2 AS chapter_id, event_type AS \"event_type: EventType\", contents\n        FROM UNNEST($3::event_types[], $4::jsonb[]) AS a(event_type, contents)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4",
+        {
+          "Custom": {
+            "name": "_event_types",
+            "kind": {
+              "Array": {
+                "Custom": {
+                  "name": "event_types",
+                  "kind": {
+                    "Enum": [
+                      "spread_group",
+                      "user_input"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "JsonbArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1645a2ae6485cdd6c43fea98d63a4e49f90f49ae17fea3cf99a3078b0e396e6d"
+}

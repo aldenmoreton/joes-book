@@ -1,0 +1,62 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\tSELECT  id,\n                    book_id,\n                    chapter_id,\n                    is_open,\n                    contents AS \"contents: Json<EventContent>\",\n                    event_type AS \"event_type: EventType\"\n\t\t\tFROM events\n\t\t\tWHERE chapter_id = $1\n            ORDER BY event_type, id\n\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "book_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "chapter_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "is_open",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "contents: Json<EventContent>",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 5,
+        "name": "event_type: EventType",
+        "type_info": {
+          "Custom": {
+            "name": "event_types",
+            "kind": {
+              "Enum": [
+                "spread_group",
+                "user_input"
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "c975a0e7b857c16f8775d44a26b488aeca5a834861ee0edb57097263e9fd78ac"
+}

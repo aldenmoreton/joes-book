@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        DELETE FROM subscriptions\n        WHERE user_id = $1 AND book_id = $2\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0a996be0ec15e5f5afd7a8dae123c7d03a9d3a363b24474336a52512e658770b"
+}

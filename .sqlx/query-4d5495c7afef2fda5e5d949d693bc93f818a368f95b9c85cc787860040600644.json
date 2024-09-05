@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                DISTINCT P.CHOICE #>> '{}' AS \"choice!\",\n                coalesce(E.CONTENTS -> 'user_input' -> 'acceptable_answers' @> JSONB_BUILD_ARRAY(P.CHOICE), false) AS \"correct!\"\n            FROM\n                PICKS AS P\n                JOIN EVENTS AS E ON P.EVENT_ID = E.ID\n            WHERE\n                P.EVENT_ID = $1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "choice!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "correct!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "4d5495c7afef2fda5e5d949d693bc93f818a368f95b9c85cc787860040600644"
+}
