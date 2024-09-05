@@ -62,7 +62,7 @@ pub async fn get_chapter_users(
                 SELECT users.id, users.username
                 FROM users
                 JOIN subscriptions on users.id = subscriptions.user_id
-                WHERE book_id = $1 AND COALESCE(((subscriptions.role->'guest'->'chapter_ids') @> to_jsonb(1)), true)
+                WHERE book_id = $1 AND COALESCE(((subscriptions.role->'guest'->'chapter_ids') @> to_jsonb($2::INT)), true)
             ) as sub1
             LEFT JOIN (
                 SELECT picks.user_id, picks.points
