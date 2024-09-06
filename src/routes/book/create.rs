@@ -40,7 +40,8 @@ pub async fn handler(
             VALUES ($1, $2, $3)",
         user.id,
         record.id,
-        serde_json::to_value(BookRole::Admin).map_err(|_| AppError::Internal)?
+        serde_json::to_value(BookRole::Admin)
+            .map_err(|e| RespErr::new(StatusCode::INTERNAL_SERVER_ERROR).log_msg(e.to_string()))?
     )
     .execute(&mut *transaction)
     .await

@@ -132,7 +132,7 @@ pub async fn legacy_login_form(
             password: creds.password,
         })
         .await
-        .map_err(|_| AppNotification::from(AppError::Internal))?
+        .map_err(|e| RespErr::new(StatusCode::INTERNAL_SERVER_ERROR).log_msg(e.to_string()))?
         .ok_or(AppNotification(
             StatusCode::UNAUTHORIZED,
             "Invalid Username or Password".into(),
@@ -196,7 +196,7 @@ pub mod google {
         extract::{Query, State},
         response::{ErrorResponse, IntoResponse, Redirect},
     };
-    use axum_ctx::RespErrCtx;
+    use axum_ctx::{RespErr, RespErrCtx};
     use axum_extra::extract::CookieJar;
     use oauth2::TokenResponse as _;
     use reqwest::StatusCode;
@@ -231,7 +231,7 @@ pub mod google {
             .exchange_code(oauth2::AuthorizationCode::new(query.code))
             .request_async(oauth2::reqwest::async_http_client)
             .await
-            .map_err(|_| AppError::Internal)?;
+            .map_err(|e| RespErr::new(StatusCode::INTERNAL_SERVER_ERROR).log_msg(e.to_string()))?;
 
         let profile: GoogleOauth = state
             .requests
@@ -239,10 +239,10 @@ pub mod google {
             .bearer_auth(token.access_token().secret())
             .send()
             .await
-            .map_err(|_| AppError::Internal)?
+            .map_err(|e| RespErr::new(StatusCode::INTERNAL_SERVER_ERROR).log_msg(e.to_string()))?
             .json()
             .await
-            .map_err(|_| AppError::Internal)?;
+            .map_err(|e| RespErr::new(StatusCode::INTERNAL_SERVER_ERROR).log_msg(e.to_string()))?;
 
         let pool = &state.pool;
 
@@ -269,7 +269,8 @@ pub mod google {
             return Err(Redirect::to("/").into());
         }
 
-        let content = serde_json::to_value(profile.clone()).map_err(|_| AppError::Internal)?;
+        let content = serde_json::to_value(profile.clone())
+            .map_err(|e| RespErr::new(StatusCode::INTERNAL_SERVER_ERROR).log_msg(e.to_string()))?;
         sqlx::query!(
             "
             INSERT INTO oauth(sub, provider, content)

@@ -3,6 +3,7 @@ use axum::{
     response::{ErrorResponse, IntoResponse, Redirect},
     Form,
 };
+use axum_ctx::RespErr;
 use reqwest::StatusCode;
 
 use crate::{auth::AuthSession, templates::base, AppError, AppNotification};
@@ -33,8 +34,8 @@ pub async fn get(
     .map_err(AppError::from)?
     .ok_or(Redirect::to("/login"))?;
 
-    let OauthProfile::Google(profile) =
-        serde_json::from_value(oauth_profile.content).map_err(|_| AppError::Internal)?;
+    let OauthProfile::Google(profile) = serde_json::from_value(oauth_profile.content)
+        .map_err(|e| RespErr::new(StatusCode::INTERNAL_SERVER_ERROR).log_msg(e.to_string()))?;
 
     Ok(base(
             Some("Finish Signing Up"),
@@ -203,7 +204,7 @@ pub async fn post(
     auth_session
         .login(&user)
         .await
-        .map_err(|_| AppError::Internal)?;
+        .map_err(|e| RespErr::new(StatusCode::INTERNAL_SERVER_ERROR).log_msg(e.to_string()))?;
 
     transaction.commit().await.map_err(AppError::from)?;
 

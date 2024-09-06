@@ -4,7 +4,7 @@ use auth::{authz, BackendPgDB};
 use axum::{
     handler::Handler,
     middleware,
-    response::{Html, IntoResponse},
+    response::{Html, IntoResponse, Redirect},
     routing::{get, post},
     Extension, Router,
 };
@@ -80,8 +80,10 @@ pub fn router() -> Router<AppStateRef> {
                 if chapter.is_open {
                     Ok(next.run(request).await)
                 } else {
-                    Err(RespErr::new(StatusCode::LOCKED)
-                        .user_msg("This book is closed. Cannot make picks."))
+                    Err(AppNotification(
+                        StatusCode::LOCKED,
+                        "This chapter is closed".into(),
+                    ))
                 }
             },
         )))
@@ -102,7 +104,7 @@ pub fn router() -> Router<AppStateRef> {
                     {
                         Ok(next.run(request).await)
                     }
-                    _ => Err(RespErr::new(StatusCode::UNAUTHORIZED)),
+                    _ => Err((StatusCode::UNAUTHORIZED, Redirect::to("/"))),
                 }
             },
         ));
@@ -198,8 +200,6 @@ pub fn router() -> Router<AppStateRef> {
 
 #[derive(Debug, thiserror::Error)]
 pub enum AppError<'a> {
-    #[error("Internal Server Error")]
-    Internal,
     #[error("No Backend User")]
     BackendUser,
     #[error("Unauthorized: {0}")]
@@ -213,9 +213,6 @@ pub enum AppError<'a> {
 impl From<AppError<'_>> for RespErr {
     fn from(value: AppError) -> Self {
         match &value {
-            AppError::Internal => {
-                RespErr::new(StatusCode::INTERNAL_SERVER_ERROR).log_msg(value.to_string())
-            }
             AppError::BackendUser => {
                 RespErr::new(StatusCode::INTERNAL_SERVER_ERROR).log_msg(value.to_string())
             }
