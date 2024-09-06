@@ -74,8 +74,16 @@ pub struct SpreadGroupSpread {
 pub async fn submit(
     auth_session: AuthSession,
     Extension(chapter): Extension<Chapter>,
-    Json(picks): Json<PickSubmission>,
+    picks: Result<Json<PickSubmission>, axum::extract::rejection::JsonRejection>,
 ) -> Result<AppNotification, AppNotification> {
+    let Ok(Json(picks)) = picks else {
+        tracing::debug!("Could not deserialize picks: {picks:?}");
+        return Err(AppNotification(
+            StatusCode::BAD_REQUEST,
+            "Can't Process Picks. Are they all the way filled out?".into(),
+        ));
+    };
+
     let user_id = auth_session.user.ok_or(AppError::BackendUser)?.id;
     let pool = auth_session.backend.0;
 

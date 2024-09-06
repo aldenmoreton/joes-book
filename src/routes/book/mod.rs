@@ -8,7 +8,7 @@ pub mod mw {
         extract::{Path, Request},
         http::{Response, StatusCode},
         middleware::Next,
-        response::{ErrorResponse, Redirect},
+        response::{ErrorResponse, IntoResponse, Redirect},
         Extension,
     };
     use axum_ctx::RespErr;
@@ -39,10 +39,11 @@ pub mod mw {
                 ..
             }) => return Err((StatusCode::UNAUTHORIZED, Redirect::to("/")).into()),
             Err(e) => {
-                return Err(RespErr::new(StatusCode::NOT_FOUND)
+                RespErr::new(StatusCode::NOT_FOUND)
                     .user_msg("Could not find book")
                     .log_msg(e.to_string())
-                    .into())
+                    .into_response();
+                return Err(Redirect::to("/").into());
             }
             Ok(user) => user,
         };

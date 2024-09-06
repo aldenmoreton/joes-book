@@ -6,10 +6,10 @@ pub mod mw {
     use axum::{
         body::Body,
         extract::{Path, Request},
-        http::{Response, StatusCode},
+        http::Response,
         middleware::Next,
+        response::{ErrorResponse, Redirect},
     };
-    use axum_ctx::{RespErr, RespErrCtx, RespErrExt};
 
     use crate::{
         auth::{AuthSession, BackendPgDB},
@@ -30,13 +30,12 @@ pub mod mw {
         }): Path<ChapterIdPath>,
         mut request: Request,
         next: Next,
-    ) -> Result<Response<Body>, RespErr> {
+    ) -> Result<Response<Body>, ErrorResponse> {
         let BackendPgDB(pool) = auth_session.backend;
 
         let chapter = get_chapter(chapter_id, &pool)
             .await
-            .ctx(StatusCode::NOT_FOUND)
-            .user_msg("Could not find chapter")?;
+            .map_err(|_| Redirect::to("/"))?;
 
         request.extensions_mut().insert(chapter);
 
