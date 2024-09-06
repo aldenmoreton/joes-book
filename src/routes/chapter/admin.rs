@@ -230,10 +230,10 @@ pub async fn open(
         r#"
         UPDATE chapters
         SET is_open = $1
-        WHERE book_id = $2
+        WHERE id = $2
     "#,
         toggle,
-        chapter.book_id
+        chapter.chapter_id
     )
     .execute(pool)
     .await?;
@@ -252,11 +252,10 @@ pub async fn visible(
         r#"
         UPDATE chapters
         SET is_visible = $1
-        WHERE book_id = $2
-        RETURNING id
+        WHERE id = $2
     "#,
         toggle,
-        chapter.book_id
+        chapter.chapter_id
     )
     .fetch_one(pool)
     .await?;
