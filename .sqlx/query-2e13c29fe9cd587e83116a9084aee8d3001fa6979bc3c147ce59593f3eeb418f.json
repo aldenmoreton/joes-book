@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE chapters\n        SET is_visible = $1\n        WHERE id = $2\n    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bool",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2e13c29fe9cd587e83116a9084aee8d3001fa6979bc3c147ce59593f3eeb418f"
+}
