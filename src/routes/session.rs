@@ -207,17 +207,7 @@ pub mod google {
     pub struct GoogleOauth {
         pub sub: String,
         #[serde(flatten)]
-        pub pii: Option<GoogleOauthPII>,
-    }
-
-    #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-    pub struct GoogleOauthPII {
-        pub email: String,
-        pub email_verified: bool,
-        pub family_name: String,
-        pub given_name: String,
-        pub name: String,
-        pub picture: String,
+        pub extra: std::collections::HashMap<String, serde_json::Value>,
     }
 
     #[derive(Debug, serde::Deserialize)]
