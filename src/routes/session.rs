@@ -206,12 +206,6 @@ pub mod google {
     #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
     pub struct GoogleOauth {
         pub sub: String,
-        #[serde(flatten)]
-        pub pii: Option<GoogleOauthPII>,
-    }
-
-    #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-    pub struct GoogleOauthPII {
         pub email: String,
         pub email_verified: bool,
         pub family_name: String,
@@ -244,7 +238,10 @@ pub mod google {
             .exchange_code(oauth2::AuthorizationCode::new(query.code))
             .request_async(oauth2::reqwest::async_http_client)
             .await
-            .map_err(|e| RespErr::new(StatusCode::INTERNAL_SERVER_ERROR).log_msg(e.to_string()))?;
+            .map_err(|e| {
+                RespErr::new(StatusCode::INTERNAL_SERVER_ERROR)
+                    .log_msg(format!("No way to get token: {e:?}"))
+            })?;
 
         let profile: GoogleOauth = state
             .requests
