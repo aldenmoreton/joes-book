@@ -193,7 +193,7 @@ pub enum OauthProfile {
 
 pub mod google {
     use axum::{
-        extract::{Query, State},
+        extract::{rejection::QueryRejection, Query, State},
         response::{ErrorResponse, IntoResponse, Redirect},
     };
     use axum_ctx::{RespErr, RespErrCtx};
@@ -223,8 +223,15 @@ pub mod google {
         mut auth_session: AuthSession,
         cookie_jar: CookieJar,
         State(state): State<crate::AppStateRef>,
-        Query(query): Query<GoogleAuthRequest>,
+        query: Result<Query<GoogleAuthRequest>, QueryRejection>,
     ) -> Result<impl IntoResponse, ErrorResponse> {
+        let query = query
+            .map_err(|e| {
+                RespErr::new(StatusCode::INTERNAL_SERVER_ERROR)
+                    .log_msg(format!("Query params in google oauth redirect: {e:?}"))
+            })?
+            .0;
+
         let token = state
             .google
             .oauth
