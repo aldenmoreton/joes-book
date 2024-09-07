@@ -206,6 +206,12 @@ pub mod google {
     #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
     pub struct GoogleOauth {
         pub sub: String,
+        #[serde(flatten)]
+        pub pii: Option<GoogleOauthPII>,
+    }
+
+    #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+    pub struct GoogleOauthPII {
         pub email: String,
         pub email_verified: bool,
         pub family_name: String,
@@ -260,7 +266,7 @@ pub mod google {
                     .log_msg(format!("Don't understand oauth token: {e:?}"))
             })?;
 
-        tracing::debug!("{profile}");
+        tracing::error!("{profile}");
 
         let profile: GoogleOauth = serde_json::from_str(&profile).map_err(|e| {
             RespErr::new(StatusCode::INTERNAL_SERVER_ERROR).log_msg(format!("Json no go: {e:?}"))

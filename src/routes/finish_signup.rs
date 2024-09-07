@@ -66,21 +66,24 @@ pub async fn get(
                             hx-on--after-on-load="if (event.detail.xhr.status !== 200) {document.getElementById('submit-button').disabled = true;turnstile.reset('#cf-turnstile-container');}"
                             {
                             div class="flex flex-col items-center justify-center px-8 pt-6 pb-6 mb-4 bg-white rounded shadow-md" {
-                                img src=(profile.picture) class="m-2";
+                                @if let Some(pii) = profile.pii {
+                                    img src=(pii.picture) class="m-2";
 
-                                div class="mb-4" {
-                                    label class="block mb-2 text-sm font-bold text-left text-gray-700" for="username" {
-                                        "First Name"
+                                    div class="mb-4" {
+                                        label class="block mb-2 text-sm font-bold text-left text-gray-700" for="username" {
+                                            "First Name"
+                                        }
+                                        input disabled class="w-full px-3 py-2 leading-tight text-gray-700 border rounded shadow appearance-none disabled:bg-gray-200 disabled:cursor-not-allowed focus:outline-none focus:shadow-outline" id="username" name="username" type="text" value=(pii.given_name);
                                     }
-                                    input disabled class="w-full px-3 py-2 leading-tight text-gray-700 border rounded shadow appearance-none disabled:bg-gray-200 disabled:cursor-not-allowed focus:outline-none focus:shadow-outline" id="username" name="username" type="text" value=(profile.given_name);
+
+                                    div class="mb-4" {
+                                        label class="block mb-2 text-sm font-bold text-left text-gray-700" for="username" {
+                                            "Last Name"
+                                        }
+                                        input disabled class="w-full px-3 py-2 leading-tight text-gray-700 border rounded shadow appearance-none disabled:bg-gray-200 disabled:cursor-not-allowed focus:outline-none focus:shadow-outline" id="username" name="username" type="text" value=(pii.family_name);
+                                    }
                                 }
 
-                                div class="mb-4" {
-                                    label class="block mb-2 text-sm font-bold text-left text-gray-700" for="username" {
-                                        "Last Name"
-                                    }
-                                    input disabled class="w-full px-3 py-2 leading-tight text-gray-700 border rounded shadow appearance-none disabled:bg-gray-200 disabled:cursor-not-allowed focus:outline-none focus:shadow-outline" id="username" name="username" type="text" value=(profile.family_name);
-                                }
 
                                 div class="mb-4" {
                                     label class="block mb-2 text-sm font-bold text-left text-gray-700" for="username" {
