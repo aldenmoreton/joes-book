@@ -196,7 +196,7 @@ pub mod google {
         extract::{rejection::QueryRejection, Query, State},
         response::{ErrorResponse, IntoResponse, Redirect},
     };
-    use axum_ctx::{RespErr, RespErrCtx};
+    use axum_ctx::{RespErr, RespErrCtx, RespErrExt};
     use axum_extra::extract::CookieJar;
     use oauth2::TokenResponse as _;
     use reqwest::StatusCode;
@@ -249,7 +249,10 @@ pub mod google {
             .map_err(|e| RespErr::new(StatusCode::INTERNAL_SERVER_ERROR).log_msg(e.to_string()))?
             .json()
             .await
-            .map_err(|e| RespErr::new(StatusCode::INTERNAL_SERVER_ERROR).log_msg(e.to_string()))?;
+            .map_err(|e| {
+                RespErr::new(StatusCode::INTERNAL_SERVER_ERROR)
+                    .log_msg(format!("Don't understand oauth token: {e:?}"))
+            })?;
 
         let pool = &state.pool;
 
@@ -272,7 +275,8 @@ pub mod google {
             auth_session
                 .login(&user)
                 .await
-                .ctx(StatusCode::INTERNAL_SERVER_ERROR)?;
+                .ctx(StatusCode::INTERNAL_SERVER_ERROR)
+                .log_msg("Could not log in via google oauth")?;
             return Err(Redirect::to("/").into());
         }
 
