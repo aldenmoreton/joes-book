@@ -205,13 +205,19 @@ pub mod google {
 
     #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
     pub struct GoogleOauth {
+        pub sub: String,
+        #[serde(flatten)]
+        pub pii: Option<GoogleOauthPII>,
+    }
+
+    #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+    pub struct GoogleOauthPII {
         pub email: String,
         pub email_verified: bool,
         pub family_name: String,
         pub given_name: String,
         pub name: String,
         pub picture: String,
-        pub sub: String,
     }
 
     #[derive(Debug, serde::Deserialize)]
@@ -246,7 +252,10 @@ pub mod google {
             .bearer_auth(token.access_token().secret())
             .send()
             .await
-            .map_err(|e| RespErr::new(StatusCode::INTERNAL_SERVER_ERROR).log_msg(e.to_string()))?
+            .map_err(|e| {
+                RespErr::new(StatusCode::INTERNAL_SERVER_ERROR)
+                    .log_msg(format!("Can't get access token response: {e:?}"))
+            })?
             .json()
             .await
             .map_err(|e| {
