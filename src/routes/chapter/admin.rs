@@ -257,7 +257,7 @@ pub async fn visible(
         toggle,
         chapter.chapter_id
     )
-    .fetch_one(pool)
+    .execute(pool)
     .await?;
 
     Ok(crate::templates::chapter_admin::chapter_visible_button(
