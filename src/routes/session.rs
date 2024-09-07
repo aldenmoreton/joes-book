@@ -243,7 +243,7 @@ pub mod google {
                     .log_msg(format!("No way to get token: {e:?}"))
             })?;
 
-        let profile: GoogleOauth = state
+        let profile = state
             .requests
             .get("https://openidconnect.googleapis.com/v1/userinfo")
             .bearer_auth(token.access_token().secret())
@@ -253,12 +253,18 @@ pub mod google {
                 RespErr::new(StatusCode::INTERNAL_SERVER_ERROR)
                     .log_msg(format!("Can't get access token response: {e:?}"))
             })?
-            .json()
+            .text()
             .await
             .map_err(|e| {
                 RespErr::new(StatusCode::INTERNAL_SERVER_ERROR)
                     .log_msg(format!("Don't understand oauth token: {e:?}"))
             })?;
+
+        tracing::debug!("{profile}");
+
+        let profile: GoogleOauth = serde_json::from_str(&profile).map_err(|e| {
+            RespErr::new(StatusCode::INTERNAL_SERVER_ERROR).log_msg(format!("Json no go: {e:?}"))
+        })?;
 
         let pool = &state.pool;
 
@@ -288,6 +294,7 @@ pub mod google {
 
         let content = serde_json::to_value(profile.clone())
             .map_err(|e| RespErr::new(StatusCode::INTERNAL_SERVER_ERROR).log_msg(e.to_string()))?;
+
         sqlx::query!(
             "
             INSERT INTO oauth(sub, provider, content)
