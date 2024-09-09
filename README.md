@@ -1,6 +1,7 @@
-<div style="text-align: center;">
-<a href="https://joes-book.shuttleapp.rs/"><h1>Joe's Book</h1></a>
-<b>A Place for Sports Predictions with Friends</b>
+<div align="center">
+  
+  # [Joe's Book](https://joes-book.shuttleapp.rs/)
+  <b>A Place for Sports Predictions with Friends</b>
 </div>
 
 ## Dedication
@@ -10,7 +11,7 @@ This Project is dedicated to my Father-in-Law, Joe. Keep the picks coming.
 Joe's Book is yet another pick'em site.
 The site currently centers around the college football season,
 as members pick against the spread for some of the week's top football games.
-The twist comes through the rating system, as players are required to rank their picks `1..n`, either recieving that number of points if they pick correctly, or losing out on those points when they do not. With the addition of arbitrary extra-point questions, guest pickers, and league leaderboards, Joe's Book is a great choice for office pools or family groups.
+The twist comes through the rating system, as players are required to rank their picks `1..=n`, either recieving that number of points if they pick correctly, or losing out on those points when they do not. With the addition of arbitrary extra-point questions, guest pickers, and league leaderboards, Joe's Book is a great choice for office pools or family groups.
 
 ## Stack
 Joe's Book is a server-rendered site written in Rust. It uses the [Axum](https://github.com/tokio-rs/axum) web framework, [SQLx](https://github.com/launchbadge/sqlx) database library, and [HTMX](https://htmx.org/) for client reactivity. The production version of the app is currently hosted on [Shuttle](https://www.shuttle.rs/), but is also available in a [Docker Image](#exploration).
