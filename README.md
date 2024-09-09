@@ -1,7 +1,9 @@
 <div align="center">
   
-  # [Joe's Book](https://joes-book.shuttleapp.rs/)
+  # Joe's Book
   <b>A Place for Sports Predictions with Friends</b>
+
+  [Visit Site Here](https://joes-book.shuttleapp.rs/)
 </div>
 
 ## Dedication
