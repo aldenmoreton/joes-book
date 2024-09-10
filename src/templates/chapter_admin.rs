@@ -1,15 +1,10 @@
 use std::collections::HashMap;
 
-use axum::{extract::State, Extension};
-
-use crate::{
-    db::{
-        chapter::Chapter,
-        event::{Event, EventContent},
-        spread::Spread,
-        user_input::UserInput,
-    },
-    AppError, AppStateRef,
+use crate::db::{
+    chapter::Chapter,
+    event::{Event, EventContent},
+    spread::Spread,
+    user_input::UserInput,
 };
 
 use super::authenticated;
@@ -46,11 +41,11 @@ pub fn markup(
                 }
 
                 div class="flex items-center justify-center" {
-                    details class="flex items-center w-max" hx-swap="this" {
+                    details class="flex items-center w-max" hx-target="this" {
                         summary class="p-3 my-1 align-middle bg-green-500 rounded-lg shadow-md select-none" {
                             "Unsubmitted Users"
                         }
-                        div hx-get="unsubmitted-users" hx-trigger="load" hx-swap="outerhtml" class="flex items-center" {
+                        div hx-get="unsubmitted-users" hx-trigger="load" hx-swap="outerHTML" class="flex items-center" {
                             "Loading..."
                         }
                     }
@@ -95,84 +90,6 @@ pub fn markup(
         }),
         None,
     )
-}
-
-pub async fn unsubmitted_users(
-    Extension(chapter): Extension<Chapter>,
-    State(state): State<AppStateRef>,
-) -> Result<maud::Markup, AppError<'static>> {
-    let pool = &state.pool;
-
-    let user_status = sqlx::query!(
-        r#"
-        SELECT USERNAME, MIN(COMPLETED::INT) = 1 AS "all_complete!"
-        FROM
-            (
-                SELECT BOOK_USERS.USERNAME, PICKS.USER_ID IS NOT NULL AS COMPLETED
-                FROM
-                    (
-                        SELECT USERS.ID, USERS.USERNAME
-                        FROM USERS
-                        WHERE
-                            EXISTS (
-                                SELECT USER_ID
-                                FROM SUBSCRIPTIONS
-                                WHERE
-                                    BOOK_ID = $1
-                                    AND SUBSCRIPTIONS.USER_ID = USERS.ID
-                                    AND COALESCE(
-                                        ((SUBSCRIPTIONS.ROLE -> 'guest' -> 'chapter_ids') @> TO_JSONB($2::INT)),
-                                        TRUE
-                                    )
-                            )
-                    ) AS BOOK_USERS
-                    CROSS JOIN (
-                        SELECT EVENTS.ID
-                        FROM EVENTS
-                        WHERE EVENTS.CHAPTER_ID = $2
-                    ) AS CHAPTER_EVENTS
-                    LEFT JOIN PICKS ON BOOK_USERS.ID = PICKS.USER_ID
-                        AND CHAPTER_EVENTS.ID = PICKS.EVENT_ID
-            ) AS EVENT_PICKS
-        GROUP BY EVENT_PICKS.USERNAME
-        ORDER BY "all_complete!"
-        "#,
-        chapter.book_id,
-        chapter.chapter_id
-    ).fetch_all(pool).await?;
-
-    let first_complete = user_status
-        .iter()
-        .position(|r| r.all_complete)
-        .unwrap_or(user_status.len());
-
-    let unpicked_users = &user_status[..=first_complete.checked_sub(1).unwrap_or(0)];
-    let picked_users = &user_status[first_complete..];
-
-    Ok(maud::html! {
-        @if unpicked_users.is_empty() {
-            div class="p-3 my-1 align-middle bg-green-500 rounded-lg shadow-md select-none" {
-                "Everyone's Picks are In!"
-            }
-        } @else {
-
-            details class="flex items-center w-max" hx-swap="this" {
-                summary class="p-3 my-1 align-middle bg-green-500 rounded-lg shadow-md select-none" {
-                    "User Statuses"
-                }
-                div class="flex items-center" {
-                    ul {
-                        @for user in unpicked_users {
-                            li class="text-red-400" { (user.username) }
-                        }
-                        @for user in picked_users {
-                            li class="text-green-400" { (user.username) }
-                        }
-                    }
-                }
-            }
-        }
-    })
 }
 
 pub fn chapter_open_button(is_open: bool) -> maud::Markup {

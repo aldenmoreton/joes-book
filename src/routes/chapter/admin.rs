@@ -18,7 +18,7 @@ use crate::{
     AppError, AppNotification, AppStateRef,
 };
 
-pub async fn handler(
+pub async fn get(
     auth_session: AuthSession,
     Extension(book_subscription): Extension<BookSubscription>,
     Extension(chapter): Extension<Chapter>,
@@ -257,7 +257,7 @@ pub async fn visible(
         toggle,
         chapter.chapter_id
     )
-    .fetch_one(pool)
+    .execute(pool)
     .await?;
 
     Ok(crate::templates::chapter_admin::chapter_visible_button(
@@ -344,4 +344,93 @@ pub async fn delete(
     transaction.commit().await?;
 
     Ok([("HX-Redirect", "../../..")].into_response())
+}
+
+pub async fn unsubmitted_users(
+    Extension(chapter): Extension<Chapter>,
+    State(state): State<AppStateRef>,
+) -> Result<maud::Markup, AppError<'static>> {
+    let pool = &state.pool;
+
+    let user_status = sqlx::query!(
+        r#"
+        SELECT USERNAME, MIN(COMPLETED::INT) = 1 AS "all_complete!"
+        FROM
+            (
+                SELECT BOOK_USERS.USERNAME, PICKS.USER_ID IS NOT NULL AS COMPLETED
+                FROM
+                    (
+                        SELECT USERS.ID, USERS.USERNAME
+                        FROM USERS
+                        WHERE
+                            EXISTS (
+                                SELECT USER_ID
+                                FROM SUBSCRIPTIONS
+                                WHERE
+                                    BOOK_ID = $1
+                                    AND SUBSCRIPTIONS.USER_ID = USERS.ID
+                                    AND COALESCE(
+                                        ((SUBSCRIPTIONS.ROLE -> 'guest' -> 'chapter_ids') @> TO_JSONB($2::INT)),
+                                        TRUE
+                                    )
+                            )
+                    ) AS BOOK_USERS
+                    CROSS JOIN (
+                        SELECT EVENTS.ID
+                        FROM EVENTS
+                        WHERE EVENTS.CHAPTER_ID = $2
+                    ) AS CHAPTER_EVENTS
+                    LEFT JOIN PICKS ON BOOK_USERS.ID = PICKS.USER_ID
+                        AND CHAPTER_EVENTS.ID = PICKS.EVENT_ID
+            ) AS EVENT_PICKS
+        GROUP BY EVENT_PICKS.USERNAME
+        ORDER BY "all_complete!", username
+        "#,
+        chapter.book_id,
+        chapter.chapter_id
+    ).fetch_all(pool).await?;
+
+    let first_complete = user_status
+        .iter()
+        .position(|r| r.all_complete)
+        .unwrap_or(user_status.len());
+
+    let unpicked_users = &user_status[..first_complete];
+    let picked_users = &user_status[first_complete..];
+
+    Ok(maud::html! {
+        @if unpicked_users.is_empty() {
+            div class="p-3 my-1 align-middle bg-green-500 rounded-lg shadow-md select-none" {
+                "All Picks Submitted"
+            }
+        } @else if picked_users.is_empty() {
+            div class="p-3 my-1 align-middle bg-red-500 rounded-lg shadow-md select-none" {
+                "No Picks Submitted"
+            }
+        } @else {
+            details class="flex items-center w-max" hx-swap="this" {
+                summary class="p-3 my-1 align-middle bg-green-500 rounded-lg shadow-md select-none" {
+                    (unpicked_users.len()) " Unpicked User" @if unpicked_users.len() > 1 { "s" }
+                }
+                div class="grid items-center grid-cols-2 gap-2" {
+                    div class="col-span-1" {
+                        ul class="w-full text-center bg-white rounded-lg" {
+                            li class="bg-red-500 rounded-t-lg" { "Unpicked Users" }
+                            @for user in unpicked_users {
+                                li class="text-red-400" { (user.username) }
+                            }
+                        }
+                    }
+                    div class="col-span-1" {
+                        ul class="w-full text-center bg-white rounded-lg" {
+                            li class="bg-green-500 rounded-t-lg" { "Picked Users" }
+                            @for user in picked_users {
+                                li class="text-green-400" { (user.username) }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    })
 }
