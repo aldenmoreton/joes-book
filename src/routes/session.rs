@@ -46,9 +46,6 @@ pub async fn login_page(State(state): State<AppStateRef>) -> impl IntoResponse {
                             }
                         }
                     }
-                    div hx-target="this" {
-                        p hx-get="/login/explaination" hx-swap="outerhtml" class="text-blue-400 underline hover:cursor-pointer" {"Where did the" br; "old Sign In Go?"}
-                    }
                 }
             }
         }),
@@ -96,8 +93,6 @@ pub async fn legacy_login_form(
                 ..Default::default()
             })
             .await;
-
-    tracing::debug!("{cf_validate:?}");
 
     if !cf_validate.map(|v| v.success).unwrap_or(false) {
         return Err(AppNotification(
@@ -193,10 +188,10 @@ pub enum OauthProfile {
 
 pub mod google {
     use axum::{
-        extract::{Query, State},
+        extract::{rejection::QueryRejection, Query, State},
         response::{ErrorResponse, IntoResponse, Redirect},
     };
-    use axum_ctx::{RespErr, RespErrCtx};
+    use axum_ctx::{RespErr, RespErrCtx, RespErrExt};
     use axum_extra::extract::CookieJar;
     use oauth2::TokenResponse as _;
     use reqwest::StatusCode;
@@ -205,13 +200,9 @@ pub mod google {
 
     #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
     pub struct GoogleOauth {
-        pub email: String,
-        pub email_verified: bool,
-        pub family_name: String,
-        pub given_name: String,
-        pub name: String,
-        pub picture: String,
         pub sub: String,
+        #[serde(flatten)]
+        pub extra: std::collections::HashMap<String, serde_json::Value>,
     }
 
     #[derive(Debug, serde::Deserialize)]
@@ -223,26 +214,46 @@ pub mod google {
         mut auth_session: AuthSession,
         cookie_jar: CookieJar,
         State(state): State<crate::AppStateRef>,
-        Query(query): Query<GoogleAuthRequest>,
+        query: Result<Query<GoogleAuthRequest>, QueryRejection>,
     ) -> Result<impl IntoResponse, ErrorResponse> {
+        let query = query
+            .map_err(|e| {
+                RespErr::new(StatusCode::INTERNAL_SERVER_ERROR)
+                    .log_msg(format!("Query params in google oauth redirect: {e:?}"))
+            })?
+            .0;
+
         let token = state
             .google
             .oauth
             .exchange_code(oauth2::AuthorizationCode::new(query.code))
             .request_async(oauth2::reqwest::async_http_client)
             .await
-            .map_err(|e| RespErr::new(StatusCode::INTERNAL_SERVER_ERROR).log_msg(e.to_string()))?;
+            .map_err(|e| {
+                RespErr::new(StatusCode::INTERNAL_SERVER_ERROR)
+                    .log_msg(format!("No way to get token: {e:?}"))
+            })?;
 
-        let profile: GoogleOauth = state
+        let profile = state
             .requests
             .get("https://openidconnect.googleapis.com/v1/userinfo")
             .bearer_auth(token.access_token().secret())
             .send()
             .await
-            .map_err(|e| RespErr::new(StatusCode::INTERNAL_SERVER_ERROR).log_msg(e.to_string()))?
-            .json()
+            .map_err(|e| {
+                RespErr::new(StatusCode::INTERNAL_SERVER_ERROR)
+                    .log_msg(format!("Can't get access token response: {e:?}"))
+            })?
+            .text()
             .await
-            .map_err(|e| RespErr::new(StatusCode::INTERNAL_SERVER_ERROR).log_msg(e.to_string()))?;
+            .map_err(|e| {
+                RespErr::new(StatusCode::INTERNAL_SERVER_ERROR)
+                    .log_msg(format!("Don't understand oauth token: {e:?}"))
+            })?;
+
+        let profile: GoogleOauth = serde_json::from_str(&profile).map_err(|e| {
+            RespErr::new(StatusCode::INTERNAL_SERVER_ERROR).log_msg(format!("Json no go: {e:?}"))
+        })?;
 
         let pool = &state.pool;
 
@@ -265,12 +276,14 @@ pub mod google {
             auth_session
                 .login(&user)
                 .await
-                .ctx(StatusCode::INTERNAL_SERVER_ERROR)?;
+                .ctx(StatusCode::INTERNAL_SERVER_ERROR)
+                .log_msg("Could not log in via google oauth")?;
             return Err(Redirect::to("/").into());
         }
 
         let content = serde_json::to_value(profile.clone())
             .map_err(|e| RespErr::new(StatusCode::INTERNAL_SERVER_ERROR).log_msg(e.to_string()))?;
+
         sqlx::query!(
             "
             INSERT INTO oauth(sub, provider, content)
@@ -307,10 +320,6 @@ pub mod google {
                 .path("/")
                 .build();
 
-        Ok((
-            cookie_jar.add(cookie).remove("book_session"),
-            Redirect::to("/finish-signup"),
-        )
-            .into_response())
+        Ok((cookie_jar.add(cookie), Redirect::to("/finish-signup")).into_response())
     }
 }

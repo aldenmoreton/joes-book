@@ -169,14 +169,14 @@ pub fn router() -> Router<AppStateRef> {
         //     "/signup",
         //     get(crate::signup::signup_page).post(crate::signup::signup_form),
         // )
-        .route(
-            "/legacy-login",
-            get(crate::session::legacy_login_page).post(crate::session::legacy_login_form),
-        )
-        .route(
-            "/login/explaination",
-            get(crate::session::login_explaination),
-        )
+        // .route(
+        //     "/legacy-login",
+        //     get(crate::session::legacy_login_page).post(crate::session::legacy_login_form),
+        // )
+        // .route(
+        //     "/login/explaination",
+        //     get(crate::session::login_explaination),
+        // )
         .route("/login", get(crate::session::login_page))
         .route_layer(middleware::from_fn(
             |auth_session: auth::AuthSession, request, next: middleware::Next| async move {

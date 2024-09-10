@@ -54,6 +54,7 @@ pub async fn get(
                         });
                     };"
                 }
+                (crate::templates::alertify())
             }),
             None,
             Some(maud::html!(
@@ -62,25 +63,27 @@ pub async fn get(
                         form
                             hx-post="/finish-signup"
                             hx-swap="afterend"
-                            hx-confirm="Are you sure you don't have an existing account? If you do please click 'Link Existing Account'."
                             hx-on--after-on-load="if (event.detail.xhr.status !== 200) {document.getElementById('submit-button').disabled = true;turnstile.reset('#cf-turnstile-container');}"
                             {
                             div class="flex flex-col items-center justify-center px-8 pt-6 pb-6 mb-4 bg-white rounded shadow-md" {
-                                img src=(profile.picture) class="m-2";
+                                @if let (Some(picture), Some(first), Some(last)) = (profile.extra.get("picture"), profile.extra.get("given_name"), profile.extra.get("famly_name")) {
+                                    img src=(picture) class="m-2";
 
-                                div class="mb-4" {
-                                    label class="block mb-2 text-sm font-bold text-left text-gray-700" for="username" {
-                                        "First Name"
+                                    div class="mb-4" {
+                                        label class="block mb-2 text-sm font-bold text-left text-gray-700" for="username" {
+                                            "First Name"
+                                        }
+                                        input disabled class="w-full px-3 py-2 leading-tight text-gray-700 border rounded shadow appearance-none disabled:bg-gray-200 disabled:cursor-not-allowed focus:outline-none focus:shadow-outline" id="username" name="username" type="text" value=(first);
                                     }
-                                    input disabled class="w-full px-3 py-2 leading-tight text-gray-700 border rounded shadow appearance-none disabled:bg-gray-200 disabled:cursor-not-allowed focus:outline-none focus:shadow-outline" id="username" name="username" type="text" value=(profile.given_name);
+
+                                    div class="mb-4" {
+                                        label class="block mb-2 text-sm font-bold text-left text-gray-700" for="username" {
+                                            "Last Name"
+                                        }
+                                        input disabled class="w-full px-3 py-2 leading-tight text-gray-700 border rounded shadow appearance-none disabled:bg-gray-200 disabled:cursor-not-allowed focus:outline-none focus:shadow-outline" id="username" name="username" type="text" value=(last);
+                                    }
                                 }
 
-                                div class="mb-4" {
-                                    label class="block mb-2 text-sm font-bold text-left text-gray-700" for="username" {
-                                        "Last Name"
-                                    }
-                                    input disabled class="w-full px-3 py-2 leading-tight text-gray-700 border rounded shadow appearance-none disabled:bg-gray-200 disabled:cursor-not-allowed focus:outline-none focus:shadow-outline" id="username" name="username" type="text" value=(profile.family_name);
-                                }
 
                                 div class="mb-4" {
                                     label class="block mb-2 text-sm font-bold text-left text-gray-700" for="username" {
@@ -91,15 +94,8 @@ pub async fn get(
 
                                 div id="cf-turnstile-container" {}
 
-                                div class="flex items-center space-x-4" {
-                                    a href="/legacy-login" {
-                                        button type="button" class="p-1 font-bold text-black bg-white border-2 border-green-500 rounded hover:text-white hover:bg-green-700 focus:outline-none focus:shadow-outline" style="font-size: 85%;" {
-                                            "Link Existing" br; "Account"
-                                        }
-                                    }
-                                    button disabled id="submit-button" class="px-4 py-2 font-bold text-white bg-green-500 rounded disabled:cursor-wait disabled:bg-gray-400 hover:bg-green-700 focus:outline-none focus:shadow-outline" type="submit" style="font-size: 150%;" {
-                                        "Sign Up"
-                                    }
+                                button disabled id="submit-button" class="px-4 py-2 font-bold text-white bg-green-500 rounded disabled:cursor-wait disabled:bg-gray-400 hover:bg-green-700 focus:outline-none focus:shadow-outline" type="submit" style="font-size: 150%;" {
+                                    "Sign Up"
                                 }
                             }
                         }
@@ -185,7 +181,10 @@ pub async fn post(
     .fetch_optional(&mut *transaction)
     .await
     .map_err(AppError::from)?
-    .ok_or(maud::html!(p class="text-red-500" {"Username already taken." br; "If this is your profile please click 'Link Existing Account'"}))?;
+    .ok_or(AppNotification(
+        StatusCode::BAD_REQUEST,
+        "Username already taken".into(),
+    ))?;
 
     sqlx::query!(
         "

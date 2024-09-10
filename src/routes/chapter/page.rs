@@ -347,7 +347,7 @@ fn table_rows(
                             (EventContent::SpreadGroup(spreads), None) => {
                                 @for _ in spreads {
                                     td {
-                                        p {"No Pick"}
+                                        p class="text-red-500" {"No Pick"}
                                     }
                                 }
                             },
@@ -365,7 +365,7 @@ fn table_rows(
                             }
                             (EventContent::UserInput(_), None) => {
                                 td {
-                                    p {"No Pick"}
+                                    p class="text-red-500" {"No Pick"}
                                 }
                             }
                             _ => {
