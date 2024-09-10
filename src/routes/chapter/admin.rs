@@ -417,7 +417,7 @@ pub async fn unsubmitted_users(
                         ul class="w-full text-center bg-white rounded-lg" {
                             li class="bg-red-500 rounded-t-lg" { "Unpicked Users" }
                             @for user in unpicked_users {
-                                li class="text-red-400" { (user.username) }
+                                li { (user.username) }
                             }
                         }
                     }
@@ -425,7 +425,7 @@ pub async fn unsubmitted_users(
                         ul class="w-full text-center bg-white rounded-lg" {
                             li class="bg-green-500 rounded-t-lg" { "Picked Users" }
                             @for user in picked_users {
-                                li class="text-green-400" { (user.username) }
+                                li { (user.username) }
                             }
                         }
                     }

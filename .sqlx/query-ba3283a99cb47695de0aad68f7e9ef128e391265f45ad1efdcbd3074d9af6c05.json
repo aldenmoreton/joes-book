@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT USERNAME, MIN(COMPLETED::INT) = 1 AS \"all_complete!\"\n        FROM\n            (\n                SELECT BOOK_USERS.USERNAME, PICKS.USER_ID IS NOT NULL AS COMPLETED\n                FROM\n                    (\n                        SELECT USERS.ID, USERS.USERNAME\n                        FROM USERS\n                        WHERE\n                            EXISTS (\n                                SELECT USER_ID\n                                FROM SUBSCRIPTIONS\n                                WHERE\n                                    BOOK_ID = $1\n                                    AND SUBSCRIPTIONS.USER_ID = USERS.ID\n                                    AND COALESCE(\n                                        ((SUBSCRIPTIONS.ROLE -> 'guest' -> 'chapter_ids') @> TO_JSONB($2::INT)),\n                                        TRUE\n                                    )\n                            )\n                    ) AS BOOK_USERS\n                    CROSS JOIN (\n                        SELECT EVENTS.ID\n                        FROM EVENTS\n                        WHERE EVENTS.CHAPTER_ID = $2\n                    ) AS CHAPTER_EVENTS\n                    LEFT JOIN PICKS ON BOOK_USERS.ID = PICKS.USER_ID\n                        AND CHAPTER_EVENTS.ID = PICKS.EVENT_ID\n            ) AS EVENT_PICKS\n        GROUP BY EVENT_PICKS.USERNAME\n        ORDER BY \"all_complete!\", username\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "username",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "all_complete!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "ba3283a99cb47695de0aad68f7e9ef128e391265f45ad1efdcbd3074d9af6c05"
+}
