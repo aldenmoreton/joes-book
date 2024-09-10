@@ -115,13 +115,14 @@ pub fn router() -> Router<AppStateRef> {
             Router::new()
                 .route(
                     "/",
-                    get(chapter::admin::handler)
+                    get(chapter::admin::get)
                         .post(chapter::admin::post)
                         .delete(chapter::admin::delete),
                 )
                 .route("/user-input", get(chapter::admin::user_input))
                 .route("/open", post(chapter::admin::open))
-                .route("/visible", post(chapter::admin::visible)),
+                .route("/visible", post(chapter::admin::visible))
+                .route("/unsubmitted-users", get(chapter::admin::unsubmitted_users)),
         )
         .route_layer(middleware::from_fn(book::mw::require_admin))
         .route("/:chapter_id/", chapter_home_page)

@@ -40,15 +40,14 @@ pub fn markup(
                     (chapter_visible_button(chapter.is_visible))
                 }
 
-                details {
-                    summary {
-                        span class="text-red-500" {"Danger Zone"}
-                    }
-                    button
-                        hx-delete="."
-                        hx-confirm="Are you sure you wish to delete this chapter and all the picks within FOREVER?"
-                        class="p-0.5 font-bold text-white bg-red-600 rounded hover:bg-red-700" {
-                        "Delete Chapter"
+                div class="flex items-center justify-center" {
+                    details class="flex items-center w-max" hx-target="this" {
+                        summary class="p-3 my-1 align-middle bg-green-500 rounded-lg shadow-md select-none" {
+                            "Unsubmitted Users"
+                        }
+                        div hx-get="unsubmitted-users" hx-trigger="load" hx-swap="outerHTML" class="flex items-center" {
+                            "Loading..."
+                        }
                     }
                 }
 
@@ -73,6 +72,18 @@ pub fn markup(
                         "Submit"
                     }
                     div {}
+
+                    details class="my-5" {
+                        summary {
+                            span class="text-red-500" {"Danger Zone"}
+                        }
+                        button
+                            hx-delete="."
+                            hx-confirm="Are you sure you wish to delete this chapter and all the picks within FOREVER?"
+                            class="p-0.5 font-bold text-white bg-red-600 rounded hover:bg-red-700" {
+                            "Delete Chapter"
+                        }
+                    }
                 }
             }
 
