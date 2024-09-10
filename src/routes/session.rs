@@ -46,9 +46,6 @@ pub async fn login_page(State(state): State<AppStateRef>) -> impl IntoResponse {
                             }
                         }
                     }
-                    div hx-target="this" {
-                        p hx-get="/login/explaination" hx-swap="outerhtml" class="text-blue-400 underline hover:cursor-pointer" {"Where did the" br; "old Sign In Go?"}
-                    }
                 }
             }
         }),
@@ -96,8 +93,6 @@ pub async fn legacy_login_form(
                 ..Default::default()
             })
             .await;
-
-    tracing::debug!("{cf_validate:?}");
 
     if !cf_validate.map(|v| v.success).unwrap_or(false) {
         return Err(AppNotification(
@@ -256,8 +251,6 @@ pub mod google {
                     .log_msg(format!("Don't understand oauth token: {e:?}"))
             })?;
 
-        tracing::error!("{profile}");
-
         let profile: GoogleOauth = serde_json::from_str(&profile).map_err(|e| {
             RespErr::new(StatusCode::INTERNAL_SERVER_ERROR).log_msg(format!("Json no go: {e:?}"))
         })?;
@@ -327,10 +320,6 @@ pub mod google {
                 .path("/")
                 .build();
 
-        Ok((
-            cookie_jar.add(cookie).remove("book_session"),
-            Redirect::to("/finish-signup"),
-        )
-            .into_response())
+        Ok((cookie_jar.add(cookie), Redirect::to("/finish-signup")).into_response())
     }
 }
