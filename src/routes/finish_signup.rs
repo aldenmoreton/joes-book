@@ -87,9 +87,9 @@ pub async fn get(
 
                                 div class="mb-4" {
                                     label class="block mb-2 text-sm font-bold text-left text-gray-700" for="username" {
-                                        "Display Name"
+                                        "Username"
                                     }
-                                    input class="w-full px-3 py-2 leading-tight text-gray-700 border rounded shadow appearance-none disabled:bg-gray-200 disabled:cursor-not-allowed focus:outline-none focus:shadow-outline" id="username" name="username" type="text" placeholder="Choose Display Name";
+                                    input class="w-full px-3 py-2 leading-tight text-gray-700 border rounded shadow appearance-none disabled:bg-gray-200 disabled:cursor-not-allowed focus:outline-none focus:shadow-outline" id="username" name="username" type="text" placeholder="Choose Username";
                                 }
 
                                 div id="cf-turnstile-container" {}
