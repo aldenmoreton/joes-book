@@ -18,16 +18,11 @@ Cargo.lock
 node_modules/
 package-lock.json
 
-Joe.db
-migration.ipynb
+*.db
 .env
-objects.ipynb
+*.ipynb
 fly.toml
-
-
-# Added by cargo
-
 /target
-college_teams.csv
+*.csv
 *secret*
 .vscode/settings.json
