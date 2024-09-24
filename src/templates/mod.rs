@@ -24,7 +24,7 @@ pub fn base(
         html {
             head {
                 meta charset="utf-8";
-                meta name="viewport" content="width=device-width, initial-scale=1.0";
+                meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.00, minimum-scale=1.00";
                 title {(page_title.unwrap_or("Joe's Book"))}
                 link rel="icon" type="image/ico" href="/public/favicon.ico";
                 link rel="manifest" href="/public/manifest.json";
