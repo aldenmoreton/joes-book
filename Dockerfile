@@ -40,11 +40,12 @@ RUN adduser \
     appuser
 USER appuser
 
+# Copy the public folder
+COPY ./public /public
+
 # Copy the executable from the "build" stage.
 COPY --from=build /bin/server /bin/server/
 
-# Copy the public folder
-COPY ./public /public
 # Copy styles
 COPY --from=styles /bookie.css /public/styles/bookie.css
 
