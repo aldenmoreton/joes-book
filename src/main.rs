@@ -1,23 +1,14 @@
-use axum_login::{
-    tower_sessions::{cookie::time::Duration, Expiry, SessionManagerLayer},
-    AuthManagerLayerBuilder,
-};
 use joes_book::{auth::BackendPgDB, router, GoogleState};
-use sqlx::postgres::PgPoolOptions;
-
-use tower_sessions::PostgresStore;
 
 #[cfg(feature = "shuttle")]
 #[shuttle_runtime::main]
 pub async fn shuttle(
     #[shuttle_runtime::Secrets] secrets: shuttle_runtime::SecretStore,
-    #[shuttle_shared_db::Postgres(local_uri = "postgresql://postgres:postgres@localhost/new2")]
-    database_url: String,
+    #[shuttle_shared_db::Postgres] pool: sqlx::PgPool,
 ) -> shuttle_axum::ShuttleAxum {
-    let pool = PgPoolOptions::new()
-        .connect(&database_url)
-        .await
-        .expect("Could not make pool.");
+    use axum_login::AuthManagerLayerBuilder;
+    use tower_sessions::{cookie::time::Duration, Expiry, SessionManagerLayer};
+    use tower_sessions_sqlx_store::PostgresStore;
 
     let auth_layer = {
         let backend = BackendPgDB(pool.clone());

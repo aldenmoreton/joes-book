@@ -9,7 +9,6 @@ use axum::{
     Extension, Router,
 };
 use axum_ctx::{RespErr, StatusCode};
-use axum_login::login_required;
 use tower_http::services::ServeDir;
 
 use crate::routes::*;
@@ -193,7 +192,10 @@ pub fn router() -> Router<AppStateRef> {
         .merge(home_routes)
         .route("/team-search", get(search::team))
         // ------------------^ Logged in Routes ^------------------
-        .route_layer(login_required!(BackendPgDB, login_url = "/login"))
+        .route_layer(axum_login::login_required!(
+            BackendPgDB,
+            login_url = "/login"
+        ))
         .nest_service("/public", ServeDir::new("public"))
         .merge(session_routes)
         .fallback(get((StatusCode::NOT_FOUND, "Could not find your route"))) // TODO: Add funny status page
@@ -265,7 +267,7 @@ impl From<RespErr> for AppNotification {
         let text = value.to_string();
         let status = value.status_code;
 
-        value.into_response();
+        let _ = value.into_response();
 
         AppNotification(status, text)
     }

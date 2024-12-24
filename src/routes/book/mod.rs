@@ -39,7 +39,7 @@ pub mod mw {
                 ..
             }) => return Err((StatusCode::UNAUTHORIZED, Redirect::to("/")).into()),
             Err(e) => {
-                RespErr::new(StatusCode::NOT_FOUND)
+                let _ = RespErr::new(StatusCode::NOT_FOUND)
                     .user_msg("Could not find book")
                     .log_msg(e.to_string())
                     .into_response();

@@ -6,7 +6,6 @@ use super::{spread::Spread, user_input::UserInput};
 
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
-use sqlx::postgres::{PgHasArrayType, PgTypeInfo};
 use sqlx::types::Json;
 use sqlx::PgPool;
 
@@ -15,16 +14,6 @@ use sqlx::PgPool;
 pub enum EventType {
     SpreadGroup,
     UserInput,
-}
-
-impl PgHasArrayType for EventType {
-    fn array_compatible(_ty: &sqlx::postgres::PgTypeInfo) -> bool {
-        true
-    }
-
-    fn array_type_info() -> sqlx::postgres::PgTypeInfo {
-        PgTypeInfo::with_name("event_types[]")
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]

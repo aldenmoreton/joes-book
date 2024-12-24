@@ -12,8 +12,8 @@ CREATE TABLE IF NOT EXISTS oauth (
     provider text NOT NULL,
     content jsonb NOT NULL,
     created_at timestamp DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT oauth_pkey PRIMARY KEY (sub, provider)
-	CONSTRAINT oauth_user_id_fkey FOREIGN KEY (user_id)
+    PRIMARY KEY (sub, provider),
+	FOREIGN KEY (user_id)
         REFERENCES users (id) MATCH SIMPLE
         ON UPDATE NO ACTION
         ON DELETE NO ACTION
@@ -24,8 +24,8 @@ CREATE TABLE IF NOT EXISTS signup_tokens (
     provider text NOT NULL,
     token text NOT NULL DEFAULT md5((gen_random_uuid())::text),
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT signup_tokens_pkey PRIMARY KEY (token)
-	CONSTRAINT signup_tokens_sub_provider_fkey FOREIGN KEY (sub, provider)
+    PRIMARY KEY (token),
+	FOREIGN KEY (sub, provider)
         REFERENCES oauth (sub, provider) MATCH SIMPLE
         ON UPDATE NO ACTION
         ON DELETE NO ACTION
@@ -47,12 +47,13 @@ CREATE TABLE IF NOT EXISTS books (
 CREATE TABLE IF NOT EXISTS subscriptions (
 	"user_id"	SERIAL NOT NULL REFERENCES users(id),
 	"book_id"	SERIAL NOT NULL REFERENCES books(id),
-	"role"		JOSNB NOT NULL
-	CONSTRAINT subscriptions_book_id_fkey FOREIGN KEY (book_id)
+	"role"		JSONB NOT NULL,
+    PRIMARY KEY (user_id, book_id),
+	FOREIGN KEY (book_id)
         REFERENCES books (id) MATCH SIMPLE
         ON UPDATE NO ACTION
         ON DELETE NO ACTION,
-    CONSTRAINT subscriptions_user_id_fkey FOREIGN KEY (user_id)
+    FOREIGN KEY (user_id)
         REFERENCES users (id) MATCH SIMPLE
         ON UPDATE NO ACTION
         ON DELETE NO ACTION
@@ -107,13 +108,13 @@ CREATE TABLE IF NOT EXISTS added_points(
     book_id integer NOT NULL,
     points integer NOT NULL,
     reason text NOT NULL,
-    CONSTRAINT added_points_pkey PRIMARY KEY (id),
-    CONSTRAINT added_points_book_id_fkey FOREIGN KEY (book_id)
+    PRIMARY KEY (id),
+    FOREIGN KEY (book_id)
         REFERENCES books (id) MATCH SIMPLE
         ON UPDATE NO ACTION
         ON DELETE NO ACTION
         NOT VALID,
-    CONSTRAINT added_points_user_id_fkey FOREIGN KEY (user_id)
+    FOREIGN KEY (user_id)
         REFERENCES users (id) MATCH SIMPLE
         ON UPDATE NO ACTION
         ON DELETE NO ACTION
@@ -124,5 +125,5 @@ CREATE TABLE IF NOT EXISTS subscription_groups (
     name text NOT NULL,
     user_id integer NOT NULL,
     book_id integer NOT NULL,
-    CONSTRAINT subscription_groups_pkey PRIMARY KEY (user_id, name, book_id)
+    PRIMARY KEY (user_id, name, book_id)
 );
