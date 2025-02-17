@@ -52,7 +52,21 @@ pub struct TurnstileState {
 
 pub struct GoogleState {
     pub redirect_url: String,
-    pub oauth: oauth2::basic::BasicClient,
+    pub oauth: oauth2::Client<
+        oauth2::StandardErrorResponse<oauth2::basic::BasicErrorResponseType>,
+        oauth2::StandardTokenResponse<oauth2::EmptyExtraTokenFields, oauth2::basic::BasicTokenType>,
+        oauth2::StandardTokenIntrospectionResponse<
+            oauth2::EmptyExtraTokenFields,
+            oauth2::basic::BasicTokenType,
+        >,
+        oauth2::StandardRevocableToken,
+        oauth2::StandardErrorResponse<oauth2::RevocationErrorResponseType>,
+        oauth2::EndpointSet,
+        oauth2::EndpointNotSet,
+        oauth2::EndpointNotSet,
+        oauth2::EndpointNotSet,
+        oauth2::EndpointSet,
+    >,
 }
 
 pub fn router() -> Router<AppStateRef> {
@@ -111,7 +125,7 @@ pub fn router() -> Router<AppStateRef> {
 
     let chapter_routes = Router::new()
         .nest(
-            "/:chapter_id/admin/",
+            "/{chapter_id}/admin/",
             Router::new()
                 .route(
                     "/",
@@ -125,7 +139,7 @@ pub fn router() -> Router<AppStateRef> {
                 .route("/unsubmitted-users", get(chapter::admin::unsubmitted_users)),
         )
         .route_layer(middleware::from_fn(book::mw::require_admin))
-        .route("/:chapter_id/", chapter_home_page)
+        .route("/{chapter_id}/", chapter_home_page)
         .route_layer(middleware::from_fn(chapter::mw::chapter_ext))
         .nest(
             "/create/",
@@ -137,9 +151,9 @@ pub fn router() -> Router<AppStateRef> {
         );
 
     let book_routes = Router::new()
-        .nest("/:book_id/chapter/", chapter_routes)
+        .nest("/{book_id}/chapter/", chapter_routes)
         .nest(
-            "/:book_id/admin/",
+            "/{book_id}/admin/",
             Router::new()
                 .route("/", get(book::admin::handler).delete(book::admin::delete))
                 .route("/user-search", get(book::admin::search_user))
@@ -147,8 +161,8 @@ pub fn router() -> Router<AppStateRef> {
                 .route("/remove-user", post(book::admin::remove_user))
                 .route_layer(middleware::from_fn(book::mw::require_admin)),
         )
-        .route("/:book_id/leaderboard", get(book::page::leaderboard))
-        .route("/:book_id/", get(book::page::handler))
+        .route("/{book_id}/leaderboard", get(book::page::leaderboard))
+        .route("/{book_id}/", get(book::page::handler))
         .route_layer(middleware::from_fn(book::mw::require_member))
         .route(
             "/create",

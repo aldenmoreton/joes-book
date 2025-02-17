@@ -227,7 +227,7 @@ pub mod google {
             .google
             .oauth
             .exchange_code(oauth2::AuthorizationCode::new(query.code))
-            .request_async(oauth2::reqwest::async_http_client)
+            .request_async(&reqwest::Client::new())
             .await
             .map_err(|e| {
                 RespErr::new(StatusCode::INTERNAL_SERVER_ERROR)

@@ -1,4 +1,4 @@
-use axum::async_trait;
+use async_trait::async_trait;
 use axum_login::{AuthSession as AxumLoginAuthSession, AuthUser, AuthnBackend, UserId};
 use serde::Deserialize;
 use sqlx::PgPool;

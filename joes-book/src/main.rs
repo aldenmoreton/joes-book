@@ -4,7 +4,8 @@ use joes_book::{auth::BackendPgDB, router, GoogleState};
 #[shuttle_runtime::main]
 pub async fn shuttle(
     #[shuttle_runtime::Secrets] secrets: shuttle_runtime::SecretStore,
-    #[shuttle_shared_db::Postgres] pool: sqlx::PgPool,
+    #[shuttle_shared_db::Postgres(local_uri = "postgres://postgres:postgres@localhost:5432/new2")]
+    pool: sqlx::PgPool,
 ) -> shuttle_axum::ShuttleAxum {
     use axum_login::AuthManagerLayerBuilder;
     use tower_sessions::{cookie::time::Duration, Expiry, SessionManagerLayer};
@@ -41,16 +42,18 @@ pub async fn shuttle(
             .get("GOOGLE_OAUTH_REDIRECT")
             .unwrap_or("http://localhost:8000/api/auth/google".to_string());
 
-        let google_oauth = oauth2::basic::BasicClient::new(
-            oauth2::ClientId::new(secrets.get("GOOGLE_OAUTH_CLIENT_ID").unwrap()),
-            Some(oauth2::ClientSecret::new(
-                secrets.get("GOOGLE_OAUTH_SECRET").unwrap(),
-            )),
-            oauth2::AuthUrl::new("https://accounts.google.com/o/oauth2/v2/auth".into()).unwrap(),
-            Some(
-                oauth2::TokenUrl::new("https://www.googleapis.com/oauth2/v3/token".into()).unwrap(),
-            ),
+        let google_oauth = oauth2::basic::BasicClient::new(oauth2::ClientId::new(
+            secrets.get("GOOGLE_OAUTH_CLIENT_ID").unwrap(),
+        ))
+        .set_token_uri(
+            oauth2::TokenUrl::new("https://www.googleapis.com/oauth2/v3/token".into()).unwrap(),
         )
+        .set_auth_uri(
+            oauth2::AuthUrl::new("https://accounts.google.com/o/oauth2/v2/auth".into()).unwrap(),
+        )
+        .set_client_secret(oauth2::ClientSecret::new(
+            secrets.get("GOOGLE_OAUTH_SECRET").unwrap(),
+        ))
         .set_redirect_uri(oauth2::RedirectUrl::new(google_redirect_url.clone()).unwrap());
 
         joes_book::AppState {

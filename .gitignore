@@ -26,3 +26,5 @@ fly.toml
 *.csv
 *secret*
 .vscode/settings.json
+.shuttle*
+Secrets*.toml
