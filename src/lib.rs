@@ -1,17 +1,18 @@
 // TODO: Refactor some routes to end with / so that they can more
 // Simply route to the pages under them
-use auth::{authz, BackendPgDB};
-use axum::{
-    handler::Handler,
-    middleware,
-    response::{Html, IntoResponse, Redirect},
-    routing::{get, post},
-    Extension, Router,
+use {
+    crate::routes::*,
+    auth::{authz, BackendPgDB},
+    axum::{
+        handler::Handler,
+        middleware,
+        response::{Html, IntoResponse, Redirect},
+        routing::{get, post},
+        Extension, Router,
+    },
+    axum_ctx::{RespErr, StatusCode},
+    tower_http::services::ServeDir,
 };
-use axum_ctx::{RespErr, StatusCode};
-use tower_http::services::ServeDir;
-
-use crate::routes::*;
 
 pub mod auth;
 pub mod search;
